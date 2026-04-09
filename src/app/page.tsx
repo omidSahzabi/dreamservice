@@ -1,14 +1,15 @@
-import { Button } from "@/components/ui/button"
-import { ArrowUpRightIcon } from "lucide-react"
+import Hero from '@/components/templates/Hero'
+import CallToAction from '@/components/templates/CallToAction';
+import Packages from '@/components/templates/Packages';
+
 
 
 export default function Home() {
   return (
-    <div className="text-red-800">
-      <p>hello world</p>
-      <Button size="icon-lg" aria-label="Submit" variant="secondary">
-          <ArrowUpRightIcon />
-        </Button>
+    <div>
+      <Hero />
+      <CallToAction />
+      <Packages />
     </div>
   );
 }
