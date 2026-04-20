@@ -530,7 +530,7 @@ const baseInputClasses = clsx(
         <div className={buttonContainerClasses}>
         <button
           type="submit"
-          disabled={!isSubmitting}
+          disabled={isSubmitting}
           className={clsx(
             'flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg',
             'hover:bg-blue-700 focus:ring-4 focus:ring-blue-300',

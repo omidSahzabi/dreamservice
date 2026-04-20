@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
 import Navbar from "@/components/modules/navbar/Navbar";
-
+import Footer from "@/components/modules/footer/footer";
 
 export const metadata: Metadata = {
   title: "dream service | طراحی سایت",
@@ -14,10 +14,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="fa" dir="rtl" className="dark">
       <body>
         <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   );

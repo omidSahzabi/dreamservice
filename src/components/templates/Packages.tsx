@@ -15,7 +15,7 @@ export default function Packages(): JSX.Element {
   const searchField: FieldConfig[] = [
     {
       name: 'search',
-      label: 'جستجوی پکیج‌ها',
+      label: 'جستجوی پکیج‌ها', 
       type: 'text',
           showLabel: false,  // ← همینه!
 

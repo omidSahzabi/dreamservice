@@ -1,7 +1,39 @@
-
 @import "tailwindcss";
 
 @theme {
+  --color-primary: #01CAE0;
+  --color-primary-hover: #00E0FF;
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F8FAFC;
+  --color-surface-1: #F1F5F9;
+  --color-surface-2: #E2E8F0;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-border-soft: rgba(0, 0, 0, 0.08);
+
+  --color-dark-primary: #01CAE0;
+  --color-dark-primary-hover: #00E0FF;
+  --color-dark-bg-primary: #090F25;
+  --color-dark-bg-secondary: #0C1633;
+  --color-dark-surface-1: #0C1633;
+  --color-dark-surface-2: #101C44;
+  --color-dark-text-primary: #FFFFFF;
+  --color-dark-text-secondary: #D9D9D9;
+  --color-dark-text-muted: #8A94B2;
+  --color-dark-border-soft: rgba(255, 255, 255, 0.08);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 25px rgba(1, 202, 224, 0.5);
+
+  --gradient-primary: linear-gradient(135deg, #01CAE0 0%, #0643C1 100%);
+}
+
+.dark {
   --color-primary: #01CAE0;
   --color-primary-hover: #00E0FF;
   --color-bg-primary: #090F25;
@@ -12,15 +44,6 @@
   --color-text-secondary: #D9D9D9;
   --color-text-muted: #8A94B2;
   --color-border-soft: rgba(255, 255, 255, 0.08);
-  
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  
-  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 25px rgba(1, 202, 224, 0.5);
-  
-  --gradient-primary: linear-gradient(135deg, #01CAE0 0%, #0643C1 100%);
 }
 
 *,
@@ -28,29 +51,21 @@
 *::after {
   box-sizing: border-box;
 }
-
 * {
   margin: 0;
 }
-/* src/app/globals.css */
 
-/* یا هر بک‌گراند دلخواه */
 body {
   min-height: 100vh;
-  background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #0f172a 100%);
-  min-height: 100vh;
-  color: #D9D9D9;
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @layer base {
-  body {
-    /* background-color: var(--color-bg-primary); */
-    color: var(--color-text-secondary);
-  }
-  
   h1, h2, h3, h4, h5 {
     color: var(--color-text-primary);
     font-weight: 600;

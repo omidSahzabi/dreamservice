@@ -28,6 +28,7 @@ interface FeatureItem {
 interface CTABarButton {
   text: string;
   icon?: React.ReactNode;
+  id: string ;
   onClick: () => void;
   variant?: 'primary' | 'secondary' | 'outline';
 }
@@ -85,10 +86,10 @@ export default function CallToAction(): JSX.Element {
   ];
 
   const buttons: CTABarButton[] = [
-    { text: "شروع همکاری", variant: "primary", onClick: () => {} },
-    { text: "مشاوره رایگان", variant: "secondary", onClick: () => {} },
-    { text: "نمونه کارها", variant: "outline", onClick: () => {} },
-    { text: "تماس با ما", variant: "outline", onClick: () => {} },
+    { text: "شروع همکاری", variant: "primary", onClick: () => {} , id:'1' },
+    { text: "مشاوره رایگان", variant: "secondary", onClick: () => {} , id:'2' },
+    { text: "نمونه کارها", variant: "outline", onClick: () => {} ,id:'3' },
+    { text: "تماس با ما", variant: "outline", onClick: () => {} , id:'4' },
   ];
 
   return (
@@ -184,6 +185,7 @@ export default function CallToAction(): JSX.Element {
             >
               {buttons.map((button, index) => (
                 <motion.button
+                  key={button?.id}
                   initial={{ scale: 0, rotate: -180 }}
                   animate={isInView ? { scale: 1, rotate: 0 } : {}}
                   transition={{ 
