@@ -7,8 +7,11 @@ import DesktopNav from "./DesktopNav";
 import MobileMenu from "./MobileMenu";
 import AuthButton from "./AuthButton";
 import ThemeToggle from "./ThemeToggle";
+import LanguageToggleButton from "./LanguageToggleButton";
+
 
 export default function Navbar() {
+
   const pathname = usePathname();
 
   const isActive = useMemo(() => {
@@ -29,6 +32,7 @@ export default function Navbar() {
         <DesktopNav isActive={isActive} />
         <div className="hidden lg:flex items-center gap-2">
           <ThemeToggle />
+          <LanguageToggleButton />
           <AuthButton />
         </div>
         <MobileMenu isActive={isActive} />
