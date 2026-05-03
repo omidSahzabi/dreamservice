@@ -11,7 +11,7 @@ export default function Logo() {
         width={120}
         height={32}
         priority
-        className="object-contain mr-5"
+        className="mr-5 w-[120px] h-auto"
       />
     </Link>
   );

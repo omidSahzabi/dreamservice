@@ -1,20 +1,15 @@
 'use client'; // اضافه کنید
 
 import Hero from '@/components/templates/Hero'
-import CallToAction from '@/components/templates/CallToAction';
+import CallToAction from '@/components/templates/callToAction/CallToAction';
 import Packages from '@/components/templates/Packages';
-import SampleProjects from '@/components/templates/SampleProjects';
+import SampleProjects from '@/components/templates/sampleProjects/SampleProjects';
 import LaunchCountdown from '@/components/templates/LaunchCountdown';
-import { useTranslations } from 'next-intl';
-
-
 
 export default function Home() {
-  const t = useTranslations('Navbar');
-
+  console.log('test111')
   return (
     <div>
-      <p>{t('home')}</p>
       <Hero />
       <CallToAction />
       <Packages />

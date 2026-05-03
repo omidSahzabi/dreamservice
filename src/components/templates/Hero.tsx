@@ -20,7 +20,6 @@ export default function Hero(): JSX.Element {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-            {/* this is where u should replace  */}
           <path d="M12 19V5M5 12l7-7 7 7" />
         </motion.svg>
 
@@ -40,7 +39,6 @@ export default function Hero(): JSX.Element {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-        {/* this is where u should replace  */}
           <path d="M12 19V5M5 12l7-7 7 7" />
         </motion.svg>
       </div>

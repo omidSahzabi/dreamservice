@@ -51,9 +51,7 @@
 *::after {
   box-sizing: border-box;
 }
-* {
-  margin: 0;
-}
+
 
 body {
   min-height: 100vh;

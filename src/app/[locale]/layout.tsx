@@ -26,7 +26,6 @@ export default async function RootLayout({
 }) {
   const { locale } = await params;
   
-  // استفاده از getMessages به جای import مستقیم
   const messages = await getMessages({ locale });
 
   return (

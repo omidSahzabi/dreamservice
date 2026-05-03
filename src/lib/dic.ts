@@ -65,3 +65,4 @@ export const packages: Package[] = [
   { id: 8, title: 'بالله', description: 'تست فرانت', bgColor: 'bg-amber-500/20', arrowColor: 'text-amber-400' },
   { id: 9, title: 'اپلیکیشن', description: 'رابط برنامه‌نویسی', bgColor: 'bg-purple-500/20', arrowColor: 'text-purple-400' },
 ];
+
