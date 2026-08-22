@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import "@/styles/globals.css";
 import Navbar from "@/components/modules/navbar/Navbar";
 import Footer from "@/components/modules/footer/footer";
+import { getMessages } from 'next-intl/server';
 
 export const metadata: Metadata = {
   title: "dream service | طراحی سایت",
@@ -15,8 +16,6 @@ export function generateStaticParams() {
   return [{ locale: "fa" }, { locale: "en" }];
 }
 
-import { getMessages } from 'next-intl/server';
-
 export default async function RootLayout({
   children,
   params,
@@ -25,12 +24,11 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  
   const messages = await getMessages({ locale });
 
   return (
-    <html lang={locale} dir={locale === "fa" ? "rtl" : "ltr"} className="dark">
-      <body>
+    <html lang={locale} dir={locale === "fa" ? "rtl" : "ltr"} className="dark" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Navbar />
           {children}

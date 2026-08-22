@@ -28,13 +28,15 @@ model User {
 model Order {
   order_id     Int     @id @default(autoincrement())
   client_id    String  @db.Uuid
-  type         String?
-  page_count   Int?
-  budget_range String?
+
+  type         String   // web, game, mobile...
+  page_count   Int?     // size indicator
+  budget_range String   // <1k, 1-5k, 5-10k, 10k+
+  status       String   // draft, submitted, etc
+
   description  String?
-  status       String?
-  cr           String?
-  meta         String?
+
+  meta         Json?    // ONLY extras
 
   client       User    @relation("ClientOrders", fields: [client_id], references: [id])
 
