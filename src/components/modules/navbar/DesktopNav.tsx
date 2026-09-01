@@ -5,8 +5,8 @@ import {
   NavigationMenuList,
   NavigationMenuItem,
 } from "@/components/ui/navigation-menu";
-import { navItems } from "@/lib/dic";
-import type { NavItem } from "@/lib/dic";
+import { navItems } from "@/lib/dictionary";
+import type { NavItem } from "@/lib/dictionary";
 import NavLink from "./NavLink";
 import NavDropdown from "./NavDropdown";
 

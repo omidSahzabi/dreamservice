@@ -9,6 +9,11 @@ datasource db {
   schemas  = ["public", "entity", "upro"]
 }
 
+
+// ============================================================
+// EXISTING MODELS
+// ============================================================
+
 model User {
   id       String   @id @db.Uuid
   email    String   @unique
@@ -34,7 +39,7 @@ model Order {
   description  String?
   status       String?
   cr           String?
-  meta         String?
+  meta         Json?
 
   client       User    @relation("ClientOrders", fields: [client_id], references: [id])
 
@@ -86,4 +91,326 @@ model PersonProfile {
 
   @@map("person_profile")
   @@schema("upro")
+}
+
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum LocaleCode {
+  fa
+  en
+
+  @@map("locale_code")
+  @@schema("public")
+}
+
+enum ContentStatus {
+  draft
+  published
+  archived
+
+  @@map("content_status")
+  @@schema("public")
+}
+
+enum ContentType {
+  page
+  section
+  text
+  hero
+  feature
+  faq
+  cta
+  form
+
+  @@map("content_type")
+  @@schema("public")
+}
+
+enum FormFieldType {
+  text
+  email
+  tel
+  number
+  textarea
+  select
+  radio
+  checkbox
+
+  @@map("form_field_type")
+  @@schema("public")
+}
+
+
+// ============================================================
+// CONTENT
+// ============================================================
+
+model Content {
+  id          BigInt        @id @default(autoincrement())
+  content_key String        @unique @db.VarChar(150)
+  type        ContentType
+  status      ContentStatus @default(published)
+  parent_id   BigInt?
+  sort_order  Int           @default(0)
+  data        Json          @default("{}")
+
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  parent      Content?      @relation("ContentHierarchy", fields: [parent_id], references: [id], onDelete: Cascade)
+  children    Content[]     @relation("ContentHierarchy")
+
+  translations ContentTranslation[]
+
+  @@index([parent_id], map: "content_parent_idx")
+  @@index([status], map: "content_status_idx")
+  @@index([type], map: "content_type_idx")
+  @@index([parent_id, sort_order], map: "content_sort_idx")
+  @@map("content")
+  @@schema("public")
+}
+
+
+// ============================================================
+// CONTENT TRANSLATIONS
+// ============================================================
+
+model ContentTranslation {
+  id         BigInt     @id @default(autoincrement())
+  content_id BigInt
+  locale     LocaleCode
+
+  title       String?
+  subtitle    String?
+  description String?
+  body        String?
+
+  data       Json       @default("{}")
+
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+
+  content    Content    @relation(fields: [content_id], references: [id], onDelete: Cascade)
+
+  @@unique([content_id, locale], map: "content_translation_unique")
+  @@index([locale], map: "content_translation_locale_idx")
+  @@map("content_translation")
+  @@schema("public")
+}
+
+
+// ============================================================
+// ORDER FORMS
+// ============================================================
+
+model OrderForm {
+  id                 BigInt        @id @default(autoincrement())
+  form_key           String        @unique @db.VarChar(100)
+  status             ContentStatus @default(published)
+
+  show_progress      Boolean       @default(true)
+  allow_back         Boolean       @default(true)
+
+  submit_button_text Json          @default("{\"fa\":\"ثبت سفارش\",\"en\":\"Submit Order\"}")
+
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+
+  translations       OrderFormTranslation[]
+  steps              OrderFormStep[]
+
+  @@index([status], map: "order_forms_status_idx")
+  @@map("order_forms")
+  @@schema("public")
+}
+
+
+// ============================================================
+// ORDER FORM TRANSLATIONS
+// ============================================================
+
+model OrderFormTranslation {
+  id          BigInt   @id @default(autoincrement())
+  form_id     BigInt
+  locale      LocaleCode
+
+  title       String
+  description String?
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  form        OrderForm @relation(fields: [form_id], references: [id], onDelete: Cascade)
+
+  @@unique([form_id, locale], map: "order_form_translation_unique")
+  @@index([locale], map: "order_form_translation_locale_idx")
+  @@map("order_form_translations")
+  @@schema("public")
+}
+
+
+// ============================================================
+// FORM STEPS
+// ============================================================
+
+model OrderFormStep {
+  id         BigInt   @id @default(autoincrement())
+  form_id    BigInt
+
+  step_key   String   @db.VarChar(100)
+  step_order Int
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  form        OrderForm                @relation(fields: [form_id], references: [id], onDelete: Cascade)
+  translations OrderFormStepTranslation[]
+  fields       OrderFormField[]
+
+  @@unique([form_id, step_key], map: "order_form_step_key_unique")
+  @@unique([form_id, step_order], map: "order_form_step_order_unique")
+  @@index([form_id], map: "order_form_steps_form_idx")
+  @@index([form_id, step_order], map: "order_form_steps_order_idx")
+  @@map("order_form_steps")
+  @@schema("public")
+}
+
+
+// ============================================================
+// STEP TRANSLATIONS
+// ============================================================
+
+model OrderFormStepTranslation {
+  id          BigInt   @id @default(autoincrement())
+  step_id     BigInt
+  locale      LocaleCode
+
+  title       String
+  description String?
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  step        OrderFormStep @relation(fields: [step_id], references: [id], onDelete: Cascade)
+
+  @@unique([step_id, locale], map: "order_form_step_translation_unique")
+  @@map("order_form_step_translations")
+  @@schema("public")
+}
+
+
+// ============================================================
+// FORM FIELDS
+// ============================================================
+
+model OrderFormField {
+  id            BigInt        @id @default(autoincrement())
+  step_id       BigInt
+
+  field_key     String        @db.VarChar(100)
+  field_type    FormFieldType
+  field_order   Int
+
+  required      Boolean       @default(false)
+
+  placeholder   Json          @default("{}")
+  validation    Json          @default("{}")
+  visibility    Json          @default("{}")
+
+  default_value Json?
+
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+
+  step          OrderFormStep @relation(fields: [step_id], references: [id], onDelete: Cascade)
+  translations  OrderFormFieldTranslation[]
+  options       OrderFormFieldOption[]
+
+  @@unique([step_id, field_key], map: "order_form_field_key_unique")
+  @@unique([step_id, field_order], map: "order_form_field_order_unique")
+  @@index([step_id], map: "order_form_fields_step_idx")
+  @@index([step_id, field_order], map: "order_form_fields_order_idx")
+  @@index([field_type], map: "order_form_fields_type_idx")
+  @@map("order_form_fields")
+  @@schema("public")
+}
+
+
+// ============================================================
+// FIELD TRANSLATIONS
+// ============================================================
+
+model OrderFormFieldTranslation {
+  id          BigInt   @id @default(autoincrement())
+  field_id    BigInt
+  locale      LocaleCode
+
+  label       String
+  description String?
+  placeholder String?
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  field       OrderFormField @relation(fields: [field_id], references: [id], onDelete: Cascade)
+
+  @@unique([field_id, locale], map: "order_form_field_translation_unique")
+  @@index([locale], map: "order_form_field_translation_locale_idx")
+  @@map("order_form_field_translations")
+  @@schema("public")
+}
+
+
+// ============================================================
+// FIELD OPTIONS
+// ============================================================
+
+model OrderFormFieldOption {
+  id           BigInt   @id @default(autoincrement())
+  field_id     BigInt
+
+  option_value String   @db.VarChar(150)
+  option_order Int
+
+  metadata     Json     @default("{}")
+
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  field        OrderFormField @relation(fields: [field_id], references: [id], onDelete: Cascade)
+  translations OrderFormFieldOptionTranslation[]
+
+  @@unique([field_id, option_value], map: "order_form_field_option_unique")
+  @@unique([field_id, option_order], map: "order_form_field_option_order_unique")
+  @@index([field_id], map: "order_form_field_options_field_idx")
+  @@index([field_id, option_order], map: "order_form_field_options_order_idx")
+  @@map("order_form_field_options")
+  @@schema("public")
+}
+
+
+// ============================================================
+// OPTION TRANSLATIONS
+// ============================================================
+
+model OrderFormFieldOptionTranslation {
+  id          BigInt   @id @default(autoincrement())
+  option_id   BigInt
+  locale      LocaleCode
+
+  label       String
+  description String?
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  option      OrderFormFieldOption @relation(fields: [option_id], references: [id], onDelete: Cascade)
+
+  @@unique([option_id, locale], map: "order_form_option_translation_unique")
+  @@index([locale], map: "order_form_option_translation_locale_idx")
+  @@map("order_form_field_option_translations")
+  @@schema("public")
 }

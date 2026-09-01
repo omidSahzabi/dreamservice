@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
+import QueryProvider from "@/providers/QueryProvider";
+
 
 import "@/styles/globals.css";
 import Navbar from "@/components/modules/navbar/Navbar";
@@ -32,11 +34,14 @@ export default async function RootLayout({
     <html lang={locale} dir={locale === "fa" ? "rtl" : "ltr"} className="dark">
       <body>
         <NextIntlClientProvider locale={locale} messages={messages}>
+          <QueryProvider>
           <Navbar />
           {children}
           <Footer />
+          </QueryProvider>
         </NextIntlClientProvider>
       </body>
     </html>
   );
 }
+

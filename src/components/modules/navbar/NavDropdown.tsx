@@ -6,7 +6,7 @@ import {
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import type { NavChild } from "@/lib/dic";
+import type { NavChild } from "@/lib/dictionary";
 
 type NavDropdownProps = {
   label: string;

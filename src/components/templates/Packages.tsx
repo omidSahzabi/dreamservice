@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { DreamForm, FieldConfig } from '@/components/modules/dream-form/dream-form';
 import { cn } from '@/lib/utils';
-import { packages, Package } from '@/lib/dic';
+import { packages, Package } from '@/lib/dictionary';
 
 export default function Packages(): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');

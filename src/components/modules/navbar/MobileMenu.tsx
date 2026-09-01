@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { navItems } from "@/lib/dic";
-import type { NavItem } from "@/lib/dic";
+import { navItems } from "@/lib/dictionary";
+import type { NavItem } from "@/lib/dictionary";
 import AuthButton from "./AuthButton";
 import ThemeToggle from "./ThemeToggle";
 
