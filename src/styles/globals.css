@@ -12,25 +12,33 @@
   --color-text-muted: #94A3B8;
   --color-border-soft: rgba(0, 0, 0, 0.08);
 
-  --color-dark-primary: #01CAE0;
-  --color-dark-primary-hover: #00E0FF;
-  --color-dark-bg-primary: #090F25;
-  --color-dark-bg-secondary: #0C1633;
-  --color-dark-surface-1: #0C1633;
-  --color-dark-surface-2: #101C44;
-  --color-dark-text-primary: #FFFFFF;
-  --color-dark-text-secondary: #D9D9D9;
-  --color-dark-text-muted: #8A94B2;
-  --color-dark-border-soft: rgba(255, 255, 255, 0.08);
-
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 20px;
 
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 25px rgba(1, 202, 224, 0.5);
-
   --gradient-primary: linear-gradient(135deg, #01CAE0 0%, #0643C1 100%);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #01cae0;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #94a3b8;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.08);
+  --ring: #01cae0;
 }
 
 .dark {
@@ -44,29 +52,31 @@
   --color-text-secondary: #D9D9D9;
   --color-text-muted: #8A94B2;
   --color-border-soft: rgba(255, 255, 255, 0.08);
-}
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+  --background: #090F25;
+  --foreground: #FFFFFF;
+  --card: #0C1633;
+  --card-foreground: #FFFFFF;
+  --popover: #0C1633;
+  --popover-foreground: #FFFFFF;
+  --primary: #01CAE0;
+  --primary-foreground: #090F25;
+  --secondary: #101C44;
+  --secondary-foreground: #FFFFFF;
+  --muted: #101C44;
+  --muted-foreground: #8A94B2;
+  --accent: #101C44;
+  --accent-foreground: #FFFFFF;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #01CAE0;
 }
-
 
 body {
   min-height: 100vh;
-  background: var(--color-bg-primary);
-  color: var(--color-text-secondary);
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-@layer base {
-  h1, h2, h3, h4, h5 {
-    color: var(--color-text-primary);
-    font-weight: 600;
-    line-height: 1.2;
-  }
 }

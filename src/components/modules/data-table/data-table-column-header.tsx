@@ -1,35 +1,61 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import type {
+  Column,
+} from "@tanstack/react-table";
 
-interface DataTableColumnHeaderProps {
+import {
+  Button,
+} from "@/components/ui/button";
+
+interface Props<TData, TValue> {
+  column: Column<TData, TValue>;
   title: string;
-  column: any;
 }
 
-export function DataTableColumnHeader({
-  title,
+export function DataTableColumnHeader<
+  TData,
+  TValue,
+>({
   column,
-}: DataTableColumnHeaderProps) {
+  title,
+}: Props<TData, TValue>) {
   if (!column.getCanSort()) {
-    return <div>{title}</div>;
+    return (
+      <div className="font-medium">
+        {title}
+      </div>
+    );
   }
+
+  const sorted = column.getIsSorted();
 
   return (
     <Button
       variant="ghost"
-      onClick={() => column.toggleSorting()}
-      className="-ml-4"
+      size="sm"
+      onClick={() =>
+        column.toggleSorting()
+      }
+      className="-ml-3 h-8"
     >
       {title}
 
-      {column.getIsSorted() === "asc" ? (
+      {sorted === "asc" && (
         <ArrowUp className="ml-2 h-4 w-4" />
-      ) : column.getIsSorted() === "desc" ? (
+      )}
+
+      {sorted === "desc" && (
         <ArrowDown className="ml-2 h-4 w-4" />
-      ) : (
+      )}
+
+      {!sorted && (
         <ChevronsUpDown className="ml-2 h-4 w-4" />
       )}
     </Button>
