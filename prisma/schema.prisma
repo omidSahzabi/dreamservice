@@ -15,20 +15,66 @@ datasource db {
 // ============================================================
 
 model User {
-  id       String   @id @db.Uuid
-  email    String   @unique
-  contact  String?
-  cr       DateTime?
-  password String
+  id       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email    String?   @unique
+  contact  String?   @unique
+  cr       DateTime? @default(now())
   fname    String?
   lname    String?
   natcode  String?
 
-  orders   Order[]  @relation("ClientOrders")
+  orders   Order[]   @relation("ClientOrders")
+  sessions Session[]
 
   @@map("users")
   @@schema("entity")
 }
+
+
+enum OtpChannel {
+  PHONE
+  EMAIL
+
+  @@schema("entity")
+}
+
+enum OtpPurpose {
+  REGISTER
+  LOGIN
+
+  @@schema("entity")
+}
+
+model OtpVerification {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  target     String     
+  channel    OtpChannel
+  purpose    OtpPurpose
+  codeHash   String     @db.VarChar(255)
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([target, channel, purpose])
+  @@map("otp_verifications")
+  @@schema("entity")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@schema("entity")
+}
+
+
 
 model Order {
   order_id     Int     @id @default(autoincrement())
