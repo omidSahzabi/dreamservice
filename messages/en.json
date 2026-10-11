@@ -31,33 +31,53 @@
     "links": "Quick Links"
   },
   "About": {
-    "eyebrow": "About Dream Services",
-    "title": "People who turn ideas into real experiences.",
-    "description": "We are a multidisciplinary team of designers, developers, and ideators who have come together to build simple, beautiful, and reliable digital products.",
-    "primaryAction": "Start a Collaboration",
-    "secondaryAction": "View Services",
-    "teamBadge": "Our Team",
-    "teamTitle": "Behind every good experience stands a coordinated team.",
-    "teamDescription": "From the first idea to the last detail of execution, we move with a focus on the real needs of users and your business goals. For us, collaboration is not just delivering a project; it's building a long-term relationship and a measurable result.",
-    "valuesBadge": "Why Us?",
-    "valuesTitle": "Our focus is not just on code.",
-    "valuesDescription": "We believe in the right combination of strategy, design, and technology.",
-    "values": {
-      "one": { "title": "Human Experience", "description": "We make every decision by understanding the behavior and real needs of the user." },
-      "two": { "title": "Building with Purpose", "description": "Every feature must solve a specific problem and create value." },
-      "three": { "title": "True Partnership", "description": "We stay by your side throughout the entire journey; from ideation to product growth." }
+    "Hero": {
+      "badge": "About Dream Services",
+      "title": "People who turn ideas into real experiences.",
+      "description": "We are a multidisciplinary team of designers, developers, and ideators who have come together to build simple, beautiful, and reliable digital products.",
+      "primaryAction": "Start a Collaboration",
+      "secondaryAction": "View Services",
+      "tagline": "Design,\nTechnology,\nHuman Impact."
     },
-    "members": "Active Members",
-    "disciplines": "Disciplines",
-    "approach": "Our Approach",
-    "disciplineValue": "Design + Code",
-    "approachValue": "Human-first",
-    "loading": "Loading team members...",
-    "empty": "There are currently no members to display.",
-    "error": "Failed to fetch team information.",
-    "retry": "Try Again",
-    "dreamTeam": "Dream Team",
-    "heroTagline": "Design,\nTechnology,\nHuman Impact."
+    "Values": {
+      "badge": "Why Us?",
+      "title": "Our focus is not just on code.",
+      "description": "We believe in the right combination of strategy, design, and technology.",
+      "items": {
+        "one": {
+          "title": "Human Experience",
+          "description": "We make every decision by understanding the behavior and real needs of the user."
+        },
+        "two": {
+          "title": "Building with Purpose",
+          "description": "Every feature must solve a specific problem and create value."
+        },
+        "three": {
+          "title": "True Partnership",
+          "description": "We stay by your side throughout the entire journey; from ideation to product growth."
+        }
+      }
+    },
+    "Team": {
+      "badge": "Our Team",
+      "title": "Behind every good experience stands a coordinated team.",
+      "description": "From the first idea to the last detail of execution, we move with a focus on the real needs of users and your business goals. For us, collaboration is not just delivering a project; it's building a long-term relationship and a measurable result.",
+      "members": "Active Members",
+      "disciplines": "Disciplines",
+      "approach": "Our Approach",
+      "disciplineValue": "Design + Code",
+      "approachValue": "Human-first",
+      "loading": "Loading team members...",
+      "empty": "There are currently no members to display.",
+      "error": "Failed to fetch team information.",
+      "retry": "Try Again",
+      "dreamTeam": "Dream Team",
+      "fallbackName": "plus member",
+      "fallbackRole": "Creative specialist",
+      "memberBadge": "plus member",
+      "viewProfile": "View profile",
+      "noProfile": "plus profile"
+    }
   },
   "Metadata": {
     "title": "Dream Service | Web Design",
@@ -206,10 +226,10 @@
   "submitting": "Submitting...",
   "submit": "Submit Order",
   "next": "Next",
-  "privacyNotice": "Your information is processed with complete privacy and security."
-},
-"requiredInformation": "Required information",
-"selectPlaceholder": "Select...",
-"unsupportedField": "This field type is not supported."
+  "privacyNotice": "Your information is processed with complete privacy and security.",
+  "requiredInformation": "Required information",
+  "selectPlaceholder": "Select...",
+  "unsupportedField": "This field type is not supported."
+}
 
 }
