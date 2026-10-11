@@ -1,14 +1,20 @@
 "use client";
 
+import {useTranslations, useFormatter} from "next-intl";
+import {useRouter} from "@/lib/i18n/navigation";
 import { useRef, useState } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
-import { ArrowLeft, ArrowRight, Star, Sparkles, Crown, Gem } from "lucide-react";
+import { ArrowLeft, ArrowRight, Star, Sparkles, Gem, Crown } from "lucide-react";
 
 import { features } from "./features";
 import { buttons } from "./features";
 import FeatureCard from "./FeatureCard";
 
 export default function CallToAction() {
+  const t = useTranslations("CallToAction");
+  const common = useTranslations("Common");
+  const format = useFormatter();
+  const router = useRouter();
   const ref = useRef(null);
   const isInView = useInView(ref, { margin: "-200px" });
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "center center"] });
@@ -22,7 +28,7 @@ export default function CallToAction() {
   const [active, setActive] = useState(0);
 
   return (
-    <div ref={ref} className="relative min-h-screen flex items-center justify-center py-40">
+    <div ref={ref} className="relative overflow-hidden min-h-screen flex items-center justify-center py-40">
       <motion.div className="relative z-10 w-full max-w-5xl mx-4" style={{ scale: boxOpen }}>
         <motion.div className="absolute inset-0 flex justify-center" style={{ opacity: light }}>
           <motion.div
@@ -38,7 +44,7 @@ export default function CallToAction() {
         />
 
         <motion.div
-          className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-12 pt-20"
+          className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 pt-20 sm:p-12 sm:pt-20"
           style={{ opacity: contentOpacity, y: contentY }}
         >
           <motion.div className="absolute -top-10 left-1/4" animate={{ opacity: isInView ? [0,1,0] : 0 }}>
@@ -56,7 +62,9 @@ export default function CallToAction() {
           <div className="flex flex-wrap justify-center gap-3 mb-10">
             {buttons.map((b, i) => (
               <motion.button
-                key={b.id}
+                key={b.key}
+                type="button"
+                onClick={() => router.push(b.href)}
                 initial={{ scale: 0 }}
                 animate={isInView ? { scale: 1 } : {}}
                 transition={{ delay: 0.2 + i * 0.1 }}
@@ -68,39 +76,39 @@ export default function CallToAction() {
                     : "border border-white/30"
                 }`}
               >
-                {b.text}
+                {t(b.key)}
               </motion.button>
             ))}
           </div>
 
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-2">آیا آماده‌اید؟</h2>
-            <p className="text-white/70">همین حالا شروع کنید و تجربه‌ای متفاوت داشته باشید</p>
+            <h2 className="text-4xl font-bold text-white mb-2">{t("title")}</h2>
+            <p className="text-white/70">{t("description")}</p>
           </div>
 
           <div className="relative">
-            <button onClick={() => setActive((p) => (p - 1 + features.length) % features.length)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 text-white"> <ArrowRight /> </button>
+            <button aria-label={common("previous")} onClick={() => setActive((p) => (p - 1 + features.length) % features.length)}
+              className="absolute start-0 top-1/2 -translate-y-1/2 text-white"> <ArrowRight className="ltr:rotate-180" /> </button>
 
-            <button onClick={() => setActive((p) => (p + 1) % features.length)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 text-white"> <ArrowLeft /> </button>
+            <button aria-label={common("next")} onClick={() => setActive((p) => (p + 1) % features.length)}
+              className="absolute end-0 top-1/2 -translate-y-1/2 text-white"> <ArrowLeft className="ltr:rotate-180" /> </button>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {features.map((f, i) => (
-                <FeatureCard key={i} feature={f} active={active === i} index={i} onClick={() => setActive(i)} isInView={isInView} />
+                <FeatureCard key={i} feature={{icon: <f.Icon className="w-6 h-6" />, title: t(`features.${f.key}.title`), description: t(`features.${f.key}.description`)}} active={active === i} index={i} onClick={() => setActive(i)} isInView={isInView} />
               ))}
             </div>
           </div>
 
-          <div className="flex justify-center gap-6 mt-6 border-t border-white/10 pt-6">
+          <div className="flex flex-wrap justify-center gap-6 mt-6 border-t border-white/10 pt-6">
             <div className="flex items-center gap-1">
               {[1,2,3,4].map((i)=><div key={i} className="w-8 h-8 bg-blue-500 rounded-full" />)}
-              <span className="text-white/70 text-sm">+۵۰۰ مشتری راضی</span>
+              <span className="text-white/70 text-sm">{t("customers", {count: 500})}</span>
             </div>
 
             <div className="flex items-center gap-1">
               {[1,2,3,4,5].map((i)=><Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400"/>)}
-              <span className="text-white/70 text-sm">۴.۹</span>
+              <span className="text-white/70 text-sm">{format.number(4.9, {maximumFractionDigits: 1})}</span>
             </div>
           </div>
         </motion.div>

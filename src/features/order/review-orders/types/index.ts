@@ -24,13 +24,13 @@ export interface OrderMeta {
 export interface OrderItem {
   order_id: number;
   client_id: string;
-  type: string;
-  page_count: number;
-  budget_range: string;
-  description: string;
-  status: OrderStatus;
+  type: string | null;
+  page_count: number | null;
+  budget_range: string | null;
+  description: string | null;
+  status: string | null;
   cr: string | null;
-  meta: OrderMeta;
+  meta: OrderMeta | null;
 }
 
 export interface PaginationMeta {
@@ -52,7 +52,7 @@ export interface OrdersQueryParams {
   page?: number
   limit?: number
   search?: string
-  status?: OrderStatus
+  status?: string
   type?: string
   budget_range?: string
   client_id?: string

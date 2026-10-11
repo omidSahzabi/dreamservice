@@ -15,20 +15,106 @@
     "gameDev": "بازی‌سازی",
     "gameDevDesc": "توسعه بازی‌های دوبعدی و سه‌بعدی حرفه‌ای",
     "seo": "بهینه‌سازی و سئو",
-    "seoDesc": "افزایش سرعت، رتبه و عملکرد سایت شما"
+    "seoDesc": "افزایش سرعت، رتبه و عملکرد سایت شما",
+    "openMenu": "باز کردن منو",
+    "switchLanguage": "تغییر زبان به انگلیسی",
+    "loading": "در حال بارگذاری حساب…",
+    "account": "حساب کاربری",
+    "activeRole": "نقش فعال:",
+    "viewOrders": "مشاهده سفارش‌ها",
+    "lightTheme": "تغییر به حالت روشن",
+    "darkTheme": "تغییر به حالت تاریک",
+    "roles": {
+      "CLIENT": "مشتری",
+      "CUSTOMER": "مشتری",
+      "USER": "کاربر",
+      "ADMIN": "مدیر",
+      "DEVELOPER": "توسعه‌دهنده",
+      "client": "مشتری",
+      "customer": "مشتری",
+      "admin": "مدیر",
+      "developer": "توسعه‌دهنده",
+      "other": "نقش حساب"
+    },
+    "logoAlt": "نشان دریم‌سرویس"
   },
   "Hero": {
     "title": "سرویس‌های رویایی شما، اینجا شروع می‌شود",
     "subtitle": "ما به شما کمک می‌کنیم تا ایده‌هایتان را به واقعیت تبدیل کنید.",
-    "cta": "شروع کنید"
+    "cta": "شروع کنید",
+    "headline": "ما <highlight>تجربه کاربر را</highlight> بهبود می‌دهیم",
+    "support": "پشتیبانی",
+    "about": "درباره ما",
+    "order": "ثبت سفارش"
   },
   "Packages": {
     "title": "پکیج‌های ما",
-    "description": "پکیج‌های متنوع برای نیازهای شما"
+    "description": "پکیج‌های متنوع برای نیازهای شما",
+    "searchLabel": "جستجوی بسته‌ها",
+    "searchPlaceholder": "نام بسته یا توضیحات را وارد کنید…",
+    "empty": "بسته‌ای با این نام پیدا نشد.",
+    "items": {
+      "support": {
+        "title": "پشتیبانی",
+        "description": "کتابخانه رابط کاربری"
+      },
+      "mentorship": {
+        "title": "منتورشیپ",
+        "description": "فریم‌ورک پیشرو"
+      },
+      "store": {
+        "title": "فروشگاهی",
+        "description": "فریم‌ورک کامل"
+      },
+      "seo": {
+        "title": "سئو",
+        "description": "فریم‌ورک ری‌اکت"
+      },
+      "web": {
+        "title": "طراحی وب",
+        "description": "سرور نود"
+      },
+      "backend": {
+        "title": "بک‌اند",
+        "description": "فریم‌ورک وب"
+      },
+      "frontend": {
+        "title": "فرانت‌اند",
+        "description": "جاوااسکریپت تایپ‌دار"
+      },
+      "placeholder": {
+        "title": "بسته {number, number}",
+        "description": "تست فرانت‌اند"
+      },
+      "app": {
+        "title": "اپلیکیشن",
+        "description": "رابط برنامه‌نویسی"
+      }
+    }
   },
   "Footer": {
-    "copyright": "تمامی حقوق محفوظ است © 2024",
-    "links": "دسترسی سریع"
+    "copyright": "© {year, number, integer} تمامی حقوق محفوظ است. ساخته‌شده با <heart>عشق</heart>.",
+    "links": "دسترسی سریع",
+    "quickLinks": "دسترسی سریع",
+    "home": "خانه",
+    "projects": "پروژه‌ها",
+    "about": "درباره من",
+    "contact": "تماس",
+    "websites": "وب‌سایت‌ها",
+    "applications": "اپلیکیشن‌ها",
+    "plugins": "پلاگین‌ها",
+    "connect": "ارتباط",
+    "email": "ایمیل",
+    "instagram": "اینستاگرام",
+    "twitter": "توییتر",
+    "linkedin": "لینکدین",
+    "github": "گیت‌هاب",
+    "name": "علیرضا",
+    "initial": "ع",
+    "description": "توسعه‌دهنده وب با تمرکز بر طراحی رابط‌های کاربری زیبا و تجربه کاربری فوق‌العاده",
+    "location": "تهران، ایران",
+    "backToTop": "بازگشت به بالا",
+    "love": "عشق"
   },
   "About": {
     "Hero": {
@@ -76,12 +162,34 @@
       "fallbackRole": "متخصص خلاق",
       "memberBadge": "عضو تیم",
       "viewProfile": "مشاهده پروفایل",
-      "noProfile": "پروفایل تیم"
+      "noProfile": "پروفایل در دسترس نیست"
     }
   },
   "Metadata": {
     "title": "دریم سرویس | طراحی سایت",
-    "description": "ارائه‌دهنده خدمات حرفه‌ای طراحی و توسعه وب"
+    "description": "ارائه‌دهنده خدمات حرفه‌ای طراحی و توسعه وب",
+    "pages": {
+      "home": {
+        "title": "دریم سرویس | طراحی سایت",
+        "description": "ارائه‌دهنده خدمات حرفه‌ای طراحی و توسعه وب"
+      },
+      "about": {
+        "title": "درباره ما | دریم‌سرویس",
+        "description": "ما یک تیم چندتخصصی از طراحان، توسعه‌دهندگان و ایده‌پردازان هستیم که برای ساختن محصولات دیجیتال ساده، زیبا و قابل اعتماد کنار هم جمع شده‌ایم."
+      },
+      "order": {
+        "title": "سفارش‌ها | دریم‌سرویس",
+        "description": "مشاهده و مدیریت درخواست‌های ثبت‌شده در سامانه"
+      },
+      "orderForm": {
+        "title": "ثبت سفارش | دریم‌سرویس",
+        "description": "ارائه‌دهنده خدمات حرفه‌ای طراحی و توسعه وب"
+      },
+      "reviewOrders": {
+        "title": "بررسی سفارش‌ها | دریم‌سرویس",
+        "description": "مشاهده و مدیریت درخواست‌های ثبت‌شده در سامانه"
+      }
+    }
   },
   "Toast": {
     "loginSuccess": "با موفقیت وارد شدید",
@@ -98,7 +206,7 @@
     },
     "description": {
       "phone": "برای ادامه شماره همراه خود را وارد کنید.",
-      "otp": "کد تأیید ۵ رقمی ارسال‌شده به {phone} را وارد کنید.",
+      "otp": "کد تأیید ۵ رقمی ارسال‌شده به <number>{phone}</number> را وارد کنید.",
       "register": "لطفاً نام و مشخصات خود را برای تکمیل ثبت‌نام وارد کنید."
     },
     "label": {
@@ -133,7 +241,7 @@
     },
     "action": {
       "changePhone": "تغییر شماره",
-      "resendCountdown": "ارسال مجدد ({seconds} ثانیه)",
+      "resendCountdown": "ارسال مجدد ({seconds, number} ثانیه)",
       "resendOtp": "ارسال مجدد کد"
     },
     "toast": {
@@ -148,44 +256,67 @@
     }
   },
   "DataTable": {
-  "empty": "موردی برای نمایش یافت نشد.",
-  "showing": "نمایش {from} تا {to} از {total} مورد",
-  "perPage": "تعداد در صفحه:",
-  "page": "صفحه {pageIndex} از {pageCount}",
-  "filters": "فیلترها",
-  "clear": "پاک کردن",
-  "density": "تراکم",
-  "compact": "فشرده",
-  "default": "پیش‌فرض",
-  "comfortable": "راحت",
-  "pinLeft": "سنجاق به چپ",
-  "pinRight": "سنجاق به راست",
-  "unpin": "برداشتن سنجاق",
-  "hideColumn": "پنهان‌سازی ستون"
-},
-"OrderStatus": {
-  "PENDING": "در انتظار بررسی",
-  "PROCESSING": "در حال پردازش",
-  "COMPLETED": "تکمیل شده",
-  "CANCELLED": "لغو شده",
-  "REJECTED": "رد شده"
-},
-"Order": {
-  "id": "شناسه",
-  "client": "مشتری",
-  "status": "وضعیت",
-  "selectStatus": "انتخاب وضعیت",
-  "orderType": "نوع سفارش",
-  "budget": "بازه بودجه",
-  "searchPlaceholder": "جستجوی سفارش...",
-  "actions": "عملیات",
-  "viewDetails": "مشاهده جزئیات",
-  "contact": "تماس"
-},
+    "empty": "موردی برای نمایش یافت نشد.",
+    "showing": "نمایش {from, number} تا {to, number} از {total, number} مورد",
+    "perPage": "تعداد در صفحه:",
+    "page": "صفحه {pageIndex, number} از {pageCount, number}",
+    "filters": "فیلترها",
+    "clear": "پاک کردن",
+    "density": "تراکم",
+    "compact": "فشرده",
+    "default": "پیش‌فرض",
+    "comfortable": "راحت",
+    "pinLeft": "سنجاق به چپ",
+    "pinRight": "سنجاق به راست",
+    "unpin": "برداشتن سنجاق",
+    "hideColumn": "پنهان‌سازی ستون",
+    "columns": "ستون‌ها",
+    "columnsDescription": "نمایش، پنهان‌سازی یا جابه‌جایی ستون‌ها.",
+    "showAll": "نمایش همه",
+    "hideAll": "پنهان کردن همه",
+    "openMenu": "باز کردن منو",
+    "export": "خروجی گرفتن",
+    "view": "مشاهده",
+    "edit": "ویرایش",
+    "delete": "حذف",
+    "selectFilter": "یک فیلتر را انتخاب کنید",
+    "activeFilters": "{count, plural, one {# فیلتر فعال} other {# فیلتر فعال}}",
+    "removeAll": "حذف همه",
+    "selectValue": "مقدار موردنظر را انتخاب کنید",
+    "removeFilter": "حذف این فیلتر",
+    "search": "جستجو…",
+    "dragInstructions": "برای جابه‌جایی ستون، کلید فاصله را فشار دهید. با کلیدهای جهت‌نما جای آن را تغییر دهید. برای پایان، فاصله و برای لغو، Escape را فشار دهید.",
+    "dragStart": "در حال جابه‌جایی ستون {label}.",
+    "dragOver": "ستون {label} روی {target} قرار دارد.",
+    "dragEnd": "ستون {label} جابه‌جا شد.",
+    "dragCancel": "جابه‌جایی ستون {label} لغو شد."
+  },
+  "OrderStatus": {
+    "PENDING": "در انتظار بررسی",
+    "PROCESSING": "در حال پردازش",
+    "COMPLETED": "تکمیل شده",
+    "CANCELLED": "لغو شده",
+    "REJECTED": "رد شده"
+  },
+  "Order": {
+    "id": "شناسه",
+    "client": "مشتری",
+    "status": "وضعیت",
+    "selectStatus": "انتخاب وضعیت",
+    "orderType": "نوع سفارش",
+    "budget": "بازه بودجه",
+    "searchPlaceholder": "جستجوی سفارش...",
+    "actions": "عملیات",
+    "viewDetails": "مشاهده جزئیات",
+    "contact": "تماس",
+    "homeTitle": "سفارش‌ها",
+    "submit": "ثبت سفارش",
+    "review": "بررسی سفارش‌ها"
+  },
   "ReviewOrders": {
     "title": "مدیریت و بررسی سفارش‌ها",
     "subtitle": "مشاهده و مدیریت درخواست‌های ثبت‌شده در سامانه",
-    "totalCount": "مجموع: {count} سفارش",
+    "totalCount": "مجموع: {count, plural, one {# سفارش} other {# سفارش}}",
     "refresh": "بروزرسانی",
     "errorTitle": "خطا در دریافت اطلاعات",
     "errorDefault": "مشکلی در برقراری ارتباط با سرور رخ داد",
@@ -214,21 +345,184 @@
     }
   },
   "OrderForm": {
-  "loading": "در حال بارگذاری فرم سفارش...",
-  "loadError": "خطا در برقراری ارتباط با سرور و دریافت اطلاعات فرم سفارش.",
-  "retry": "تلاش مجدد",
-  "unknownSubmitError": "خطای ناشناخته‌ای در ثبت سفارش رخ داد.",
-  "successTitle": "سفارش شما با موفقیت ثبت شد!",
-  "successDescription": "اطلاعات شما با موفقیت دریافت و در سیستم پردازش شد. کارشناسان ما به زودی با شما در ارتباط خواهند بود.",
-  "badge": "ثبت سفارش آنلاین",
-  "stepProgress": "مرحله {current} از {total}",
-  "previous": "قبلی",
-  "submitting": "در حال ارسال...",
-  "submit": "ثبت نهایی سفارش",
-  "next": "بعدی",
-  "privacyNotice": "اطلاعات شما با حفظ حریم خصوصی و امنیت کامل پردازش می‌شود.",
-  "requiredInformation": "اطلاعات مورد نیاز",
-  "selectPlaceholder": "انتخاب کنید...",
-  "unsupportedField": "این نوع فیلد پشتیبانی نمی‌شود."
-}
+    "loading": "در حال بارگذاری فرم سفارش...",
+    "loadError": "خطا در برقراری ارتباط با سرور و دریافت اطلاعات فرم سفارش.",
+    "retry": "تلاش مجدد",
+    "unknownSubmitError": "خطای ناشناخته‌ای در ثبت سفارش رخ داد.",
+    "successTitle": "سفارش شما با موفقیت ثبت شد!",
+    "successDescription": "اطلاعات شما با موفقیت دریافت و در سیستم پردازش شد. کارشناسان ما به زودی با شما در ارتباط خواهند بود.",
+    "badge": "ثبت سفارش آنلاین",
+    "stepProgress": "مرحله {current, number} از {total, number}",
+    "previous": "قبلی",
+    "submitting": "در حال ارسال...",
+    "submit": "ثبت نهایی سفارش",
+    "next": "بعدی",
+    "privacyNotice": "اطلاعات شما با حفظ حریم خصوصی و امنیت کامل پردازش می‌شود.",
+    "requiredInformation": "اطلاعات مورد نیاز",
+    "selectPlaceholder": "انتخاب کنید...",
+    "unsupportedField": "این نوع فیلد پشتیبانی نمی‌شود.",
+    "configurationUnavailable": "این فرم سفارش به زبان شما در دسترس نیست. لطفاً بعداً تلاش کنید.",
+    "empty": "فرم سفارش در حال حاضر در دسترس نیست.",
+    "validation": {
+      "required": "این فیلد الزامی است.",
+      "email": "ایمیل معتبر وارد کنید.",
+      "minLength": "حداقل {count, number} کاراکتر وارد کنید.",
+      "maxLength": "حداکثر {count, number} کاراکتر وارد کنید.",
+      "pattern": "مقدار معتبر وارد کنید.",
+      "number": "عدد معتبر وارد کنید.",
+      "min": "حداقل مقدار {value, number} است.",
+      "max": "حداکثر مقدار {value, number} است.",
+      "selection": "حداقل یک گزینه را انتخاب کنید.",
+      "option": "یک گزینه معتبر انتخاب کنید.",
+      "unsupported": "این فیلد پشتیبانی نمی‌شود."
+    }
+  },
+  "Common": {
+    "close": "بستن",
+    "loading": "در حال بارگذاری…",
+    "retry": "تلاش دوباره",
+    "home": "بازگشت به صفحه اصلی",
+    "errorTitle": "خطایی رخ داده است",
+    "errorDescription": "انجام این درخواست ممکن نشد. لطفاً دوباره تلاش کنید.",
+    "notFoundTitle": "صفحه پیدا نشد",
+    "notFoundDescription": "این صفحه در دسترس نیست یا وجود ندارد.",
+    "previous": "قبلی",
+    "next": "بعدی",
+    "firstPage": "صفحه اول",
+    "lastPage": "صفحه آخر",
+    "previousPage": "صفحه قبلی",
+    "nextPage": "صفحه بعدی",
+    "unknown": "در دسترس نیست",
+    "moveColumn": "جابه‌جایی {label}",
+    "slide": "اسلاید {index} از {total}",
+    "goToSlide": "رفتن به اسلاید {index}",
+    "notifications": "اعلان‌ها"
+  },
+  "DreamForm": {
+    "submit": "ثبت اطلاعات",
+    "reset": "پاک کردن",
+    "submitting": "در حال ارسال…",
+    "select": "انتخاب کنید…",
+    "submitError": "ارسال فرم ممکن نشد. لطفاً دوباره تلاش کنید."
+  },
+  "ContactCard": {
+    "contact": "تماس با ما",
+    "collaborate": "شروع همکاری",
+    "about": "درباره ما"
+  },
+  "CallToAction": {
+    "title": "آیا آماده‌اید؟",
+    "description": "همین حالا شروع کنید و تجربه‌ای متفاوت داشته باشید.",
+    "collaborate": "شروع همکاری",
+    "consultation": "مشاوره رایگان",
+    "projects": "نمونه کارها",
+    "contact": "تماس با ما",
+    "customers": "بیش از {count, number} مشتری راضی",
+    "rating": "{rating, number}",
+    "features": {
+      "speed": {
+        "title": "سرعت بالا",
+        "description": "بهینه‌سازی شده برای بالاترین سرعت"
+      },
+      "security": {
+        "title": "امنیت کامل",
+        "description": "محافظت با استانداردهای روز دنیا"
+      },
+      "support": {
+        "title": "پشتیبانی شبانه‌روزی",
+        "description": "تیم ما همیشه آنلاین و آماده کمک است"
+      },
+      "team": {
+        "title": "تیم متخصص",
+        "description": "سال‌ها تجربه در حوزه فناوری"
+      },
+      "quality": {
+        "title": "کیفیت برتر",
+        "description": "بهترین خدمات با بهترین قیمت"
+      },
+      "care": {
+        "title": "مشتری‌مداری",
+        "description": "رضایت شما اولویت ماست"
+      }
+    }
+  },
+  "Projects": {
+    "items": {
+      "store": {
+        "title": "فروشگاه آنلاین",
+        "description": "طراحی و توسعه فروشگاه کامل با Next.js"
+      },
+      "dashboard": {
+        "title": "داشبورد مدیریت",
+        "description": "پنل مدیریت با طراحی مدرن و واکنش‌گرا"
+      },
+      "mobile": {
+        "title": "اپلیکیشن موبایل",
+        "description": "اپلیکیشن فروشگاهی با React Native"
+      },
+      "personal": {
+        "title": "وب‌سایت شخصی",
+        "description": "سایت رزومه و نمونه‌کارها"
+      },
+      "crm": {
+        "title": "سیستم مدیریت ارتباط با مشتری",
+        "description": "مدیریت ارتباط با مشتریان"
+      },
+      "education": {
+        "title": "پلتفرم آموزشی",
+        "description": "سیستم آموزش آنلاین با ویدیو"
+      },
+      "game": {
+        "title": "بازی تحت وب",
+        "description": "بازی مرورگری با Canvas"
+      }
+    }
+  },
+  "LaunchCountdown": {
+    "email": "ایمیل",
+    "emailPlaceholder": "ایمیل خود را وارد کنید",
+    "emailRequired": "ایمیل الزامی است",
+    "emailInvalid": "ایمیل معتبر وارد کنید",
+    "message": "پیام",
+    "messagePlaceholder": "پیام خود را بنویسید…",
+    "days": "{count, plural, one {روز} other {روز}}",
+    "hours": "{count, plural, one {ساعت} other {ساعت}}",
+    "minutes": "{count, plural, one {دقیقه} other {دقیقه}}",
+    "seconds": "{count, plural, one {ثانیه} other {ثانیه}}",
+    "launched": "پروژه منتشر شد! 🚀",
+    "soon": "به‌زودی منتشر می‌شود",
+    "launchedDescription": "می‌توانید همین حالا استفاده کنید",
+    "soonDescription": "از اولین افرادی باشید که از انتشار باخبر می‌شوند",
+    "signup": "اطلاع‌رسانی انتشار",
+    "signupDescription": "ایمیل خود را وارد کنید تا از انتشار پروژه باخبر شوید.",
+    "free": "رایگان",
+    "submit": "ثبت تیکت",
+    "unavailable": "ثبت‌نام در حال حاضر در دسترس نیست. لطفاً بعداً تلاش کنید."
+  },
+  "Errors": {
+    "UNKNOWN": "خطایی رخ داده است. لطفاً دوباره تلاش کنید.",
+    "NETWORK_ERROR": "اتصال به سرور ممکن نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.",
+    "INVALID_INPUT": "اطلاعات خود را بررسی کنید و دوباره تلاش کنید.",
+    "INVALID_PHONE": "شماره همراه معتبر وارد کنید.",
+    "OTP_EXPIRED": "کد تأیید منقضی شده است. کد جدید درخواست کنید.",
+    "OTP_INVALID": "کد تأیید نادرست است. {attempts, plural, one {# تلاش باقی مانده است.} other {# تلاش باقی مانده است.}}",
+    "OTP_NOT_FOUND": "کد تأیید جدید درخواست کنید.",
+    "OTP_USED": "این کد تأیید قبلاً استفاده شده است.",
+    "OTP_ATTEMPTS_EXCEEDED": "تعداد تلاش‌ها بیش از حد مجاز است. کد جدید درخواست کنید.",
+    "OTP_RATE_LIMIT": "لطفاً {seconds, number} ثانیه تا درخواست کد جدید صبر کنید.",
+    "SMS_FAILED": "ارسال کد تأیید ممکن نشد. لطفاً دوباره تلاش کنید.",
+    "REGISTRATION_EXPIRED": "مهلت تأیید شماره همراه تمام شده است. کد جدید درخواست کنید.",
+    "EMAIL_INVALID": "ایمیل معتبر وارد کنید.",
+    "REGISTER_FAILED": "تکمیل ثبت‌نام ممکن نشد. لطفاً دوباره تلاش کنید.",
+    "UNAUTHENTICATED": "برای ادامه وارد حساب شوید.",
+    "FORBIDDEN": "به این عملیات دسترسی ندارید.",
+    "INVALID_ROLE": "این نقش حساب در دسترس نیست.",
+    "LOGOUT_FAILED": "خروج از حساب ممکن نشد. لطفاً دوباره تلاش کنید.",
+    "ORDER_SUBMIT_FAILED": "ثبت سفارش ممکن نشد. لطفاً دوباره تلاش کنید.",
+    "ORDER_LOAD_FAILED": "دریافت سفارش‌ها ممکن نشد. لطفاً دوباره تلاش کنید.",
+    "ORDER_INVALID": "اطلاعات سفارش را بررسی کنید و دوباره تلاش کنید.",
+    "FORM_TRANSLATION_MISSING": "این فرم به زبان شما در دسترس نیست.",
+    "FORM_NOT_FOUND": "فرم سفارش در حال حاضر در دسترس نیست.",
+    "FORM_LOAD_FAILED": "دریافت فرم سفارش ممکن نشد. لطفاً دوباره تلاش کنید."
+  }
 }

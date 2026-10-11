@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import {useTranslations} from "next-intl";
 
 import type {
   Table,
@@ -10,6 +10,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -18,6 +19,7 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 
 import {
@@ -52,7 +54,7 @@ import {
 
 interface Props<TData> {
   table: Table<TData>;
-  onColumnOrderChange: (
+  onColumnOrderChange?: (
     order: string[],
   ) => void;
 }
@@ -61,7 +63,10 @@ export function DataTableViewOptions<TData>({
   table,
   onColumnOrderChange,
 }: Props<TData>) {
+  const t = useTranslations("DataTable");
+  const labelFor = (id: string | number) => {const column = table.getColumn(String(id)); return column ? getColumnLabel(column) : t("columns");};
   const sensors = useSensors(
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates}),
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5,
@@ -104,7 +109,7 @@ export function DataTableViewOptions<TData>({
       return;
     }
 
-    onColumnOrderChange(
+    (onColumnOrderChange ?? table.setColumnOrder)(
       arrayMove(
         order,
         oldIndex,
@@ -121,8 +126,8 @@ export function DataTableViewOptions<TData>({
           size="sm"
           className="h-8"
         >
-          <Settings2 className="mr-2 h-4 w-4" />
-          Columns
+          <Settings2 className="me-2 h-4 w-4" />
+          {t("columns")}
         </Button>
       </PopoverTrigger>
 
@@ -133,17 +138,26 @@ export function DataTableViewOptions<TData>({
         <div className="space-y-3">
           <div>
             <h4 className="font-medium">
-              Columns
+              {t("columns")}
             </h4>
 
             <p className="text-xs text-muted-foreground">
-              Show, hide or reorder columns.
+              {t("columnsDescription")}
             </p>
           </div>
 
           <Separator />
 
           <DndContext
+            accessibility={{
+              screenReaderInstructions: {draggable: t("dragInstructions")},
+              announcements: {
+                onDragStart: ({active}) => t("dragStart", {label: labelFor(active.id)}),
+                onDragOver: ({active, over}) => over ? t("dragOver", {label: labelFor(active.id), target: labelFor(over.id)}) : undefined,
+                onDragEnd: ({active}) => t("dragEnd", {label: labelFor(active.id)}),
+                onDragCancel: ({active}) => t("dragCancel", {label: labelFor(active.id)})
+              }
+            }}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
@@ -215,7 +229,7 @@ export function DataTableViewOptions<TData>({
                 );
               }}
             >
-              Show all
+              {t("showAll")}
             </Button>
 
             <Button
@@ -236,7 +250,7 @@ export function DataTableViewOptions<TData>({
                 );
               }}
             >
-              Hide all
+              {t("hideAll")}
             </Button>
           </div>
         </div>

@@ -35,12 +35,13 @@ export function DataTableFilterForm({
           key={field.id}
           className="min-w-[180px] flex-1 space-y-1.5"
         >
-          <label className="text-xs font-medium text-white/60">
+          <label htmlFor={`filter-${field.id}`} className="text-xs font-medium text-white/60">
             {field.label}
           </label>
 
           {field.type === "text" ? (
             <Input
+              id={`filter-${field.id}`}
               value={values[field.id] ?? ""}
               placeholder={field.placeholder}
               onChange={(event) =>
@@ -54,6 +55,7 @@ export function DataTableFilterForm({
   onValueChange={(value) => updateValue(field.id, value)}
 >
   <SelectTrigger
+    id={`filter-${field.id}`}
     size="sm"
     className="h-8 w-full min-w-[180px] border-white/10 bg-[#101C44] text-xs text-white hover:bg-[#162653]"
   >

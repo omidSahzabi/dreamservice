@@ -7,7 +7,7 @@ interface FarazSmsResponse {
   status?: string;
   code?: number;
   message?: string;
-  data?: any;
+  data?: unknown;
 }
 
 export async function sendOtpSms({ to, code }: SendOtpParams): Promise<{ success: boolean; error?: string }> {
@@ -46,13 +46,13 @@ export async function sendOtpSms({ to, code }: SendOtpParams): Promise<{ success
     const data: FarazSmsResponse = await response.json();
 
     if (!response.ok) {
-      console.error("[FarazSMS API Error]:", data);
+      console.error("[FarazSMS API Error]");
       return { success: false, error: data.message || "Failed to send SMS" };
     }
 
     return { success: true };
-  } catch (error) {
-    console.error("[FarazSMS Exception]:", error);
+  } catch {
+    console.error("[FarazSMS Exception]");
     return { success: false, error: "Network error sending SMS" };
   }
 }

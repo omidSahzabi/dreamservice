@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
-import { useLocale, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,11 +21,16 @@ import { createFormSchema, createStepSchema } from "@/schemas/orderSchema";
 import { useOrderStore } from "@/store/orderStore";
 import type { OrderFormConfig, OrderFormData } from "@/types/order";
 
+import {localizeApiError} from "@/lib/api/errors";
+import type {ApiError} from "@/lib/api/errors";
+
 import { StepRenderer } from "./StepRenderer";
 
 export function OrderForm() {
   const t = useTranslations("OrderForm");
   const locale = useLocale();
+  const errors = useTranslations("Errors");
+
 
   const {
     data: config,
@@ -61,7 +66,7 @@ export function OrderForm() {
       >
         <div className="flex max-w-md flex-col items-center gap-4 rounded-2xl border border-destructive/20 bg-bg-secondary/60 p-8 text-center shadow-xl">
           <p className="text-sm font-medium text-destructive">
-            {error instanceof Error ? error.message : t("loadError")}
+            {error ? localizeApiError(error, errors) : t("loadError")}
           </p>
 
           <Button
@@ -81,38 +86,45 @@ export function OrderForm() {
 }
 
 function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
+  const format = useFormatter();
+
   const t = useTranslations("OrderForm");
   const locale = useLocale();
+  const errors = useTranslations("Errors");
+
 
   const currentStep = useOrderStore((state) => state.currentStep);
-  const nextStep = useOrderStore((state) => state.nextStep);
-  const previousStep = useOrderStore((state) => state.previousStep);
   const updateFormData = useOrderStore((state) => state.updateFormData);
   const resetForm = useOrderStore((state) => state.resetForm);
   const initialData = useOrderStore((state) => state.formData);
 
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<ApiError | Error | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const submitMutation = useSubmitOrder();
 
-  const { steps, settings, title, description, formKey } = config.form;
+  const { steps, settings, title, description, key } = config.form;
   const totalSteps = steps.length;
-  const step = steps[currentStep];
+  const activeStep = Math.min(currentStep, totalSteps - 1);
+  const step = steps[activeStep];
 
   const methods = useForm<OrderFormData>({
-    defaultValues: initialData,
+    defaultValues: {
+      ...Object.fromEntries(steps.flatMap(step => step.fields.filter(field => field.defaultValue != null).map(field => [field.id, field.defaultValue ?? undefined]))),
+      ...initialData
+    },
     mode: "onTouched",
-    resolver: zodResolver(createFormSchema(steps, initialData)),
+    resolver: (values, context, options) => zodResolver(createFormSchema(steps, values, t))(values, context, options),
   });
 
-  const { trigger, getValues, handleSubmit } = methods;
+  const { trigger, getValues, handleSubmit, subscribe } = methods;
+  useEffect(() => subscribe({formState: {values: true}, callback: ({values}) => updateFormData(values)}), [subscribe, updateFormData]);
 
-  if (!step) return null;
+  if (!step) return <p role="status">{t("empty")}</p>;
 
-  const isFirstStep = currentStep === 0;
-  const isLastStep = currentStep === totalSteps - 1;
-  const progress = ((currentStep + 1) / totalSteps) * 100;
+  const isFirstStep = activeStep === 0;
+  const isLastStep = activeStep === totalSteps - 1;
+  const progress = ((activeStep + 1) / totalSteps) * 100;
   const isRtl = locale === "fa";
 
   const handleNext = async () => {
@@ -121,6 +133,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
     const stepValidation = createStepSchema(
       step,
       currentValues,
+      t,
     ).safeParse(currentValues);
 
     if (!stepValidation.success) {
@@ -129,12 +142,12 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
     }
 
     updateFormData(currentValues);
-    nextStep();
+    useOrderStore.getState().setStep(activeStep + 1);
   };
 
   const handlePrev = () => {
     updateFormData(getValues());
-    previousStep();
+    useOrderStore.getState().setStep(activeStep - 1);
   };
 
   const onFinalSubmit = async (data: OrderFormData) => {
@@ -143,7 +156,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
 
     try {
       await submitMutation.mutateAsync({
-        formKey: formKey || "default",
+        formKey: key,
         data,
       });
 
@@ -151,9 +164,9 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
       resetForm();
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setSubmitError(err.message);
+        setSubmitError(err);
       } else {
-        setSubmitError(t("unknownSubmitError"));
+        setSubmitError(new Error("UNKNOWN"));
       }
     }
   };
@@ -233,7 +246,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
                               {isCompleted ? (
                                 <Check className="size-4" strokeWidth={3} />
                               ) : (
-                                index + 1
+                                format.number(index + 1)
                               )}
                             </div>
 
@@ -269,13 +282,13 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-text-secondary">
                         {t("stepProgress", {
-                          current: currentStep + 1,
+                          current: activeStep + 1,
                           total: totalSteps,
                         })}
                       </span>
 
                       <span className="font-bold text-primary">
-                        {Math.round(progress)}%
+                        {format.number(progress / 100, {style: "percent", maximumFractionDigits: 0})}
                       </span>
                     </div>
 
@@ -290,7 +303,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
               <section className="p-6 sm:p-8">
                 {submitError && (
                   <div className="mb-6 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-medium text-destructive">
-                    {submitError}
+                    {localizeApiError(submitError, errors)}
                   </div>
                 )}
 

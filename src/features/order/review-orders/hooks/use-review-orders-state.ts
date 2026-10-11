@@ -17,7 +17,7 @@ export function useReviewOrdersState() {
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search: filters.search,
-    status: filters.status as never,
+    status: filters.status,
     type: filters.type,
     budget_range: filters.budget_range,
     client_id: filters.client_id,

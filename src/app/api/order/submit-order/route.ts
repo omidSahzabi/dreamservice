@@ -11,7 +11,7 @@ const createOrderSchema = z.object({
   page_count: z.number().int().optional().nullable(),
   description: z.string().optional().nullable(),
   client_id: z.string().uuid().optional(),
-  meta: z.record(z.any()).optional().default({}),
+  meta: z.record(z.string(), z.json()).optional().default({}),
 });
 
 export async function POST(request: Request) {
@@ -34,14 +34,14 @@ export async function POST(request: Request) {
       description,
       client_id,
       meta: {
-        formKey: rawBody.formKey,
+        ...(rawBody.formKey !== undefined ? { formKey: rawBody.formKey } : {}),
         ...payload,
       },
     });
 
     const newOrder = await prisma.order.create({
       data: {
-        client_id: validated.client_id!,
+        client_id: validated.client_id ?? client_id,
         type: validated.type,
         budget_range: validated.budget_range,
         status: validated.status,
@@ -60,14 +60,13 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    console.error("POST Order Error:", error);
+  } catch (error: unknown) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
           success: false,
-          message: "اطلاعات ارسالی معتبر نیست",
+          code: "ORDER_INVALID", message: "اطلاعات ارسالی معتبر نیست",
           errors: error.flatten().fieldErrors,
         },
         { status: 400 }
@@ -77,8 +76,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "خطایی در ثبت سفارش رخ داد",
-        error: error?.message || "Internal Server Error",
+        code: "ORDER_SUBMIT_FAILED", message: "خطایی در ثبت سفارش رخ داد",
+        error: "Internal Server Error",
       },
       { status: 500 }
     );

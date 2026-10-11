@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import {useTranslations, useFormatter} from "next-intl";
 
 import {
   Check,
@@ -27,9 +28,6 @@ import {
   Label,
 } from "@/components/ui/label";
 
-import {
-  Checkbox,
-} from "@/components/ui/checkbox";
 
 import type {
   DataTableFilterConfig,
@@ -51,6 +49,8 @@ export function DataTableFilters({
   value,
   onChange,
 }: Props) {
+  const t = useTranslations("DataTable");
+  const format = useFormatter();
   const [open, setOpen] =
     React.useState(false);
 
@@ -126,11 +126,11 @@ export function DataTableFilters({
           >
             <Filter className="size-3.5" />
 
-            <span>فیلتر</span>
+            <span>{t("filters")}</span>
 
             {activeFilterCount > 0 && (
               <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-                {activeFilterCount}
+                {format.number(activeFilterCount)}
               </span>
             )}
           </Button>
@@ -142,9 +142,9 @@ export function DataTableFilters({
         >
           <div className="flex min-h-[280px]">
             {/* Filter keys */}
-            <div className="w-[140px] border-r border-white/10 p-2">
+            <div className="w-[140px] border-e border-white/10 p-2">
               <div className="px-2 py-2 text-[11px] font-semibold text-white/40">
-                فیلترها
+                {t("filters")}
               </div>
 
               <div className="space-y-1">
@@ -166,7 +166,7 @@ export function DataTableFilters({
                           filter.key,
                         )
                       }
-                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-right text-xs transition-colors ${
+                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-start text-xs transition-colors ${
                         isActive
                           ? "bg-primary/15 text-primary"
                           : "text-white/70 hover:bg-white/5 hover:text-white"
@@ -193,7 +193,7 @@ export function DataTableFilters({
                     <Filter className="mx-auto size-5 opacity-50" />
 
                     <p>
-                      یک فیلتر را انتخاب کنید
+                      {t("selectFilter")}
                     </p>
                   </div>
                 </div>
@@ -224,7 +224,7 @@ export function DataTableFilters({
           {activeFilterCount > 0 && (
             <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
               <span className="text-[11px] text-white/40">
-                {activeFilterCount} فیلتر فعال
+                {t("activeFilters", {count: activeFilterCount})}
               </span>
 
               <Button
@@ -235,7 +235,7 @@ export function DataTableFilters({
                 className="h-7 gap-1.5 px-2 text-[11px] text-white/50 hover:bg-white/5 hover:text-white"
               >
                 <X className="size-3" />
-                حذف همه
+                {t("removeAll")}
               </Button>
             </div>
           )}
@@ -269,6 +269,7 @@ function FilterField({
   onChange,
   onClear,
 }: FilterFieldProps) {
+  const t = useTranslations("DataTable");
   if (filter.type === "select") {
     return (
       <div className="space-y-3">
@@ -278,7 +279,7 @@ function FilterField({
           </Label>
 
           <p className="mt-1 text-[11px] text-white/40">
-            مقدار موردنظر را انتخاب کنید
+            {t("selectValue")}
           </p>
         </div>
 
@@ -300,7 +301,7 @@ function FilterField({
                         : option.value,
                     )
                   }
-                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-right text-xs transition-colors ${
+                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-start text-xs transition-colors ${
                     selected
                       ? "border-primary/30 bg-primary/10 text-primary"
                       : "border-white/5 bg-white/[0.02] text-white/70 hover:bg-white/5 hover:text-white"
@@ -327,7 +328,7 @@ function FilterField({
             onClick={onClear}
             className="h-7 w-full text-xs text-white/50 hover:bg-white/5 hover:text-white"
           >
-            حذف این فیلتر
+            {t("removeFilter")}
           </Button>
         )}
       </div>
@@ -370,7 +371,7 @@ function FilterField({
             onClick={onClear}
             className="h-7 w-full text-xs text-white/50 hover:bg-white/5 hover:text-white"
           >
-            حذف این فیلتر
+            {t("removeFilter")}
           </Button>
         )}
       </div>
@@ -407,7 +408,7 @@ function FilterField({
           onClick={onClear}
           className="h-7 w-full text-xs text-white/50 hover:bg-white/5 hover:text-white"
         >
-          حذف این فیلتر
+          {t("removeFilter")}
         </Button>
       )}
     </div>

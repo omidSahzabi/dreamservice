@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "داده‌های ورودی نامعتبر است",
+          code: "INVALID_INPUT", error: "داده‌های ورودی نامعتبر است",
           details: parsed.error.flatten().fieldErrors,
         },
         { status: 422 }
@@ -35,7 +35,12 @@ export async function POST(req: Request) {
     }
 
     const { target: rawTarget, purpose } = parsed.data;
-    const phone = normalizePhone(rawTarget);
+    let phone: string;
+    try {
+      phone = normalizePhone(rawTarget);
+    } catch {
+      return NextResponse.json({success: false, code: "INVALID_PHONE", error: "شماره همراه نامعتبر است"}, {status: 400});
+    }
     const now = new Date();
 
     const latestOtp = await prisma.otpVerification.findFirst({
@@ -64,6 +69,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             success: false,
+            code: "OTP_RATE_LIMIT",
             error: `لطفاً ${retryAfter} ثانیه دیگر مجدداً تلاش کنید`,
             retryAfter,
           },
@@ -83,23 +89,19 @@ export async function POST(req: Request) {
       now.getTime() + OTP_EXPIRATION_MINUTES * 60 * 1000
     );
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("========================================");
-      console.log(`🔑 DEV OTP Code for [${phone}]: ${plainCode}`);
-      console.log("========================================");
-    } else {
+    if (process.env.NODE_ENV !== "development") {
       const smsResult = await sendOtpSms({
         to: phone,
         code: plainCode,
       });
 
       if (!smsResult.success) {
-        console.error("[SEND_OTP_SMS_FAILED]", smsResult.error);
+        console.error("[SEND_OTP_SMS_FAILED]");
 
         return NextResponse.json(
           {
             success: false,
-            error: "ارسال پیامک انجام نشد. لطفاً دوباره تلاش کنید.",
+            code: "SMS_FAILED", error: "ارسال پیامک انجام نشد. لطفاً دوباره تلاش کنید.",
           },
           { status: 502 }
         );
@@ -125,25 +127,7 @@ export async function POST(req: Request) {
       },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("[SEND_OTP_ERROR]", error);
-
-    if (error instanceof Error) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "خطای داخلی سرور",
-      },
-      { status: 500 }
-    );
+  } catch {
+    return NextResponse.json({success: false, code: "UNKNOWN", error: "خطای داخلی سرور"}, {status: 500});
   }
 }

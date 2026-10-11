@@ -25,23 +25,23 @@ export function DataTableColumnMenu<TData, TValue>({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-          <span className="sr-only">Open menu</span>
+          <span className="sr-only">{t("openMenu")}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {column.getCanPin() && (
           <>
             <DropdownMenuItem onClick={() => column.pin("left")}>
-              <ArrowLeftToLine className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+              <ArrowLeftToLine className="h-4 w-4 me-2" />
               {t("pinLeft")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => column.pin("right")}>
-              <ArrowRightToLine className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+              <ArrowRightToLine className="h-4 w-4 me-2" />
               {t("pinRight")}
             </DropdownMenuItem>
             {column.getIsPinned() && (
               <DropdownMenuItem onClick={() => column.pin(false)}>
-                <PinOff className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                <PinOff className="h-4 w-4 me-2" />
                 {t("unpin")}
               </DropdownMenuItem>
             )}
@@ -50,7 +50,7 @@ export function DataTableColumnMenu<TData, TValue>({
         )}
         {column.getCanHide() && (
           <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
-            <EyeOff className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+            <EyeOff className="h-4 w-4 me-2" />
             {t("hideColumn")}
           </DropdownMenuItem>
         )}

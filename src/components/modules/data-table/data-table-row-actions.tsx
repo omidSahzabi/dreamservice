@@ -1,5 +1,6 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {
   MoreHorizontal,
 } from "lucide-react";
@@ -26,6 +27,7 @@ export function DataTableRowActions({
   onEdit,
   onDelete,
 }: DataTableRowActionsProps) {
+  const t = useTranslations("DataTable");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -34,7 +36,7 @@ export function DataTableRowActions({
           className="h-8 w-8 p-0"
         >
           <span className="sr-only">
-            Open menu
+            {t("openMenu")}
           </span>
 
           <MoreHorizontal className="h-4 w-4" />
@@ -44,13 +46,13 @@ export function DataTableRowActions({
       <DropdownMenuContent align="end">
         {onView && (
           <DropdownMenuItem onClick={onView}>
-            View
+            {t("view")}
           </DropdownMenuItem>
         )}
 
         {onEdit && (
           <DropdownMenuItem onClick={onEdit}>
-            Edit
+            {t("edit")}
           </DropdownMenuItem>
         )}
 
@@ -59,7 +61,7 @@ export function DataTableRowActions({
             onClick={onDelete}
             className="text-destructive"
           >
-            Delete
+            {t("delete")}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

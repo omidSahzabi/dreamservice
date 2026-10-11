@@ -43,20 +43,20 @@ export function DataTableColumnHeader<
       onClick={() =>
         column.toggleSorting()
       }
-      className="-ml-3 h-8"
+      className="-ms-3 h-8"
     >
       {title}
 
       {sorted === "asc" && (
-        <ArrowUp className="ml-2 h-4 w-4" />
+        <ArrowUp className="ms-2 h-4 w-4" />
       )}
 
       {sorted === "desc" && (
-        <ArrowDown className="ml-2 h-4 w-4" />
+        <ArrowDown className="ms-2 h-4 w-4" />
       )}
 
       {!sorted && (
-        <ChevronsUpDown className="ml-2 h-4 w-4" />
+        <ChevronsUpDown className="ms-2 h-4 w-4" />
       )}
     </Button>
   );

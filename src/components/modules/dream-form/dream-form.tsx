@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import React, { useEffect, useState } from 'react';
+import {useLocale, useTranslations} from 'next-intl';
+import {toast} from 'sonner';
+import { useForm, SubmitHandler, FieldErrors, RegisterOptions } from 'react-hook-form';
 import clsx from 'clsx';
 
 // ============== Types ==============
@@ -37,7 +39,7 @@ interface SelectOption {
   disabled?: boolean;
 }
 
-interface FieldConfig {
+export interface FieldConfig {
   name: string;
   label: string;
   type: InputType;
@@ -59,14 +61,19 @@ interface FieldConfig {
   suffix?: string | React.ReactNode;
 }
 
+type FormValues = Record<string, unknown>;
+const inputValue = (value: unknown): string | number | readonly string[] => typeof value === "string" || typeof value === "number" ? value : Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : "";
+const arrayValue = (value: unknown): (string | number)[] => Array.isArray(value) ? value.filter((item): item is string | number => typeof item === "string" || typeof item === "number") : [];
+
 interface DreamFormProps {
   fields: FieldConfig[];
   submitText?: string;
   resetText?: string;
   showSubmitButton?: boolean;
-  onSubmit: (data: Record<string, any>) => void | Promise<void>;
-  onError?: (errors: Record<string, any>) => void;
+  onSubmit: (data: FormValues) => void | Promise<void>;
+  onError?: (errors: FieldErrors<FormValues>) => void;
   onReset?: () => void;
+  onValuesChange?: (data: FormValues) => void;
   className?: string;
   submitClassName?: string;
   resetClassName?: string;
@@ -78,12 +85,13 @@ interface DreamFormProps {
 // ============== Component ==============
 export const DreamForm: React.FC<DreamFormProps> = ({
   fields,
-  submitText = 'ثبت اطلاعات',
-  resetText = 'پاک کردن',
+  submitText,
+  resetText,
   onSubmit,
    showSubmitButton = true ,
   onError,
   onReset,
+  onValuesChange,
   className = '',
   submitClassName = '',
   resetClassName = '',
@@ -91,6 +99,8 @@ export const DreamForm: React.FC<DreamFormProps> = ({
   layout = 'vertical',
   gridColumns = 2,
 }) => {
+  const t = useTranslations("DreamForm");
+  const locale = useLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -100,18 +110,24 @@ export const DreamForm: React.FC<DreamFormProps> = ({
     reset,
     watch,
     trigger,
-  } = useForm({
+    subscribe,
+  } = useForm<FormValues>({
     mode: 'onChange',
-    defaultValues: fields.reduce((acc, field) => {
+    defaultValues: fields.reduce<FormValues>((acc, field) => {
       if (field.defaultValue !== undefined) {
         acc[field.name] = field.defaultValue;
       }
       return acc;
-    }, {} as Record<string, any>),
+    }, {}),
   });
 
+  useEffect(() => {
+    if (!onValuesChange) return;
+    return subscribe({formState: {values: true}, callback: ({values}) => onValuesChange(values)});
+  }, [subscribe, onValuesChange]);
+
   const getValidationRules = (field: FieldConfig) => {
-    const rules: Record<string, any> = {};
+    const rules: RegisterOptions<FormValues> = {};
     
     field.validation?.forEach((validation) => {
       switch (validation.type) {
@@ -126,31 +142,31 @@ export const DreamForm: React.FC<DreamFormProps> = ({
           break;
         case 'minLength':
           rules.minLength = {
-            value: validation.value as number,
+            value: typeof validation.value === "number" ? validation.value : 0,
             message: validation.message,
           };
           break;
         case 'maxLength':
           rules.maxLength = {
-            value: validation.value as number,
+            value: typeof validation.value === "number" ? validation.value : 0,
             message: validation.message,
           };
           break;
         case 'min':
           rules.min = {
-            value: validation.value as number,
+            value: typeof validation.value === "number" ? validation.value : 0,
             message: validation.message,
           };
           break;
         case 'max':
           rules.max = {
-            value: validation.value as number,
+            value: typeof validation.value === "number" ? validation.value : 0,
             message: validation.message,
           };
           break;
         case 'pattern':
           rules.pattern = {
-            value: validation.value as RegExp,
+            value: validation.value instanceof RegExp ? validation.value : new RegExp(String(validation.value ?? "")),
             message: validation.message,
           };
           break;
@@ -160,12 +176,12 @@ export const DreamForm: React.FC<DreamFormProps> = ({
     return rules;
   };
 
-  const handleFormSubmit: SubmitHandler<Record<string, any>> = async (data) => {
+  const handleFormSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsSubmitting(true);
     try {
       await onSubmit(data);
-    } catch (error) {
-      console.error('Form submission error:', error);
+    } catch {
+      toast.error(t("submitError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -181,7 +197,8 @@ export const DreamForm: React.FC<DreamFormProps> = ({
   const renderField = (field: FieldConfig) => {
     const validationRules = getValidationRules(field);
     const registerResult = register(field.name, validationRules);
-    const error = errors[field.name]?.message as string;
+    const message = errors[field.name]?.message;
+    const error = typeof message === "string" ? message : undefined;
 
 const baseInputClasses = clsx(
   'w-full px-4 py-3 rounded-lg border transition-all duration-200',
@@ -209,7 +226,9 @@ const baseInputClasses = clsx(
         case 'select':
           return (
             <select
-              value={watchedValues[field.name] || ''}
+              id={field.name}
+              aria-label={field.showLabel === false ? field.label : undefined}
+              value={inputValue(watchedValues[field.name])}
               onChange={(e) => {
                 registerResult.onChange({ target: { name: field.name, value: e.target.value } });
                 trigger(field.name);
@@ -218,7 +237,7 @@ const baseInputClasses = clsx(
               disabled={field.disabled}
               className={baseInputClasses}
             >
-              <option value="">{field.placeholder || 'انتخاب کنید...'}</option>
+              <option value="">{field.placeholder || t("select")}</option>
               {field.options?.map((option) => (
                 <option 
                   key={option.value} 
@@ -234,7 +253,9 @@ const baseInputClasses = clsx(
         case 'textarea':
           return (
             <textarea
-              value={watchedValues[field.name] || ''}
+              id={field.name}
+              aria-label={field.showLabel === false ? field.label : undefined}
+              value={inputValue(watchedValues[field.name])}
               onChange={(e) => {
                 registerResult.onChange({ target: { name: field.name, value: e.target.value } });
                 trigger(field.name);
@@ -254,9 +275,7 @@ const baseInputClasses = clsx(
             return (
               <div className="flex flex-col gap-2">
                 {field.options.map((option) => {
-                  const isChecked = Array.isArray(watchedValues[field.name]) 
-                    ? watchedValues[field.name].includes(option.value)
-                    : false;
+                  const isChecked = arrayValue(watchedValues[field.name]).includes(option.value);
                   
                   return (
                     <label 
@@ -267,9 +286,7 @@ const baseInputClasses = clsx(
                         type="checkbox"
                         checked={isChecked}
                         onChange={(e) => {
-                          const currentValues = Array.isArray(watchedValues[field.name]) 
-                            ? watchedValues[field.name] 
-                            : [];
+                          const currentValues = arrayValue(watchedValues[field.name]);
                           if (e.target.checked) {
                             registerResult.onChange({ 
                               target: { 
@@ -281,7 +298,7 @@ const baseInputClasses = clsx(
                             registerResult.onChange({ 
                               target: { 
                                 name: field.name, 
-                                value: currentValues.filter((v: any) => v !== option.value) 
+                                value: currentValues.filter((v) => v !== option.value)
                               } 
                             });
                           }
@@ -302,7 +319,7 @@ const baseInputClasses = clsx(
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={watchedValues[field.name] || false}
+                  checked={Boolean(watchedValues[field.name])}
                   onChange={(e) => {
                     registerResult.onChange({ 
                       target: { 
@@ -369,7 +386,7 @@ const baseInputClasses = clsx(
               }}
               onBlur={registerResult.onBlur}
               disabled={field.disabled}
-              className={clsx(baseInputClasses, 'file:mr-4 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer')}
+              className={clsx(baseInputClasses, 'file:me-4 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer')}
             />
           );
 
@@ -378,7 +395,7 @@ const baseInputClasses = clsx(
             <div className="flex items-center gap-4">
               <input
                 type="range"
-                value={watchedValues[field.name] || 0}
+                value={inputValue(watchedValues[field.name]) || 0}
                 onChange={(e) => {
                   registerResult.onChange({ 
                     target: { 
@@ -393,7 +410,7 @@ const baseInputClasses = clsx(
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
               <span className="text-sm font-medium text-gray-700 min-w-[40px] text-center">
-                {watchedValues[field.name] || 0}
+                {inputValue(watchedValues[field.name]) || 0}
               </span>
             </div>
           );
@@ -403,7 +420,7 @@ const baseInputClasses = clsx(
             <div className="flex items-center gap-3">
               <input
                 type="color"
-                value={watchedValues[field.name] || '#000000'}
+                value={inputValue(watchedValues[field.name]) || "#000000"}
                 onChange={(e) => {
                   registerResult.onChange({ 
                     target: { 
@@ -419,7 +436,7 @@ const baseInputClasses = clsx(
               />
               <input
                 type="text"
-                value={watchedValues[field.name] || ''}
+                value={inputValue(watchedValues[field.name])}
                 onChange={(e) => {
                   registerResult.onChange({ 
                     target: { 
@@ -441,13 +458,16 @@ const baseInputClasses = clsx(
           return (
             <div className="relative">
               {field.prefix && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                <span className="absolute start-4 top-1/2 -translate-y-1/2 text-gray-500">
                   {field.prefix}
                 </span>
               )}
               <input
                 type={field.type}
-                value={watchedValues[field.name] || ''}
+                id={field.name}
+                aria-label={field.showLabel === false ? field.label : undefined}
+                dir={["email", "tel", "url", "number"].includes(field.type) ? "ltr" : undefined}
+                value={inputValue(watchedValues[field.name])}
                 onChange={(e) => {
                   const value = field.type === 'number' 
                     ? (e.target.value === '' ? '' : Number(e.target.value))
@@ -466,12 +486,12 @@ const baseInputClasses = clsx(
                 readOnly={field.readOnly}
                 className={clsx(
                   baseInputClasses, 
-                  field.prefix && 'pr-12', 
-                  field.suffix && 'pl-12'
+                  field.prefix && 'ps-12',
+                  field.suffix && 'pe-12'
                 )}
               />
               {field.suffix && (
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                <span className="absolute end-4 top-1/2 -translate-y-1/2 text-gray-500">
                   {field.suffix}
                 </span>
               )}
@@ -493,10 +513,10 @@ const baseInputClasses = clsx(
     return (
       <div key={field.name} className={field.className}>
 {field.showLabel !== false && field.type !== 'checkbox' && (
-  <label className={labelClasses}>
+  <label htmlFor={field.name} className={labelClasses}>
     {field.label}
     {field.validation?.some(v => v.type === 'required') && (
-      <span className="text-red-500 mr-1">*</span>
+      <span className="text-red-500 ms-1">*</span>
     )}
   </label>
 )}
@@ -519,10 +539,10 @@ const baseInputClasses = clsx(
   );
 
   return (
-    <form 
+    <form noValidate
       onSubmit={handleSubmit(handleFormSubmit, onError)} 
       className={containerClasses}
-      dir="rtl"
+      dir={locale === "fa" ? "rtl" : "ltr"}
     >
       {fields.map(renderField)}
 
@@ -544,10 +564,10 @@ const baseInputClasses = clsx(
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              در حال ارسال...
+              {t("submitting")}
             </span>
           ) : (
-            submitText
+            submitText ?? t("submit")
           )}
         </button>
 
@@ -562,7 +582,7 @@ const baseInputClasses = clsx(
               resetClassName
             )}
           >
-            {resetText}
+            {resetText ?? t("reset")}
           </button>
         )}
       </div>}

@@ -32,6 +32,5 @@ export function useNavItems(): NavItem[] {
       ],
     },
     { label: t("about"), href: "/about" },
-    { label: t("faq"), href: "/faq" },
   ];
 }

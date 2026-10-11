@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
+          code: "INVALID_INPUT",
           error: {
             code: "VALIDATION_ERROR",
             message: "Invalid query parameters.",
@@ -115,13 +116,14 @@ export async function GET(request: NextRequest) {
         },
       }
     );
-  } catch (error: any) {
+  } catch {
     return NextResponse.json(
       {
         success: false,
+        code: "ORDER_LOAD_FAILED",
         error: {
           code: "INTERNAL_SERVER_ERROR",
-          message: error?.message || "An unexpected error occurred while processing your request.",
+          message: "An unexpected error occurred while processing your request.",
         },
       },
       { status: 500 }

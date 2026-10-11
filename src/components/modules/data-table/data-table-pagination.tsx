@@ -1,7 +1,7 @@
 "use client";
 
 import { Table } from "@tanstack/react-table";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,17 +20,21 @@ import {
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
   pageSizeOptions?: number[];
+  rowCount?: number;
 }
 
 export function DataTablePagination<TData>({
   table,
+  rowCount,
   pageSizeOptions = [10, 20, 30, 50, 100],
 }: DataTablePaginationProps<TData>) {
+  const format = useFormatter();
+  const common = useTranslations("Common");
   const t = useTranslations("DataTable");
 
   const pageIndex = table.getState().pagination.pageIndex;
   const pageSize = table.getState().pagination.pageSize;
-  const totalRows = table.getFilteredRowModel().rows.length;
+  const totalRows = rowCount ?? table.getFilteredRowModel().rows.length;
   const pageCount = table.getPageCount();
 
   const from = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
@@ -50,11 +54,11 @@ export function DataTablePagination<TData>({
             onValueChange={(value) => table.setPageSize(Number(value))}
           >
             <SelectTrigger className="h-8 w-[70px]">
-              <SelectValue placeholder={pageSize} />
+              <SelectValue placeholder={format.number(pageSize)} />
             </SelectTrigger>
             <SelectContent side="top">
               {pageSizeOptions.map((size) => (
-                <SelectItem key={size} size-value={`${size}`} value={`${size}`}>
+                <SelectItem key={format.number(size)} value={`${size}`}>
                   {size}
                 </SelectItem>
               ))}
@@ -71,6 +75,7 @@ export function DataTablePagination<TData>({
             variant="outline"
             size="icon"
             className="h-8 w-8 rtl:rotate-180"
+            aria-label={common("firstPage")}
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
           >
@@ -80,6 +85,7 @@ export function DataTablePagination<TData>({
             variant="outline"
             size="icon"
             className="h-8 w-8 rtl:rotate-180"
+            aria-label={common("previousPage")}
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
@@ -89,6 +95,7 @@ export function DataTablePagination<TData>({
             variant="outline"
             size="icon"
             className="h-8 w-8 rtl:rotate-180"
+            aria-label={common("nextPage")}
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
@@ -98,6 +105,7 @@ export function DataTablePagination<TData>({
             variant="outline"
             size="icon"
             className="h-8 w-8 rtl:rotate-180"
+            aria-label={common("lastPage")}
             onClick={() => table.setPageIndex(pageCount - 1)}
             disabled={!table.getCanNextPage()}
           >

@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 
+import {orderFormConfigSchema} from "@/schemas/orderFormConfig";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const localeParam = searchParams.get("locale") ?? "fa";
-
-    const locale =
-      localeParam === "en" ? "en" : "fa";
+    const locale = searchParams.get("locale") ?? "fa";
+    if (locale !== "en" && locale !== "fa") {
+      return NextResponse.json({code: "INVALID_INPUT", error: "Unsupported locale"}, {status: 400});
+    }
 
     const form = await prisma.orderForm.findFirst({
       where: {
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
     if (!form) {
       return NextResponse.json(
         {
-          error: "Order form not found",
+          code: "FORM_NOT_FOUND", error: "Order form not found",
         },
         {
           status: 404,
@@ -79,6 +80,15 @@ export async function GET(request: Request) {
     }
 
     const formTranslation = form.translations[0];
+
+    const missingTranslation = !formTranslation?.title?.trim() || form.steps.some(step =>
+      !step.translations[0]?.title?.trim() || step.fields.some(field =>
+        !field.translations[0]?.label?.trim() || field.options.some(option => !option.translations[0]?.label?.trim())
+      )
+    );
+    if (missingTranslation) {
+      return NextResponse.json({code: "FORM_TRANSLATION_MISSING", error: "Form translation unavailable"}, {status: 503});
+    }
 
     const result = {
       form: {
@@ -149,7 +159,7 @@ export async function GET(request: Request) {
 
                     label:
                       optionTranslation?.label ??
-                      option.option_value,
+                      "",
 
                     description:
                       optionTranslation?.description ??
@@ -165,16 +175,13 @@ export async function GET(request: Request) {
       },
     };
 
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error(
-      "GET /api/order-form failed:",
-      error
-    );
-
+    const parsed = orderFormConfigSchema.safeParse(result);
+    if (!parsed.success) return NextResponse.json({code: "FORM_LOAD_FAILED", error: "Invalid form configuration"}, {status: 503});
+    return NextResponse.json(parsed.data);
+  } catch {
     return NextResponse.json(
       {
-        error: "Failed to load order form",
+        code: "FORM_LOAD_FAILED", error: "Failed to load order form",
       },
       {
         status: 500,
@@ -195,9 +202,9 @@ function getLocalizedValue(
     return "";
   }
 
-  const data = value as Record<string, unknown>;
+  const data = value;
 
-  const localizedValue = data[locale];
+  const localizedValue: unknown = Reflect.get(data, locale);
 
   return typeof localizedValue === "string"
     ? localizedValue

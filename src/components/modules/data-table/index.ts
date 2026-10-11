@@ -7,7 +7,7 @@ export {
 } from "./data-table-column-header";
 
 export {
-  DataTableFilter,
+  DataTableFilters as DataTableFilter,
 } from "./data-table-filter";
 
 export {

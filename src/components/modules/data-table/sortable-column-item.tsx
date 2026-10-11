@@ -1,5 +1,6 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {
   useSortable,
 } from "@dnd-kit/sortable";
@@ -31,6 +32,7 @@ export function SortableColumnItem({
   visible,
   onVisibilityChange,
 }: Props) {
+  const t = useTranslations("Common");
   const {
     attributes,
     listeners,
@@ -51,10 +53,11 @@ export function SortableColumnItem({
         transition,
       }}
       className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted"
-      {...attributes}
     >
       <button
         type="button"
+        aria-label={t("moveColumn", {label})}
+        {...attributes}
         {...listeners}
         className="cursor-grab text-muted-foreground active:cursor-grabbing"
       >
@@ -62,6 +65,7 @@ export function SortableColumnItem({
       </button>
 
       <Checkbox
+        aria-label={label}
         checked={visible}
         onCheckedChange={(value) =>
           onVisibilityChange(Boolean(value))

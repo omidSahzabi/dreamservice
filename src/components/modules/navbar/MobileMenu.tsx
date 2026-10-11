@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useLocale } from "next-intl";
+import {Link} from "@/lib/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetDescription,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -25,6 +26,7 @@ interface MobileMenuProps {
 export default function MobileMenu({ isActive }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const locale = useLocale();
+  const t = useTranslations("Navbar");
   const navItems = useNavItems();
 
   return (
@@ -35,14 +37,14 @@ export default function MobileMenu({ isActive }: MobileMenuProps) {
             variant="ghost"
             size="icon"
             className="text-slate-300 hover:text-white"
-            aria-label="Open menu"
+            aria-label={t("openMenu")}
           >
             <Menu className="w-6 h-6" />
           </Button>
         </SheetTrigger>
 
         <SheetContent
-          side={locale === "fa" ? "right" : "left"}
+          side={locale === "fa" ? "left" : "right"}
           className="w-[280px] sm:w-[320px] bg-slate-950/95 border-cyan-400/30 backdrop-blur-md p-6 flex flex-col justify-between"
           dir={locale === "fa" ? "rtl" : "ltr"}
         >
@@ -51,6 +53,7 @@ export default function MobileMenu({ isActive }: MobileMenuProps) {
               <SheetTitle className="text-start text-cyan-400 font-bold">
                 DreamService
               </SheetTitle>
+              <SheetDescription className="sr-only">{t("openMenu")}</SheetDescription>
             </SheetHeader>
 
             <nav className="flex flex-col gap-4">

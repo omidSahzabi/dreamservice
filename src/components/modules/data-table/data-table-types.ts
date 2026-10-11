@@ -1,12 +1,13 @@
 import type {
   RowData,
+  ColumnDef,
+  InitialTableState,
   PaginationState,
   OnChangeFn,
 } from "@tanstack/react-table";
 
 
 import type {
-  DataTableFilterField,
   DataTableFilterValues,
 } from "./data-table-filter-types"
 
@@ -15,6 +16,8 @@ export type DataTableDensity =
   | "compact"
   | "default"
   | "comfortable";
+
+export type DensityState = DataTableDensity;
 
 export interface DataTableMeta {
   label?: string;
@@ -90,7 +93,7 @@ export interface DataTableProps<
   TData extends RowData,
   TValue = unknown,
 > {
-  columns: any[];
+  columns: ColumnDef<TData, TValue>[];
   data: TData[];
 
   storageKey?: string;
@@ -149,5 +152,5 @@ export interface DataTableProps<
 
   pageSize?: number;
 
-  initialState?: Record<string, any>;
+  initialState?: InitialTableState;
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useLocale } from "next-intl"
 import { CircleIcon } from "lucide-react"
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
 
@@ -10,8 +11,9 @@ function RadioGroup({
   className,
   ...props
 }: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
+  const locale = useLocale()
   return (
-    <RadioGroupPrimitive.Root
+    <RadioGroupPrimitive.Root dir={locale === "fa" ? "rtl" : "ltr"}
       data-slot="radio-group"
       className={cn("grid gap-3", className)}
       {...props}

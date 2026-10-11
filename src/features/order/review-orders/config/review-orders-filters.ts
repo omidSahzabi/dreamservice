@@ -1,35 +1,37 @@
 import type { DataTableFilterField } from "@/components/modules/data-table"
 
-export const reviewOrdersFilters: DataTableFilterField[] = [
+export function getReviewOrdersFilters(t: (key: string) => string, status: (key: string) => string): DataTableFilterField[] {
+return [
   {
     id: "status",
     type: "select",
-    label: "وضعیت",
-    placeholder: "انتخاب وضعیت",
+    label: t("filters.status"),
+    placeholder: t("filters.selectStatus"),
     options: [
-      { value: "PENDING", label: "در انتظار" },
-      { value: "PROCESSING", label: "در حال پردازش" },
-      { value: "COMPLETED", label: "تکمیل شده" },
-      { value: "CANCELLED", label: "لغو شده" },
-      { value: "REJECTED", label: "رد شده" },
+      { value: "PENDING", label: status("PENDING") },
+      { value: "PROCESSING", label: status("PROCESSING") },
+      { value: "COMPLETED", label: status("COMPLETED") },
+      { value: "CANCELLED", label: status("CANCELLED") },
+      { value: "REJECTED", label: status("REJECTED") },
     ],
   },
   {
     id: "type",
     type: "text",
-    label: "نوع سفارش",
-    placeholder: "نوع سفارش",
+    label: t("filters.type"),
+    placeholder: t("filters.type"),
   },
   {
     id: "budget_range",
     type: "text",
-    label: "بازه بودجه",
-    placeholder: "بازه بودجه",
+    label: t("filters.budgetRange"),
+    placeholder: t("filters.budgetRange"),
   },
   {
     id: "client_id",
     type: "text",
-    label: "شناسه مشتری",
-    placeholder: "شناسه مشتری",
+    label: t("filters.clientId"),
+    placeholder: t("filters.clientId"),
   },
-]
+];
+}

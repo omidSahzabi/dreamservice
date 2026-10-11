@@ -17,9 +17,6 @@ export function OrdersTable({
     <DataTable
       columns={columns}
       data={orders}
-      searchColumn="client_id"
-      searchPlaceholder="Search by client..."
-      emptyMessage="No orders found."
     />
   );
 }

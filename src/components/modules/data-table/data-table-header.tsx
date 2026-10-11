@@ -1,5 +1,7 @@
 "use client"
 
+import type {Table} from "@tanstack/react-table";
+import {DataTableFilterForm} from "./data-table-filter-form";
 import { DataTableFilterBar } from "./data-table-filter-bar"
 import { DataTableViewOptions } from "./data-table-view-options"
 import type {
@@ -12,7 +14,7 @@ type Props<TData> = {
   filterValues: DataTableFilterValues
   onFilterChange?: (values: DataTableFilterValues) => void
   enableColumnVisibility?: boolean
-  table: any
+  table: Table<TData>
   onColumnOrderChange?: (order: string[]) => void
 }
 
@@ -31,11 +33,9 @@ export function DataTableHeader<TData>({
   return (
     <div className="flex items-center justify-between gap-3">
       {filterForm?.length ? (
-        <DataTableFilterBar
-          fields={filterForm}
-          values={filterValues}
-          onChange={onFilterChange ?? (() => undefined)}
-        />
+        <DataTableFilterBar filterValues={filterValues} onClearFilters={() => onFilterChange?.({})}>
+          <DataTableFilterForm fields={filterForm} values={filterValues} onChange={onFilterChange ?? (() => undefined)} />
+        </DataTableFilterBar>
       ) : (
         <div />
       )}

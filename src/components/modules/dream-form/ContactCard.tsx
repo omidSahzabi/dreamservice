@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Phone, MessageCircle, Info, LucideIcon } from 'lucide-react';
+import {useTranslations} from 'next-intl';
+import { Phone, MessageCircle, LucideIcon } from 'lucide-react';
 
 interface ButtonConfig {
   text: string;
@@ -31,18 +32,16 @@ interface ContactCardProps {
 
 export const ContactCard: React.FC<ContactCardProps> = ({
   phoneNumber,
-  phoneLabel = 'تماس با ما',
+  phoneLabel,
   mainIcon: MainIcon = Phone,
   badgeIcon: BadgeIcon = MessageCircle,
-  buttons = [
-    { text: 'درخواست همکاری', icon: MessageCircle, onClick: () => {}, variant: 'outline' },
-    { text: 'درباره ما', icon: Info, onClick: () => {}, variant: 'filled' },
-  ],
+  buttons = [],
   className = '',
   style,
   width,
   gradient = 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
 }) => {
+  const t = useTranslations("ContactCard");
   return (
     <div
       className={`
@@ -56,6 +55,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({
       style={{ 
         background: gradient,
         width: width,
+        maxWidth: "100%",
         ...style,
       }}
     >
@@ -73,7 +73,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({
             </div>
             {/* آیکون badge */}
             {BadgeIcon && (
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+              <div className="absolute -bottom-1 -end-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
                 <BadgeIcon className="w-3 h-3 text-white" />
               </div>
             )}
@@ -82,10 +82,11 @@ export const ContactCard: React.FC<ContactCardProps> = ({
           {/* متن */}
           <div className="flex flex-col">
             <span className="text-white/70 text-sm font-medium">
-              {phoneLabel}
+              {phoneLabel ?? t("contact")}
             </span>
             <a
               href={`tel:${phoneNumber}`}
+              dir="ltr"
               className="text-white text-xl font-bold hover:text-blue-300 transition-colors"
             >
               {phoneNumber}

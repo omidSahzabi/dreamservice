@@ -1,62 +1,47 @@
-export interface UserResponse {
-  id: string;
-  fname: string | null;
-  lname: string | null;
-  contact: string | null;
-  email: string | null;
-  roles: string[];
-}
+import {z} from 'zod';
+import {ApiError, fetchJson} from '@/lib/api/errors';
+
+const userSchema = z.object({
+  id: z.string(), fname: z.string().nullable(), lname: z.string().nullable(),
+  contact: z.string().nullable(), email: z.string().nullable(), roles: z.array(z.string())
+});
+export type UserResponse = z.infer<typeof userSchema>;
 
 export async function getMe(): Promise<UserResponse | null> {
-  const res = await fetch("/api/auth/me", { cache: "no-store" });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.success ? data.user : null;
+  const data = z.object({success: z.boolean(), user: userSchema.nullable()})
+    .safeParse(await fetchJson('/api/auth/me', 'UNKNOWN', {cache: 'no-store'}));
+  if (!data.success) throw new ApiError('UNKNOWN');
+  return data.data.success ? data.data.user : null;
 }
 
+const post = (body: unknown) => ({
+  method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+});
+
 export async function sendOtp(target: string) {
-  const res = await fetch("/api/auth/send-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ target }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "خطا در ارسال کد تایید");
-  return data;
+  const data = z.object({success: z.literal(true), retryAfter: z.number(), expiresIn: z.number()})
+    .safeParse(await fetchJson('/api/auth/send-otp', 'UNKNOWN', post({target})));
+  if (!data.success) throw new ApiError('UNKNOWN');
+  return data.data;
 }
 
 export async function verifyOtp(target: string, code: string) {
-  const res = await fetch("/api/auth/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ target, code }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "کد وارد شده نامعتبر است");
-  return data;
+  const data = z.object({success: z.literal(true), isNewUser: z.boolean()})
+    .safeParse(await fetchJson('/api/auth/verify', 'UNKNOWN', post({target, code})));
+  if (!data.success) throw new ApiError('UNKNOWN');
+  return data.data;
 }
 
-export async function registerUser(payload: {
-  contact: string;
-  fname: string;
-  lname: string;
-  email?: string;
-}) {
-  const res = await fetch("/api/auth/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "خطا در ثبت نام");
-  return data;
+export async function registerUser(payload: {contact: string; fname: string; lname: string; email?: string}) {
+  const data = z.object({success: z.literal(true)})
+    .safeParse(await fetchJson('/api/auth/register', 'REGISTER_FAILED', post(payload)));
+  if (!data.success) throw new ApiError('REGISTER_FAILED');
+  return data.data;
 }
 
 export async function logoutUser() {
-  const res = await fetch("/api/auth/logout", {
-    method: "POST",
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "خطا در خروج");
-  return data;
+  const data = z.object({success: z.literal(true)})
+    .safeParse(await fetchJson('/api/auth/logout', 'LOGOUT_FAILED', {method: 'POST'}));
+  if (!data.success) throw new ApiError('LOGOUT_FAILED');
+  return data.data;
 }

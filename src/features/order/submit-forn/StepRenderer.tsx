@@ -15,7 +15,7 @@ export const StepRenderer = memo(function StepRenderer({
 }) {
   const t = useTranslations("OrderForm");
   const formValues = useWatch<OrderFormData>();
-  const visibleFields = getVisibleFields(step, formValues as OrderFormData);
+  const visibleFields = getVisibleFields(step, Object.fromEntries(Object.entries(formValues).map(([key, value]) => [key, Array.isArray(value) ? value.filter(item => typeof item === "string") : value])));
 
   return (
     <div className="space-y-8">
@@ -50,6 +50,7 @@ export const StepRenderer = memo(function StepRenderer({
                 </span>
               )}
             </Label>
+            {field.description && <p className="text-xs text-text-secondary">{field.description}</p>}
             <FieldRenderer field={field} />
           </div>
         ))}

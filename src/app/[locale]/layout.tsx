@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import {notFound} from "next/navigation";
+import {routing} from "../../../i18n/routing";
 
 import QueryProvider from "@/providers/QueryProvider";
 import Navbar from "@/components/modules/navbar/Navbar";
@@ -21,6 +23,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
 
   const t = await getTranslations({
     locale,
@@ -41,7 +44,10 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+  setRequestLocale(locale);
 
+  const common = await getTranslations({locale, namespace: "Common"});
   const messages = await getMessages({
     locale,
   });
@@ -52,7 +58,7 @@ export default async function RootLayout({
       dir={locale === "fa" ? "rtl" : "ltr"}
       className="dark"
     >
-      <body>
+      <body id="top">
         <NextIntlClientProvider
           locale={locale}
           messages={messages}
@@ -65,11 +71,14 @@ export default async function RootLayout({
             <AuthModal />
 
             <Toaster
+              dir={locale === "fa" ? "rtl" : "ltr"}
+              containerAriaLabel={common("notifications")}
+              toastOptions={{closeButtonAriaLabel: common("close")}}
               position="top-center"
               richColors
             />
 
-            <Footer />
+            <Footer year={new Date().getUTCFullYear()} />
           </QueryProvider>
         </NextIntlClientProvider>
       </body>

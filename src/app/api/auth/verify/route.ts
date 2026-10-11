@@ -20,17 +20,22 @@ export async function POST(req: Request) {
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: "کد وارد شده معتبر نیست" },
+        { success: false, code: "INVALID_INPUT", error: "کد وارد شده معتبر نیست" },
         { status: 422 }
       );
     }
 
     const { target, code, purpose } = result.data;
-    const phone = normalizePhone(target);
+    let phone: string;
+    try {
+      phone = normalizePhone(target);
+    } catch {
+      return NextResponse.json({success: false, code: "INVALID_PHONE", error: "شماره همراه نامعتبر است"}, {status: 400});
+    }
 
     if (!phone) {
       return NextResponse.json(
-        { success: false, error: "شماره تماس نامعتبر است" },
+        { success: false, code: "INVALID_PHONE", error: "شماره تماس نامعتبر است" },
         { status: 400 }
       );
     }
@@ -47,21 +52,21 @@ export async function POST(req: Request) {
 
     if (!latestOtp) {
       return NextResponse.json(
-        { success: false, error: "کد تایید منقضی شده یا درخواستی یافت نشد" },
+        { success: false, code: "OTP_NOT_FOUND", error: "کد تایید منقضی شده یا درخواستی یافت نشد" },
         { status: 400 }
       );
     }
 
     if (new Date() > latestOtp.expiresAt) {
       return NextResponse.json(
-        { success: false, error: "کد تایید منقضی شده است. مجددا درخواست دهید" },
+        { success: false, code: "OTP_EXPIRED", error: "کد تایید منقضی شده است. مجددا درخواست دهید" },
         { status: 400 }
       );
     }
 
     if (latestOtp.attempts >= MAX_ATTEMPTS) {
       return NextResponse.json(
-        { success: false, error: "تعداد دفعات تلاش بیش از حد مجاز است. لطفا مجددا تلاش کنید" },
+        { success: false, code: "OTP_ATTEMPTS_EXCEEDED", error: "تعداد دفعات تلاش بیش از حد مجاز است. لطفا مجددا تلاش کنید" },
         { status: 429 }
       );
     }
@@ -79,6 +84,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
+          code: "OTP_INVALID",
           error: `کد وارد شده اشتباه است. ${remainingAttempts} تلاش باقی مانده`,
           remainingAttempts,
         },
@@ -97,7 +103,7 @@ export async function POST(req: Request) {
 
     if (consumeResult.count === 0) {
       return NextResponse.json(
-        { success: false, error: "کد قبلاً استفاده شده است" },
+        { success: false, code: "OTP_USED", error: "کد قبلاً استفاده شده است" },
         { status: 400 }
       );
     }
@@ -128,9 +134,9 @@ export async function POST(req: Request) {
         contact: user.contact,
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { success: false, error: "خطای سرور رخ داده است" },
+      { success: false, code: "UNKNOWN", error: "خطای سرور رخ داده است" },
       { status: 500 }
     );
   }

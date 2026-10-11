@@ -1,3 +1,5 @@
+import {z} from "zod"
+import {ApiError, fetchJson} from "@/lib/api/errors"
 import { useQuery } from "@tanstack/react-query"
 import type {
   OrdersApiResponse,
@@ -40,15 +42,18 @@ async function fetchOrders(
   const query = buildQuery(params)
   const url = `/api/order/load-orders${query ? `?${query}` : ""}`
 
-  const response = await fetch(url, {
-    credentials: "include",
-  })
-
-  if (!response.ok) {
-    throw new Error("خطا در دریافت سفارش‌ها")
-  }
-
-  return response.json()
+  const result = z.object({
+    success: z.literal(true),
+    data: z.array(z.object({
+      order_id: z.number(), client_id: z.string(), type: z.string().nullable(),
+      page_count: z.number().nullable(), budget_range: z.string().nullable(),
+      description: z.string().nullable(), status: z.string().nullable(), cr: z.string().nullable(),
+      meta: z.object({full_name: z.string().optional(), email: z.string().optional(), phone: z.string().optional(), company: z.string().optional()}).nullable()
+    })),
+    pagination: z.object({page: z.number(), limit: z.number(), total: z.number(), totalPages: z.number(), hasNextPage: z.boolean(), hasPrevPage: z.boolean()})
+  }).safeParse(await fetchJson(url, "ORDER_LOAD_FAILED", {credentials: "include"}))
+  if (!result.success) throw new ApiError("ORDER_LOAD_FAILED")
+  return result.data
 }
 
 export function useReviewOrders(params: OrdersQueryParams) {

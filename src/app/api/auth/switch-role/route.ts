@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "کاربر احراز هویت نشده است" },
+        { success: false, code: "UNAUTHENTICATED", error: "کاربر احراز هویت نشده است" },
         { status: 401 }
       );
     }
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: "نقش ارسالی نامعتبر است" },
+        { success: false, code: "INVALID_ROLE", error: "نقش ارسالی نامعتبر است" },
         { status: 422 }
       );
     }
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
     if (!hasRole) {
       return NextResponse.json(
-        { success: false, error: "دسترسی به این نقش مجاز نیست" },
+        { success: false, code: "FORBIDDEN", error: "دسترسی به این نقش مجاز نیست" },
         { status: 403 }
       );
     }
@@ -41,9 +41,9 @@ export async function POST(req: Request) {
       success: true,
       activeRole: role,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { success: false, error: "خطا در تغییر نقش" },
+      { success: false, code: "UNKNOWN", error: "خطا در تغییر نقش" },
       { status: 500 }
     );
   }

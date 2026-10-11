@@ -6,6 +6,8 @@ import {
   ColumnDef,
   ColumnFiltersState,
   PaginationState,
+  OnChangeFn,
+  ColumnOrderState,
   SortingState,
   VisibilityState,
   flexRender,
@@ -20,6 +22,7 @@ import { DataTablePagination } from "./data-table-pagination";
 import { DataTableFilterBar } from "./data-table-filter-bar";
 import { DataTableToolbar } from "./data-table-toolbar";
 import { DataTableSkeleton } from "./data-table-skeleton";
+import type {DataTableFilterValues} from "./data-table-filter-types";
 import { DensityState } from "./data-table-types";
 import { densityRowClasses, densityCellClasses } from "./data-table-density";
 
@@ -28,8 +31,8 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   isLoading?: boolean;
   filterForm?: React.ReactNode;
-  filterValues?: Record<string, unknown>;
-  onFilterChange?: (values: Record<string, unknown>) => void;
+  filterValues?: DataTableFilterValues;
+  onFilterChange?: (values: DataTableFilterValues) => void;
   enableColumnVisibility?: boolean;
   enableColumnResizing?: boolean;
   enablePinning?: boolean;
@@ -40,7 +43,7 @@ interface DataTableProps<TData, TValue> {
   pageCount?: number;
   rowCount?: number;
   pagination?: PaginationState;
-  onPaginationChange?: (pagination: PaginationState) => void;
+  onPaginationChange?: OnChangeFn<PaginationState>;
   onColumnOrderChange?: (columnOrder: string[]) => void;
   initialState?: {
     density?: DensityState;
@@ -57,7 +60,6 @@ export function DataTable<TData, TValue>({
   filterValues,
   onFilterChange,
   enableColumnVisibility = true,
-  enablePinning = false,
   enableDensityToggle = true,
   enableExport = false,
   enablePagination = true,
@@ -73,6 +75,7 @@ export function DataTable<TData, TValue>({
   const t = useTranslations("DataTable");
   const resolvedEmptyMessage = emptyMessage ?? t("empty");
 
+  const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
@@ -96,14 +99,17 @@ export function DataTable<TData, TValue>({
       sorting,
       columnFilters,
       columnVisibility,
+      columnOrder,
       pagination: currentPagination,
     },
     pageCount: manualPagination ? pageCount : undefined,
     manualPagination,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    rowCount: manualPagination ? rowCount : undefined,
+    onColumnOrderChange: setColumnOrder,
     onColumnVisibilityChange: setColumnVisibility,
-    onPaginationChange: handlePaginationChange,
+    onPaginationChange: updater => handlePaginationChange(typeof updater === "function" ? updater(currentPagination) : updater),
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -119,6 +125,7 @@ export function DataTable<TData, TValue>({
         enableExport={enableExport}
         density={density}
         onDensityChange={setDensity}
+        onColumnOrderChange={order => {setColumnOrder(order); onColumnOrderChange?.(order);}}
       />
 
       {filterForm && (
@@ -173,7 +180,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {enablePagination && <DataTablePagination table={table} />}
+      {enablePagination && <DataTablePagination table={table} rowCount={manualPagination ? rowCount : undefined} />}
     </div>
   );
 }

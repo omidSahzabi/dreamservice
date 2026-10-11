@@ -1,5 +1,6 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {
   Download,
 } from "lucide-react";
@@ -25,6 +26,7 @@ export function DataTableExport<TData>({
   table,
   filename = "data.csv",
 }: Props<TData>) {
+  const t = useTranslations("DataTable");
   return (
     <Button
       variant="outline"
@@ -37,8 +39,8 @@ export function DataTableExport<TData>({
         )
       }
     >
-      <Download className="mr-2 h-4 w-4" />
-      Export
+      <Download className="me-2 h-4 w-4" />
+      {t("export")}
     </Button>
   );
 }

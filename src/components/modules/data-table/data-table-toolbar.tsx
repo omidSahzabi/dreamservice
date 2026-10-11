@@ -1,56 +1,30 @@
-"use client"
+"use client";
 
-import type { Table } from "@tanstack/react-table"
-import { DataTableFilterBar } from "./data-table-filter-bar"
-import { DataTableViewOptions } from "./data-table-view-options"
-import type {
-  DataTableFilterField,
-  DataTableFilterValues,
-} from "./data-table-filter-types"
+import type {Table} from "@tanstack/react-table";
+import {DataTableViewOptions} from "./data-table-view-options";
+import {DataTableDensity} from "./data-table-density";
+import {DataTableExport} from "./data-table-export";
+import type {DensityState} from "./data-table-types";
 
 type Props<TData> = {
-  table: Table<TData>
-  filterForm?: DataTableFilterField[]
-  filterValues?: DataTableFilterValues
-  onFilterChange?: (values: DataTableFilterValues) => void
-  enableColumnVisibility?: boolean
-  onColumnOrderChange?: (order: string[]) => void
-}
+  table: Table<TData>;
+  enableColumnVisibility?: boolean;
+  enableDensityToggle?: boolean;
+  enableExport?: boolean;
+  density: DensityState;
+  onDensityChange: (density: DensityState) => void;
+  onColumnOrderChange?: (order: string[]) => void;
+};
 
 export function DataTableToolbar<TData>({
-  table,
-  filterForm,
-  filterValues = {},
-  onFilterChange,
-  enableColumnVisibility = true,
-  onColumnOrderChange,
+  table, enableColumnVisibility = true, enableDensityToggle = true,
+  enableExport = false, density, onDensityChange, onColumnOrderChange
 }: Props<TData>) {
-  const hasFilters = Boolean(filterForm?.length)
-
-  if (!hasFilters && !enableColumnVisibility) {
-    return null
-  }
-
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        {hasFilters ? (
-          <DataTableFilterBar
-            fields={filterForm!}
-            values={filterValues}
-            onChange={onFilterChange ?? (() => undefined)}
-          />
-        ) : (
-          <div />
-        )}
-
-        {enableColumnVisibility && (
-          <DataTableViewOptions
-            table={table}
-            onColumnOrderChange={onColumnOrderChange}
-          />
-        )}
-      </div>
+    <div className="flex flex-wrap items-center justify-end gap-3">
+      {enableDensityToggle && <DataTableDensity density={density} onDensityChange={onDensityChange} />}
+      {enableExport && <DataTableExport table={table} />}
+      {enableColumnVisibility && <DataTableViewOptions table={table} onColumnOrderChange={onColumnOrderChange} />}
     </div>
-  )
+  );
 }

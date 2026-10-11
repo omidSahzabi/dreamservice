@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import {useTranslations} from "next-intl";
+import {getColumnLabel} from "./data-table-utils";
 
 import {
   type Header,
@@ -32,6 +34,7 @@ export function DraggableColumn<TData>({
   header,
   draggable = true,
 }: DraggableColumnProps<TData>) {
+  const t = useTranslations("Common");
   const {
     attributes,
     listeners,
@@ -66,8 +69,8 @@ export function DraggableColumn<TData>({
           <button
             type="button"
             {...listeners}
-            className="mr-1 cursor-grab rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100 active:cursor-grabbing"
-            aria-label={`Move ${header.column.id}`}
+            className="me-1 cursor-grab rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100 active:cursor-grabbing"
+            aria-label={t("moveColumn", {label: getColumnLabel(header.column)})}
           >
             <GripVertical className="h-3.5 w-3.5" />
           </button>
@@ -85,7 +88,7 @@ export function DraggableColumn<TData>({
         <div
           onMouseDown={header.getResizeHandler()}
           onTouchStart={header.getResizeHandler()}
-          className={`absolute right-0 top-0 h-full w-1 cursor-col-resize touch-none select-none ${
+          className={`absolute end-0 top-0 h-full w-1 cursor-col-resize touch-none select-none ${
             header.column.getIsResizing()
               ? "bg-primary"
               : "hover:bg-muted-foreground/30"

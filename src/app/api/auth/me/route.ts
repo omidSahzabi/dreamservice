@@ -17,9 +17,9 @@ export async function GET() {
       success: true,
       user: { id, fname, lname, contact, email, roles, profiles },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { success: false, error: "خطا در دریافت اطلاعات کاربر" },
+      { success: false, code: "UNKNOWN", error: "خطا در دریافت اطلاعات کاربر" },
       { status: 500 }
     );
   }

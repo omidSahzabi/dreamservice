@@ -54,6 +54,14 @@ export const navItems: NavItem[] = [
   },
 ];
 
+type Package = {
+  id: number;
+  title: string;
+  description: string;
+  bgColor: string;
+  arrowColor: string;
+};
+
 export const packages: Package[] = [
   { id: 1, title: 'پشتیبانی', description: 'کتابخانه UI', bgColor: 'bg-blue-500/20', arrowColor: 'text-blue-400' },
   { id: 2, title: 'منتورشیپ', description: 'فریم‌ورک پیشرو', bgColor: 'bg-green-500/20', arrowColor: 'text-green-400' },

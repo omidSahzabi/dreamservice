@@ -1,3 +1,8 @@
+import {pageMetadata} from "@/lib/i18n/metadata";
+export function generateMetadata({params}: {params: Promise<{locale: string}>}) {
+  return pageMetadata(params, "reviewOrders", "/order/review-orders");
+}
+
 import { ReviewOrdersView } from "@/features/order/review-orders";
 
 export default function ReviewOrdersPage() {

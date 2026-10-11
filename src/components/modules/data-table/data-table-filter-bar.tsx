@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ export function DataTableFilterBar({
   onClearFilters,
   children,
 }: DataTableFilterBarProps) {
+  const format = useFormatter();
   const t = useTranslations("DataTable");
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -40,7 +41,7 @@ export function DataTableFilterBar({
           <span>{t("filters")}</span>
           {activeFiltersCount > 0 && (
             <Badge variant="secondary" className="px-1.5 py-0.5 text-xs">
-              {activeFiltersCount}
+              {format.number(activeFiltersCount)}
             </Badge>
           )}
         </Button>

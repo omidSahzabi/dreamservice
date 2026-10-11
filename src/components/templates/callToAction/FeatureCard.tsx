@@ -1,14 +1,19 @@
 "use client";
+import type {ReactNode} from "react";
 import { motion } from "framer-motion";
 
-export default function FeatureCard({ feature, active, index, onClick, isInView }) {
+type Props = {feature: {icon: ReactNode; title: string; description: string}; active: boolean; index: number; onClick: () => void; isInView: boolean};
+
+export default function FeatureCard({ feature, active, index, onClick, isInView }: Props) {
   return (
-    <motion.div
+    <motion.button
+      type="button"
+      aria-pressed={active}
       initial={{ opacity: 0, scale: 0.5 }}
       animate={isInView ? { opacity: 1, scale: 1 } : {}}
       transition={{ delay: 0.5 + index * 0.1 }}
       onClick={onClick}
-      className={`p-4 rounded-2xl border cursor-pointer transition ${
+      className={`p-4 text-start rounded-2xl border cursor-pointer transition ${
         active ? "bg-white/10 border-white/30 shadow" : "bg-white/5 border-white/10"
       }`}
     >
@@ -24,6 +29,6 @@ export default function FeatureCard({ feature, active, index, onClick, isInView 
       {active && (
         <motion.div layoutId="indicator" className="w-8 h-1 bg-blue-500 rounded-full mx-auto mt-2" />
       )}
-    </motion.div>
+    </motion.button>
   );
 }

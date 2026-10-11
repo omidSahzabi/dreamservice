@@ -1,35 +1,36 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import type { OrderFormConfig, OrderFormData } from "@/types/order";
+import {useMutation, useQuery} from "@tanstack/react-query";
+import {useLocale} from "next-intl";
+import type {OrderFormConfig, OrderFormData} from "@/types/order";
+import {orderFormConfigSchema} from "@/schemas/orderFormConfig";
+import {ApiError, fetchJson} from "@/lib/api/errors";
+import {z} from "zod";
 
-export function useOrderFormConfig(locale: string = "fa") {
+export function useOrderFormConfig(requestedLocale?: string) {
+  const activeLocale = useLocale();
+  const locale = requestedLocale ?? activeLocale;
   return useQuery<OrderFormConfig>({
     queryKey: ["order-form-config", locale],
     queryFn: async () => {
-      const response = await fetch(`/api/order/order-form-config?locale=${locale}`);
-      if (!response.ok) {
-        throw new Error("خطا در بارگذاری پیکربندی فرم سفارش");
-      }
-      return response.json();
+      const result = orderFormConfigSchema.safeParse(await fetchJson(
+        "/api/order/order-form-config?locale=" + encodeURIComponent(locale), "FORM_LOAD_FAILED"
+      ));
+      if (!result.success) throw new ApiError("FORM_LOAD_FAILED");
+      return result.data;
     },
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 30
   });
 }
 
 export function useSubmitOrder() {
   return useMutation({
-    mutationFn: async (payload: { formKey: string; data: OrderFormData }) => {
-      const response = await fetch("/api/order/submit-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errPayload = await response.json().catch(() => ({}));
-        throw new Error(errPayload.message || "خطا در پردازش و ثبت سفارش");
-      }
-
-      return response.json();
-    },
+    mutationFn: async (payload: {formKey: string; data: OrderFormData}) => {
+      const result = z.object({success: z.literal(true), order_id: z.number()}).safeParse(
+        await fetchJson("/api/order/submit-order", "ORDER_SUBMIT_FAILED", {
+          method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)
+        })
+      );
+      if (!result.success) throw new ApiError("ORDER_SUBMIT_FAILED");
+      return result.data;
+    }
   });
 }

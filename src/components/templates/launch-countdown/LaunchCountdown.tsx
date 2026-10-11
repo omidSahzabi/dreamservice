@@ -36,7 +36,7 @@ export default function LaunchCountdown() {
           <div className="flex items-center gap-4">
             {timeUnits.map((unit, i) => (
               <Fragment key={unit.label}>
-                <TimeUnitBox value={unit.value} label={unit.label} />
+                <TimeUnitBox value={unit.value} label={unit.label} showDivider={false} />
                 {i < timeUnits.length - 1 && (
                   <span className="text-3xl font-bold text-cyan-400 hidden md:block">
                     :

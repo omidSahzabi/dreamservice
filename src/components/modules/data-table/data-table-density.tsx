@@ -55,7 +55,7 @@ export function DataTableDensity({
             onClick={() => onDensityChange(value)}
             className={density === value ? "bg-accent font-semibold" : ""}
           >
-            <Icon className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+            <Icon className="h-4 w-4 me-2" />
             {t(labelKey)}
           </DropdownMenuItem>
         ))}

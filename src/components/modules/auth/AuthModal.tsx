@@ -8,7 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthModalStore } from "@/store/authModalStore";
 import { sendOtp, verifyOtp, registerUser } from "@/lib/auth/authClient";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import {
@@ -22,7 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
+import { localizeApiError } from "@/lib/api/errors";
+import { normalizeDigits } from "@/lib/i18n/digits";
+
 export function AuthModal() {
+  const locale = useLocale();
+  const errors = useTranslations("Errors");
   const t = useTranslations("AuthModal");
 
   const phoneSchema = useMemo(
@@ -30,8 +35,9 @@ export function AuthModal() {
       z.object({
         phone: z
           .string()
-          .min(10, t("validation.phoneMin"))
-          .regex(/^09\d{9}$/, t("validation.phoneInvalid")),
+          .transform(normalizeDigits)
+          .pipe(z.string().min(10, t("validation.phoneMin"))
+          .regex(/^09\d{9}$/, t("validation.phoneInvalid"))),
       }),
     [t]
   );
@@ -39,7 +45,7 @@ export function AuthModal() {
   const otpSchema = useMemo(
     () =>
       z.object({
-        code: z.string().length(5, t("validation.otpLength")),
+        code: z.string().transform(normalizeDigits).pipe(z.string().regex(/^\d{5}$/, t("validation.otpLength"))),
       }),
     [t]
   );
@@ -104,8 +110,8 @@ export function AuthModal() {
       setResendCooldown(res.retryAfter || 60);
       setStep("OTP");
       toast.success(t("toast.otpSent"));
-    } catch (err: any) {
-      toast.error(err.message || t("errors.sendOtp"));
+    } catch (error: unknown) {
+      toast.error(localizeApiError(error, errors));
     } finally {
       setIsSubmitting(false);
     }
@@ -123,8 +129,8 @@ export function AuthModal() {
         closeAuthModal();
         toast.success(t("toast.authSuccess"));
       }
-    } catch (err: any) {
-      toast.error(err.message || t("errors.verifyOtp"));
+    } catch (error: unknown) {
+      toast.error(localizeApiError(error, errors));
     } finally {
       setIsSubmitting(false);
     }
@@ -143,8 +149,8 @@ export function AuthModal() {
       if (onSuccessCallback) onSuccessCallback();
       closeAuthModal();
       toast.success(t("toast.registerSuccess"));
-    } catch (err: any) {
-      toast.error(err.message || t("errors.register"));
+    } catch (error: unknown) {
+      toast.error(localizeApiError(error, errors));
     } finally {
       setIsSubmitting(false);
     }
@@ -152,7 +158,7 @@ export function AuthModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeAuthModal()}>
-      <DialogContent className="sm:max-w-[420px] rounded-2xl bg-background border shadow-xl">
+      <DialogContent dir={locale === "fa" ? "rtl" : "ltr"} className="sm:max-w-[420px] rounded-2xl bg-background border shadow-xl">
         <DialogHeader className="text-start">
           <DialogTitle className="text-xl font-bold">
             {step === "PHONE" && t("title.phone")}
@@ -161,7 +167,7 @@ export function AuthModal() {
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground mt-1">
             {step === "PHONE" && t("description.phone")}
-            {step === "OTP" && t("description.otp", { phone })}
+            {step === "OTP" && t.rich("description.otp", { phone, number: chunks => <bdi dir="ltr">{chunks}</bdi> })}
             {step === "REGISTER" && t("description.register")}
           </DialogDescription>
         </DialogHeader>
@@ -175,11 +181,14 @@ export function AuthModal() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <form onSubmit={phoneForm.handleSubmit(handleSendOtp)} className="space-y-4 pt-2">
+              <form noValidate onSubmit={phoneForm.handleSubmit(handleSendOtp)} className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="phone">{t("label.phone")}</Label>
                   <Input
                     id="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     placeholder={t("placeholder.phone")}
                     dir="ltr"
                     className="text-left tracking-widest font-mono"
@@ -206,11 +215,13 @@ export function AuthModal() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4 pt-2">
+              <form noValidate onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="code">{t("label.otp")}</Label>
                   <Input
                     id="code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
                     placeholder={t("placeholder.otp")}
                     maxLength={5}
                     dir="ltr"
@@ -228,7 +239,8 @@ export function AuthModal() {
                   <button
                     type="button"
                     onClick={() => setStep("PHONE")}
-                    className="text-primary underline cursor-pointer"
+                    disabled={isSubmitting}
+                      className="text-primary underline cursor-pointer"
                   >
                     {t("action.changePhone")}
                   </button>
@@ -260,7 +272,7 @@ export function AuthModal() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4 pt-2">
+              <form noValidate onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="fname">{t("label.firstName")}</Label>
                   <Input

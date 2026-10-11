@@ -1,7 +1,8 @@
 'use client';
 
+import {useTranslations, useFormatter} from 'next-intl';
+import {toast} from 'sonner';
 import React, { useState, useEffect } from 'react';
-import { formatDuration, intervalToDuration, isBefore } from 'date-fns';
 import { DreamForm, FieldConfig } from '@/components/modules/dream-form/dream-form';
 
 const launchDate = new Date('2025-06-15T00:00:00');
@@ -25,23 +26,20 @@ function useCountdown(targetDate: Date): {timeLeft: TimeLeft, isLaunched: boolea
 
   useEffect(() => {
     const updateCountdown = () => {
-      if (isBefore(targetDate, new Date())) {
+      const remaining = Math.max(0, Math.floor((targetDate.getTime() - Date.now()) / 1000));
+      if (remaining === 0) {
         setIsLaunched(true);
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
 
-      const duration = intervalToDuration({
-        start: new Date(),
-        end: targetDate,
+      setTimeLeft({
+        days: Math.floor(remaining / 86400),
+        hours: Math.floor(remaining / 3600) % 24,
+        minutes: Math.floor(remaining / 60) % 60,
+        seconds: remaining % 60
       });
 
-      setTimeLeft({
-        days: duration.days || 0,
-        hours: duration.hours || 0,
-        minutes: duration.minutes || 0,
-        seconds: duration.seconds || 0,
-      });
     };
 
     updateCountdown();
@@ -53,18 +51,20 @@ function useCountdown(targetDate: Date): {timeLeft: TimeLeft, isLaunched: boolea
   return { timeLeft, isLaunched };
 }
 
-export default function LaunchCountdown(): JSX.Element {
+export default function LaunchCountdown() {
+  const t = useTranslations("LaunchCountdown");
+  const format = useFormatter();
   const { timeLeft, isLaunched } = useCountdown(launchDate);
 
   const ticketFields: FieldConfig[] = [
     {
       name: 'email',
-      label: 'ایمیل',
+      label: t('email'),
       type: 'email',
-      placeholder: 'ایمیلت رو وارد کن',
+      placeholder: t('emailPlaceholder'),
       validation: [
-        { type: 'required', message: 'ایمیل الزامی است' },
-        { type: 'email', message: 'ایمیل معتبر نیست' },
+        { type: 'required', message: t('emailRequired') },
+        { type: 'email', message: t('emailInvalid') },
       ],
       prefix: (
         <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,24 +75,23 @@ export default function LaunchCountdown(): JSX.Element {
     },
     {
       name: 'message',
-      label: 'پیام',
+      label: t('message'),
       type: 'textarea',
-      placeholder: 'پیامت رو بنویس...',
+      placeholder: t('messagePlaceholder'),
       rows: 3,
       inputClassName: '!bg-gray-800/50 !border-gray-700 !text-white !placeholder:text-gray-500 hover:!border-gray-600',
     },
   ];
 
-  const handleSubmit = (data: Record<string, unknown>) => {
-    console.log('تیکت ثبت شد:', data);
-    alert('تیکت با موفقیت ثبت شد! 🎉');
+  const handleSubmit = () => {
+    toast.error(t("unavailable"));
   };
 
   const timeUnits = [
-    { value: timeLeft.days, label: 'روز' },
-    { value: timeLeft.hours, label: 'ساعت' },
-    { value: timeLeft.minutes, label: 'دقیقه' },
-    { value: timeLeft.seconds, label: 'ثانیه' },
+    { value: timeLeft.days, label: t('days', {count: timeLeft.days}) },
+    { value: timeLeft.hours, label: t('hours', {count: timeLeft.hours}) },
+    { value: timeLeft.minutes, label: t('minutes', {count: timeLeft.minutes}) },
+    { value: timeLeft.seconds, label: t('seconds', {count: timeLeft.seconds}) },
   ];
 
   return (
@@ -100,10 +99,10 @@ export default function LaunchCountdown(): JSX.Element {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            {isLaunched ? 'پروژه منتشر شد! 🚀' : 'به زودی منتشر میشه'}
+            {isLaunched ? t('launched') : t('soon')}
           </h2>
           <p className="text-gray-400">
-            {isLaunched ? 'میتونی همین الان استفاده کنی' : 'منتظر بمون تا اولین نفری باشی که خبردار میشه'}
+            {isLaunched ? t('launchedDescription') : t('soonDescription')}
           </p>
         </div>
 
@@ -114,7 +113,7 @@ export default function LaunchCountdown(): JSX.Element {
                 <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative z-10">
                   <div className="text-4xl md:text-5xl font-bold text-white mb-1">
-                    {String(unit.value).padStart(2, '0')}
+                    {format.number(unit.value, {minimumIntegerDigits: 2, useGrouping: false})}
                   </div>
                   <div className="text-gray-400 text-sm uppercase tracking-wider">
                     {unit.label}
@@ -136,15 +135,15 @@ export default function LaunchCountdown(): JSX.Element {
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 md:p-8">
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="md:w-1/3">
-              <h3 className="text-xl font-bold text-white mb-2">اطلاع‌رسانی کن</h3>
+              <h3 className="text-xl font-bold text-white mb-2">{t("signup")}</h3>
               <p className="text-gray-400 text-sm">
-                ایمیلت رو وارد کن تا به محض انتشار پروژه، اولین نفری باشی که خبردار میشه!
+                {t("signupDescription")}
               </p>
               <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
                 <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span>رایگان</span>
+                <span>{t("free")}</span>
               </div>
             </div>
 
@@ -153,7 +152,7 @@ export default function LaunchCountdown(): JSX.Element {
                 fields={ticketFields}
                 onSubmit={handleSubmit}
                 showResetButton={false}
-                submitText="ثبت تیکت"
+                submitText={t("submit")}
                 submitClassName="!bg-cyan-400 hover:!bg-cyan-300 !text-slate-900 !font-medium"
                 className="space-y-4"
               />

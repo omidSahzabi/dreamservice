@@ -15,20 +15,106 @@
     "gameDev": "Game Development",
     "gameDevDesc": "Professional 2D and 3D game development",
     "seo": "SEO & Optimization",
-    "seoDesc": "Boost your speed, rank, and site performance"
+    "seoDesc": "Boost your speed, rank, and site performance",
+    "openMenu": "Open menu",
+    "switchLanguage": "Switch to Persian",
+    "loading": "Loading account…",
+    "account": "Account",
+    "activeRole": "Active role:",
+    "viewOrders": "View orders",
+    "lightTheme": "Switch to light theme",
+    "darkTheme": "Switch to dark theme",
+    "roles": {
+      "CLIENT": "Customer",
+      "CUSTOMER": "Customer",
+      "USER": "User",
+      "ADMIN": "Administrator",
+      "DEVELOPER": "Developer",
+      "client": "Customer",
+      "customer": "Customer",
+      "admin": "Administrator",
+      "developer": "Developer",
+      "other": "Account role"
+    },
+    "logoAlt": "DreamService logo"
   },
   "Hero": {
     "title": "Your dream services start here",
     "subtitle": "We help you turn your ideas into reality.",
-    "cta": "Get Started"
+    "cta": "Get Started",
+    "headline": "We improve <highlight>user experience</highlight>",
+    "support": "Support",
+    "about": "About us",
+    "order": "Place an order"
   },
   "Packages": {
     "title": "Our Packages",
-    "description": "Diverse packages tailored to your needs"
+    "description": "Diverse packages tailored to your needs",
+    "searchLabel": "Search packages",
+    "searchPlaceholder": "Enter a package name or description…",
+    "empty": "No matching packages found.",
+    "items": {
+      "support": {
+        "title": "Support",
+        "description": "UI library"
+      },
+      "mentorship": {
+        "title": "Mentorship",
+        "description": "Progressive framework"
+      },
+      "store": {
+        "title": "Online store",
+        "description": "Full framework"
+      },
+      "seo": {
+        "title": "SEO",
+        "description": "React framework"
+      },
+      "web": {
+        "title": "Web design",
+        "description": "Node server"
+      },
+      "backend": {
+        "title": "Backend",
+        "description": "Web framework"
+      },
+      "frontend": {
+        "title": "Frontend",
+        "description": "Typed JavaScript"
+      },
+      "placeholder": {
+        "title": "Package {number, number}",
+        "description": "Frontend testing"
+      },
+      "app": {
+        "title": "Application",
+        "description": "Programming interface"
+      }
+    }
   },
   "Footer": {
-    "copyright": "All rights reserved © 2024",
-    "links": "Quick Links"
+    "copyright": "© {year, number, integer} All rights reserved. Made with <heart>love</heart>.",
+    "links": "Quick Links",
+    "quickLinks": "Quick links",
+    "home": "Home",
+    "projects": "Projects",
+    "about": "About me",
+    "contact": "Contact",
+    "websites": "Websites",
+    "applications": "Applications",
+    "plugins": "Plugins",
+    "connect": "Connect",
+    "email": "Email",
+    "instagram": "Instagram",
+    "twitter": "Twitter",
+    "linkedin": "LinkedIn",
+    "github": "GitHub",
+    "name": "Alireza",
+    "initial": "A",
+    "description": "Web developer focused on beautiful interfaces and excellent user experiences",
+    "location": "Tehran, Iran",
+    "backToTop": "Back to top",
+    "love": "love"
   },
   "About": {
     "Hero": {
@@ -72,18 +158,40 @@
       "error": "Failed to fetch team information.",
       "retry": "Try Again",
       "dreamTeam": "Dream Team",
-      "fallbackName": "plus member",
+      "fallbackName": "Team member",
       "fallbackRole": "Creative specialist",
-      "memberBadge": "plus member",
+      "memberBadge": "Team member",
       "viewProfile": "View profile",
-      "noProfile": "plus profile"
+      "noProfile": "Profile unavailable"
     }
   },
   "Metadata": {
     "title": "Dream Service | Web Design",
-    "description": "Professional web design and development services"
+    "description": "Professional web design and development services",
+    "pages": {
+      "home": {
+        "title": "Dream Service | Web Design",
+        "description": "Professional web design and development services"
+      },
+      "about": {
+        "title": "About | DreamService",
+        "description": "We are a multidisciplinary team of designers, developers, and ideators who have come together to build simple, beautiful, and reliable digital products."
+      },
+      "order": {
+        "title": "Orders | DreamService",
+        "description": "View and manage submitted orders across the platform"
+      },
+      "orderForm": {
+        "title": "Submit an order | DreamService",
+        "description": "Professional web design and development services"
+      },
+      "reviewOrders": {
+        "title": "Review orders | DreamService",
+        "description": "View and manage submitted orders across the platform"
+      }
+    }
   },
-    "Toast": {
+  "Toast": {
     "loginSuccess": "You have successfully logged in",
     "loginFailed": "Login failed",
     "otpSent": "Verification code sent",
@@ -98,7 +206,7 @@
     },
     "description": {
       "phone": "Enter your phone number to continue.",
-      "otp": "Enter the 5-digit verification code sent to {phone}.",
+      "otp": "Enter the 5-digit verification code sent to <number>{phone}</number>.",
       "register": "Please enter your name and details to complete registration."
     },
     "label": {
@@ -133,7 +241,7 @@
     },
     "action": {
       "changePhone": "Change Number",
-      "resendCountdown": "Resend ({seconds}s)",
+      "resendCountdown": "Resend ({seconds, number}s)",
       "resendOtp": "Resend Code"
     },
     "toast": {
@@ -148,44 +256,67 @@
     }
   },
   "DataTable": {
-  "empty": "No items found to display.",
-  "showing": "Showing {from} to {to} of {total} items",
-  "perPage": "Items per page:",
-  "page": "Page {pageIndex} of {pageCount}",
-  "filters": "Filters",
-  "clear": "Clear",
-  "density": "Density",
-  "compact": "Compact",
-  "default": "Default",
-  "comfortable": "Comfortable",
-  "pinLeft": "Pin to left",
-  "pinRight": "Pin to right",
-  "unpin": "Unpin",
-  "hideColumn": "Hide column"
-},
-"OrderStatus": {
-  "PENDING": "Pending review",
-  "PROCESSING": "Processing",
-  "COMPLETED": "Completed",
-  "CANCELLED": "Cancelled",
-  "REJECTED": "Rejected"
-},
-"Order": {
-  "id": "ID",
-  "client": "Client",
-  "status": "Status",
-  "selectStatus": "Select status",
-  "orderType": "Order type",
-  "budget": "Budget range",
-  "searchPlaceholder": "Search orders...",
-  "actions": "Actions",
-  "viewDetails": "View details",
-  "contact": "Contact"
-},
+    "empty": "No items found to display.",
+    "showing": "Showing {from, number} to {to, number} of {total, number} items",
+    "perPage": "Items per page:",
+    "page": "Page {pageIndex, number} of {pageCount, number}",
+    "filters": "Filters",
+    "clear": "Clear",
+    "density": "Density",
+    "compact": "Compact",
+    "default": "Default",
+    "comfortable": "Comfortable",
+    "pinLeft": "Pin to left",
+    "pinRight": "Pin to right",
+    "unpin": "Unpin",
+    "hideColumn": "Hide column",
+    "columns": "Columns",
+    "columnsDescription": "Show, hide or reorder columns.",
+    "showAll": "Show all",
+    "hideAll": "Hide all",
+    "openMenu": "Open menu",
+    "export": "Export",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "selectFilter": "Select a filter",
+    "activeFilters": "{count, plural, one {# active filter} other {# active filters}}",
+    "removeAll": "Remove all",
+    "selectValue": "Select a value",
+    "removeFilter": "Remove this filter",
+    "search": "Search…",
+    "dragInstructions": "Press Space to move a column. Use the arrow keys to change its position. Press Space to finish, or Escape to cancel.",
+    "dragStart": "Moving column {label}.",
+    "dragOver": "Column {label} is over {target}.",
+    "dragEnd": "Column {label} moved.",
+    "dragCancel": "Moving column {label} cancelled."
+  },
+  "OrderStatus": {
+    "PENDING": "Pending review",
+    "PROCESSING": "Processing",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "REJECTED": "Rejected"
+  },
+  "Order": {
+    "id": "ID",
+    "client": "Client",
+    "status": "Status",
+    "selectStatus": "Select status",
+    "orderType": "Order type",
+    "budget": "Budget range",
+    "searchPlaceholder": "Search orders...",
+    "actions": "Actions",
+    "viewDetails": "View details",
+    "contact": "Contact",
+    "homeTitle": "Orders",
+    "submit": "Submit an order",
+    "review": "Review orders"
+  },
   "ReviewOrders": {
     "title": "Order Management & Review",
     "subtitle": "View and manage submitted orders across the platform",
-    "totalCount": "Total: {count} orders",
+    "totalCount": "Total: {count, plural, one {# order} other {# orders}}",
     "refresh": "Refresh",
     "errorTitle": "Failed to load data",
     "errorDefault": "A problem occurred while communicating with the server",
@@ -214,22 +345,184 @@
     }
   },
   "OrderForm": {
-  "loading": "Loading order form...",
-  "loadError": "Failed to connect to the server and load the order form.",
-  "retry": "Try Again",
-  "unknownSubmitError": "An unknown error occurred while submitting the order.",
-  "successTitle": "Your order has been submitted successfully!",
-  "successDescription": "Your information has been received and is being processed. Our experts will contact you soon.",
-  "badge": "Online Order",
-  "stepProgress": "Step {current} of {total}",
-  "previous": "Previous",
-  "submitting": "Submitting...",
-  "submit": "Submit Order",
-  "next": "Next",
-  "privacyNotice": "Your information is processed with complete privacy and security.",
-  "requiredInformation": "Required information",
-  "selectPlaceholder": "Select...",
-  "unsupportedField": "This field type is not supported."
-}
-
+    "loading": "Loading order form...",
+    "loadError": "Failed to connect to the server and load the order form.",
+    "retry": "Try Again",
+    "unknownSubmitError": "An unknown error occurred while submitting the order.",
+    "successTitle": "Your order has been submitted successfully!",
+    "successDescription": "Your information has been received and is being processed. Our experts will contact you soon.",
+    "badge": "Online Order",
+    "stepProgress": "Step {current, number} of {total, number}",
+    "previous": "Previous",
+    "submitting": "Submitting...",
+    "submit": "Submit Order",
+    "next": "Next",
+    "privacyNotice": "Your information is processed with complete privacy and security.",
+    "requiredInformation": "Required information",
+    "selectPlaceholder": "Select...",
+    "unsupportedField": "This field type is not supported.",
+    "configurationUnavailable": "This order form is not available in your language. Please try again later.",
+    "empty": "The order form is currently unavailable.",
+    "validation": {
+      "required": "This field is required.",
+      "email": "Enter a valid email address.",
+      "minLength": "Enter at least {count, number} characters.",
+      "maxLength": "Enter no more than {count, number} characters.",
+      "pattern": "Enter a valid value.",
+      "number": "Enter a valid number.",
+      "min": "The minimum value is {value, number}.",
+      "max": "The maximum value is {value, number}.",
+      "selection": "Select at least one option.",
+      "option": "Select a valid option.",
+      "unsupported": "This field is not supported."
+    }
+  },
+  "Common": {
+    "close": "Close",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "home": "Go to homepage",
+    "errorTitle": "Something went wrong",
+    "errorDescription": "We could not complete this request. Please try again.",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "This page is unavailable or does not exist.",
+    "previous": "Previous",
+    "next": "Next",
+    "firstPage": "First page",
+    "lastPage": "Last page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "unknown": "Unavailable",
+    "moveColumn": "Move {label}",
+    "slide": "Slide {index} of {total}",
+    "goToSlide": "Go to slide {index}",
+    "notifications": "Notifications"
+  },
+  "DreamForm": {
+    "submit": "Submit information",
+    "reset": "Clear",
+    "submitting": "Submitting…",
+    "select": "Select…",
+    "submitError": "We could not submit this form. Please try again."
+  },
+  "ContactCard": {
+    "contact": "Contact us",
+    "collaborate": "Start a collaboration",
+    "about": "About us"
+  },
+  "CallToAction": {
+    "title": "Are you ready?",
+    "description": "Get started now and experience something different.",
+    "collaborate": "Start a collaboration",
+    "consultation": "Free consultation",
+    "projects": "Portfolio",
+    "contact": "Contact us",
+    "customers": "{count, number}+ satisfied customers",
+    "rating": "{rating, number}",
+    "features": {
+      "speed": {
+        "title": "High speed",
+        "description": "Optimized for maximum speed"
+      },
+      "security": {
+        "title": "Complete security",
+        "description": "Protection with current international standards"
+      },
+      "support": {
+        "title": "24/7 support",
+        "description": "Our team is always online and ready to help"
+      },
+      "team": {
+        "title": "Expert team",
+        "description": "Years of experience in technology"
+      },
+      "quality": {
+        "title": "High quality",
+        "description": "The best services at the best price"
+      },
+      "care": {
+        "title": "Customer focus",
+        "description": "Your satisfaction is our priority"
+      }
+    }
+  },
+  "Projects": {
+    "items": {
+      "store": {
+        "title": "Online store",
+        "description": "Design and development of a complete store with Next.js"
+      },
+      "dashboard": {
+        "title": "Management dashboard",
+        "description": "An admin panel with a modern, responsive design"
+      },
+      "mobile": {
+        "title": "Mobile application",
+        "description": "A shopping app built with React Native"
+      },
+      "personal": {
+        "title": "Personal website",
+        "description": "A resume and portfolio website"
+      },
+      "crm": {
+        "title": "CRM system",
+        "description": "Customer relationship management"
+      },
+      "education": {
+        "title": "Learning platform",
+        "description": "Online learning with video"
+      },
+      "game": {
+        "title": "Web game",
+        "description": "A browser game built with Canvas"
+      }
+    }
+  },
+  "LaunchCountdown": {
+    "email": "Email",
+    "emailPlaceholder": "Enter your email",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Enter a valid email",
+    "message": "Message",
+    "messagePlaceholder": "Write your message…",
+    "days": "{count, plural, one {day} other {days}}",
+    "hours": "{count, plural, one {hour} other {hours}}",
+    "minutes": "{count, plural, one {minute} other {minutes}}",
+    "seconds": "{count, plural, one {second} other {seconds}}",
+    "launched": "The project has launched! 🚀",
+    "soon": "Coming soon",
+    "launchedDescription": "You can use it now",
+    "soonDescription": "Be among the first to hear about the launch",
+    "signup": "Notify me",
+    "signupDescription": "Enter your email to hear when the project launches.",
+    "free": "Free",
+    "submit": "Submit ticket",
+    "unavailable": "Signup is currently unavailable. Please try again later."
+  },
+  "Errors": {
+    "UNKNOWN": "Something went wrong. Please try again.",
+    "NETWORK_ERROR": "Could not connect to the server. Check your connection and try again.",
+    "INVALID_INPUT": "Check your information and try again.",
+    "INVALID_PHONE": "Enter a valid mobile number.",
+    "OTP_EXPIRED": "Your verification code has expired. Request a new code.",
+    "OTP_INVALID": "The verification code is incorrect. {attempts, plural, one {# attempt remains.} other {# attempts remain.}}",
+    "OTP_NOT_FOUND": "Request a new verification code.",
+    "OTP_USED": "This verification code has already been used.",
+    "OTP_ATTEMPTS_EXCEEDED": "Too many attempts. Request a new code.",
+    "OTP_RATE_LIMIT": "Please wait {seconds, number} seconds before requesting another code.",
+    "SMS_FAILED": "We could not send the verification code. Please try again.",
+    "REGISTRATION_EXPIRED": "Phone verification has expired. Request a new code.",
+    "EMAIL_INVALID": "Enter a valid email address.",
+    "REGISTER_FAILED": "We could not complete registration. Please try again.",
+    "UNAUTHENTICATED": "Sign in to continue.",
+    "FORBIDDEN": "You do not have access to this action.",
+    "INVALID_ROLE": "This account role is unavailable.",
+    "LOGOUT_FAILED": "We could not sign you out. Please try again.",
+    "ORDER_SUBMIT_FAILED": "We could not submit your order. Please try again.",
+    "ORDER_LOAD_FAILED": "We could not load your orders. Please try again.",
+    "ORDER_INVALID": "Check the order information and try again.",
+    "FORM_TRANSLATION_MISSING": "This form is unavailable in your language.",
+    "FORM_NOT_FOUND": "The order form is currently unavailable.",
+    "FORM_LOAD_FAILED": "We could not load the order form. Please try again."
+  }
 }

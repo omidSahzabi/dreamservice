@@ -32,6 +32,7 @@ const accents = [
 
 export function TeamCard({ member, index }: TeamCardProps) {
   const t = useTranslations("About.Team");
+  const roles = useTranslations("Navbar");
   const accent = accents[index % accents.length];
 
   const fullName =
@@ -40,12 +41,10 @@ export function TeamCard({ member, index }: TeamCardProps) {
       .join(" ")
       .trim() ||
     member.name ||
-    member.user_id ||
     t("fallbackName");
 
   const role =
-    member.role ||
-    member.user?.role ||
+    ((member.role || member.user?.role) ? (roles.has("roles." + (member.role || member.user?.role)) ? roles("roles." + (member.role || member.user?.role)) : t("fallbackRole")) : null) ||
     member.pr_company ||
     t("fallbackRole");
 
@@ -60,10 +59,10 @@ export function TeamCard({ member, index }: TeamCardProps) {
       .join("")
       .toUpperCase() || "TS";
 
-  const subdomain = member.subdomain || member.user?.subdomain;
+
 
   // مسیر داخلی پروفایل — Next.js Link با locale خودش هندل می‌شود
-  const profileHref = subdomain ? `/${subdomain}` : null;
+  const profileHref: string | null = null;
 
   return (
     <motion.article
@@ -98,7 +97,7 @@ export function TeamCard({ member, index }: TeamCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0c1534] via-transparent to-black/5" />
 
           <div
-            className={`absolute left-5 top-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 backdrop-blur-md ${accent.badge}`}
+            className={`absolute start-5 top-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 backdrop-blur-md ${accent.badge}`}
           >
             <Sparkles className="size-3.5" />
             <span>{t("memberBadge")}</span>
@@ -108,12 +107,12 @@ export function TeamCard({ member, index }: TeamCardProps) {
         <div className="flex flex-1 flex-col p-6">
           <div className="mb-5">
             <h3 className="text-xl font-bold tracking-tight text-white">
-              {fullName}
+              <bdi>{fullName}</bdi>
             </h3>
 
             <div className="mt-2 flex items-center gap-2 text-sm text-slate-400">
               <BriefcaseBusiness className="size-4 text-violet-300" />
-              <span>{role}</span>
+              <span><bdi>{role}</bdi></span>
             </div>
           </div>
 

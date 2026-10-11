@@ -8,9 +8,9 @@ export async function POST() {
       success: true,
       message: "با موفقیت خارج شدید",
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { success: false, error: "خطا در فرایند خروج" },
+      { success: false, code: "LOGOUT_FAILED", error: "خطا در فرایند خروج" },
       { status: 500 }
     );
   }

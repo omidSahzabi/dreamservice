@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { AlertCircle, Check } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -30,7 +30,8 @@ export const FieldRenderer = memo(function FieldRenderer({
     formState: { errors },
   } = useFormContext<OrderFormData>();
   const t = useTranslations("OrderForm");
-  const error = errors[field.id]?.message as string | undefined;
+  const locale = useLocale();
+  const error = typeof errors[field.id]?.message === "string" ? errors[field.id]?.message : undefined;
 
   return (
     <div className="space-y-2">
@@ -49,10 +50,10 @@ export const FieldRenderer = memo(function FieldRenderer({
                   {...formField}
                   id={field.id}
                   type={field.type}
-                  value={(value as string) ?? ""}
+                  value={typeof value === "string" ? value : ""}
                   placeholder={field.placeholder}
                   className={baseInputClass}
-                  dir={field.type === "text" ? "rtl" : "ltr"}
+                  dir={field.type === "text" ? (locale === "fa" ? "rtl" : "ltr") : "ltr"}
                 />
               );
 
@@ -77,7 +78,7 @@ export const FieldRenderer = memo(function FieldRenderer({
                 <Textarea
                   {...formField}
                   id={field.id}
-                  value={(value as string) ?? ""}
+                  value={typeof value === "string" ? value : ""}
                   placeholder={field.placeholder}
                   className="min-h-32 resize-y rounded-xl border border-border-soft bg-bg-primary/50 p-4 text-sm text-text-primary placeholder:text-text-muted focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10"
                 />
@@ -86,14 +87,14 @@ export const FieldRenderer = memo(function FieldRenderer({
             case "select":
               return (
                 <Select
-                  value={(value as string) ?? ""}
+                  value={typeof value === "string" ? value : ""}
                   onValueChange={formField.onChange}
                 >
                   <SelectTrigger id={field.id} className={baseInputClass}>
                     <SelectValue placeholder={t("selectPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent
-                    dir="rtl"
+                    dir={locale === "fa" ? "rtl" : "ltr"}
                     className="rounded-xl border border-border-soft bg-bg-primary p-1 shadow-xl"
                   >
                     {field.options?.map((opt) => (
@@ -112,7 +113,8 @@ export const FieldRenderer = memo(function FieldRenderer({
             case "radio":
               return (
                 <RadioGroup
-                  value={(value as string) ?? ""}
+                  aria-label={field.label}
+                  value={typeof value === "string" ? value : ""}
                   onValueChange={formField.onChange}
                   className="grid gap-2.5 sm:grid-cols-2"
                 >
@@ -156,7 +158,7 @@ export const FieldRenderer = memo(function FieldRenderer({
 
             case "checkbox": {
               const selectedValues = Array.isArray(value)
-                ? (value as string[])
+                ? value
                 : [];
               const handleToggle = (optValue: string) => {
                 const next = selectedValues.includes(optValue)
@@ -166,7 +168,7 @@ export const FieldRenderer = memo(function FieldRenderer({
               };
 
               return (
-                <div className="grid gap-2.5 sm:grid-cols-2">
+                <div role="group" aria-label={field.label} className="grid gap-2.5 sm:grid-cols-2">
                   {field.options?.map((opt) => {
                     const isChecked = selectedValues.includes(opt.value);
                     return (
@@ -206,13 +208,13 @@ export const FieldRenderer = memo(function FieldRenderer({
                   <AlertCircle className="size-4" />
                   <span> 
                  {t("unsupportedField")}
-                    {field.type}</span>
+                    </span>
                 </div>
               );
           }
         }}
       />
-      {error && <p className="text-xs font-medium text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs font-medium text-destructive">{error}</p>}
     </div>
   );
 });

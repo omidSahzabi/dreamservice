@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import {localizeApiError} from "@/lib/api/errors";
+import {Link} from "@/lib/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthModalStore } from "@/store/authModalStore";
@@ -19,7 +20,9 @@ import { User, LogOut, Check, ShoppingBag } from "lucide-react";
 export function AuthButton() {
   const t = useTranslations("Navbar");
   const locale = useLocale();
-  const { user, isAuthenticated, isLoading, logout, activeRole, setActiveRole } =
+  const errors = useTranslations("Errors");
+  const common = useTranslations("Common");
+  const { user, isAuthenticated, isLoading, isError, error, refetch, logout, isLoggingOut, activeRole, setActiveRole } =
     useAuth();
   const { openAuthModal } = useAuthModalStore();
 
@@ -31,15 +34,19 @@ export function AuthButton() {
         className="text-slate-400 border border-slate-700/50 rounded-xl px-4 py-2 text-sm"
       >
         <span className="w-3 h-3 rounded-full border-2 border-slate-400 border-t-transparent animate-spin me-2" />
-        ...
+        {t("loading")}
       </Button>
     );
+  }
+
+  if (isError) {
+    return <Button variant="outline" title={localizeApiError(error, errors)} onClick={() => refetch()}>{common("retry")}</Button>;
   }
 
   if (!isAuthenticated || !user) {
     return (
       <Button
-        onClick={() => openAuthModal("sendOtp")}
+        onClick={() => openAuthModal()}
         className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-medium rounded-xl px-4 py-2 transition-all duration-200 shadow-md shadow-cyan-500/20"
       >
         <User className="w-4 h-4 me-2" />
@@ -49,11 +56,11 @@ export function AuthButton() {
   }
 
   const displayName =
-    user.name || user.phone || user.email || t("dashboard");
+    [user.fname, user.lname].filter(Boolean).join(" ") || user.contact || user.email || t("account");
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
-    <DropdownMenu>
+    <DropdownMenu dir={locale === "fa" ? "rtl" : "ltr"}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -65,25 +72,24 @@ export function AuthButton() {
             </AvatarFallback>
           </Avatar>
           <span className="text-sm font-medium text-slate-200 max-w-[100px] truncate">
-            {displayName}
+            <bdi>{displayName}</bdi>
           </span>
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
         align={locale === "fa" ? "end" : "start"}
-        dir={locale === "fa" ? "rtl" : "ltr"}
         className="w-56 bg-slate-900 border-cyan-400/30 text-slate-200 shadow-xl rounded-xl p-1.5"
       >
         <DropdownMenuLabel className="font-normal text-xs text-slate-400 px-2 py-1.5">
-          {user.phone || user.email || displayName}
+          <bdi>{user.contact || user.email || displayName}</bdi>
         </DropdownMenuLabel>
 
         {user.roles && user.roles.length > 1 && (
           <>
             <DropdownMenuSeparator className="bg-slate-800" />
             <div className="px-2 py-1 text-xs text-slate-400">
-              {locale === "fa" ? "نقش فعال:" : "Active Role:"}
+              {t("activeRole")}
             </div>
             {user.roles.map((role) => (
               <DropdownMenuItem
@@ -91,7 +97,7 @@ export function AuthButton() {
                 onClick={() => setActiveRole(role)}
                 className="flex items-center justify-between text-xs px-2 py-1.5 rounded-lg cursor-pointer hover:bg-cyan-400/10 hover:text-cyan-400"
               >
-                <span>{role}</span>
+                <span>{t.has(`roles.${role}`) ? t(`roles.${role}`) : t("roles.other")}</span>
                 {activeRole === role && (
                   <Check className="w-3.5 h-3.5 text-cyan-400" />
                 )}
@@ -105,13 +111,14 @@ export function AuthButton() {
         <DropdownMenuItem asChild className="rounded-lg cursor-pointer hover:bg-cyan-400/10 hover:text-cyan-400">
           <Link href="/order/review-orders" className="flex items-center gap-2 px-2 py-1.5 text-xs">
             <ShoppingBag className="w-4 h-4 text-cyan-400" />
-            <span>{locale === "fa" ? "مشاهده سفارشات" : "View Orders"}</span>
+            <span>{t("viewOrders")}</span>
           </Link>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator className="bg-slate-800" />
 
         <DropdownMenuItem
+          disabled={isLoggingOut}
           onClick={() => logout()}
           className="flex items-center gap-2 px-2 py-1.5 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg cursor-pointer"
         >

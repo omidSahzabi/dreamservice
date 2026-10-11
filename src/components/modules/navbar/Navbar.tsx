@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/i18n/navigation";
 import { useLocale } from "next-intl";
 import { useMemo } from "react";
 import Logo from "./Logo";
@@ -17,12 +17,12 @@ export default function Navbar() {
   const isActive = useMemo(() => {
     return (href?: string): boolean => {
       if (!href) return false;
-      const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), "") || "/";
+      const pathWithoutLocale = pathname;
       
       if (href === "/") return pathWithoutLocale === "/";
       return pathWithoutLocale.startsWith(href);
     };
-  }, [pathname, locale]);
+  }, [pathname]);
 
   return (
     <div className="w-full flex justify-center pt-6 px-4">

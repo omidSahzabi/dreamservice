@@ -1,6 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { HeartHandshake, Target, Lightbulb, Check } from "lucide-react";
+import { HeartHandshake, Target, Lightbulb } from "lucide-react";
 
 export default function AboutValues() {
   const t = useTranslations("About.Values");

@@ -1,13 +1,13 @@
-import type { Table } from "@tanstack/react-table";
+import type {Column, Table} from "@tanstack/react-table";
 import type {
   DataTableDensity,
   DataTableStorage,
 } from "./data-table-types";
 
-export function getColumnLabel(column: any): string {
+export function getColumnLabel<TData>(column: Column<TData, unknown>): string {
   const meta = column.columnDef?.meta;
 
-  if (meta?.label) {
+  if (meta && "label" in meta && typeof meta.label === "string") {
     return meta.label;
   }
 
@@ -18,8 +18,8 @@ export function getColumnLabel(column: any): string {
   return column.id;
 }
 
-export function getInitialColumnOrder(
-  table: Table<any>,
+export function getInitialColumnOrder<TData>(
+  table: Table<TData>,
 ): string[] {
   return table.getAllLeafColumns().map(
     (column) => column.id,

@@ -2,10 +2,14 @@
 import React, { useState } from 'react';
 import { DreamForm, FieldConfig } from '@/components/modules/dream-form/dream-form';
 import { cn } from '@/lib/utils';
-import { packages, Package } from '@/lib/dictionary';
+import {useTranslations} from 'next-intl';
+import {useRouter} from '@/lib/i18n/navigation';
 
-export default function Packages(): JSX.Element {
+export default function Packages() {
   const [searchQuery, setSearchQuery] = useState('');
+  const t = useTranslations('Packages');
+  const router = useRouter();
+  const packages = ['support', 'mentorship', 'store', 'seo', 'web', 'backend', 'frontend', 'placeholder', 'app'].map((key, index) => ({id: index + 1, title: t(`items.${key}.title`, {number: index + 1}), description: t(`items.${key}.description`)}));
   
   const filteredPackages = packages.filter(pkg =>
     pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -15,10 +19,10 @@ export default function Packages(): JSX.Element {
   const searchField: FieldConfig[] = [
     {
       name: 'search',
-      label: 'جستجوی پکیج‌ها', 
+      label: t('searchLabel'),
       type: 'text',
           showLabel: false,
-      placeholder: 'نام پکیج یا توضیحات را وارد کنید...',
+      placeholder: t('searchPlaceholder'),
       prefix: (
         <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -32,17 +36,18 @@ export default function Packages(): JSX.Element {
       <div className="w-full max-w-6xl mx-auto pb-3">
         <div className="text-center pb-7">
           <h2 className="text-3xl font-bold text-white pb-2">
-            پکیج‌های محبوب
+            {t("title")}
           </h2>
           <p className="text-gray-400">
-            سلام داشول
+            {t("description")}
           </p>
         </div>
         
         <div className="pb-10">
           <DreamForm
             fields={searchField}
-            onSubmit={(data) => setSearchQuery(data.search)}
+            onSubmit={(data) => setSearchQuery(typeof data.search === "string" ? data.search : "")}
+            onValuesChange={data => setSearchQuery(typeof data.search === "string" ? data.search : "")}
             showResetButton={false}
             showSubmitButton={false}
           />
@@ -54,14 +59,14 @@ export default function Packages(): JSX.Element {
               key={pkg.id}
               className={cn(
                 "h-16 flex items-stretch border border-white/10 bg-white/5",
-                "rounded-tl-lg rounded-br-lg",
+                "rounded-ss-lg rounded-ee-lg",
                 "hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
               )}
-              onClick={() => console.log('Clicked:', pkg)}
+              onClick={() => router.push('/order/order-form')}
             >
-              <div className="w-14 bg-cyan-400 flex items-center justify-center rounded-tr-lg rounded-tl-lg rounded-br-lg -mr-px">
+              <div className="w-14 bg-cyan-400 flex items-center justify-center rounded-tr-lg rounded-ss-lg rounded-ee-lg -me-px">
                 <svg 
-                  className="w-5 h-5 text-white" 
+                  className="w-5 h-5 text-white ltr:rotate-180"
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -83,7 +88,7 @@ export default function Packages(): JSX.Element {
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔍</div>
             <p className="text-gray-400 text-lg">
-              پکیجی با این نام پیدا نشد
+              {t("empty")}
             </p>
           </div>
         )}

@@ -21,20 +21,24 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            result.error.errors[0]?.message ||
-            "اطلاعات ارسالی نامعتبر است",
+          code: "INVALID_INPUT",
+          error: "اطلاعات ارسالی نامعتبر است",
         },
         { status: 422 }
       );
     }
 
     const { contact, fname, lname, email } = result.data;
-    const phone = normalizePhone(contact);
+    let phone: string;
+    try {
+      phone = normalizePhone(contact);
+    } catch {
+      return NextResponse.json({success: false, code: "INVALID_PHONE", error: "شماره همراه نامعتبر است"}, {status: 400});
+    }
 
     if (!phone) {
       return NextResponse.json(
-        { success: false, error: "شماره همراه نامعتبر است" },
+        { success: false, code: "INVALID_PHONE", error: "شماره همراه نامعتبر است" },
         { status: 400 }
       );
     }
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "شماره تماس تایید نشده یا مهلت ثبت نام منقضی شده است",
+          code: "REGISTRATION_EXPIRED", error: "شماره تماس تایید نشده یا مهلت ثبت نام منقضی شده است",
         },
         { status: 403 }
       );
@@ -84,11 +88,15 @@ export async function POST(req: Request) {
     let parsedEmail: string | null = null;
 
     if (email && email.trim() !== "") {
-      parsedEmail = normalizeEmail(email);
+      try {
+        parsedEmail = normalizeEmail(email);
+      } catch {
+        return NextResponse.json({success: false, code: "EMAIL_INVALID", error: "ایمیل وارد شده نامعتبر است"}, {status: 400});
+      }
 
       if (!parsedEmail) {
         return NextResponse.json(
-          { success: false, error: "ایمیل وارد شده نامعتبر است" },
+          { success: false, code: "EMAIL_INVALID", error: "ایمیل وارد شده نامعتبر است" },
           { status: 400 }
         );
       }
@@ -114,9 +122,9 @@ export async function POST(req: Request) {
         contact: newUser.contact,
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { success: false, error: "خطا در ثبت نام کاربر" },
+      { success: false, code: "REGISTER_FAILED", error: "خطا در ثبت نام کاربر" },
       { status: 500 }
     );
   }

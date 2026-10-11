@@ -12,7 +12,7 @@ export type VisibilityOperator = "AND" | "OR";
 
 export type VisibilityCondition = {
   field: string;
-  operator: "equals";
+  operator: "equals" | "not_equals";
   value: string | number | boolean;
 };
 
@@ -24,6 +24,8 @@ export type FieldVisibility = {
 export type FormOption = {
   value: string;
   label: string;
+  description?: string;
+  metadata?: unknown;
 };
 
 export type FormValidation = {
@@ -38,6 +40,8 @@ export type FormField = {
   id: string;
   type: FormFieldType;
   label: string;
+  description?: string;
+  defaultValue?: string | number | string[] | null;
   placeholder?: string;
   required?: boolean;
   options?: FormOption[];
@@ -57,14 +61,12 @@ export type FormStep = {
 export type OrderFormSettings = {
   showProgress: boolean;
   allowBack: boolean;
-  autoNext: boolean;
-  saveProgress: boolean;
   submitButtonText: string;
 };
 
 export type OrderForm = {
   id: string;
-  version: number;
+  key: string;
   title: string;
   description?: string;
   settings: OrderFormSettings;
