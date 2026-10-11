@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { normalizePhone, generateOtpCode, hashOtpCode } from "@/lib/auth/helper";
-import { sendOtpSms } from "@/lib/auth/sms";
 import { OtpChannel, OtpPurpose } from "@prisma/client";
+
+import { prisma } from "@/lib/prisma";
+import {
+  generateOtpCode,
+  hashOtpCode,
+  normalizePhone,
+} from "@/lib/auth/helper";
+import { sendOtpSms } from "@/lib/auth/sms";
 
 const sendOtpSchema = z.object({
   target: z.string().min(1, "شماره موبایل الزامی است"),
@@ -11,58 +16,95 @@ const sendOtpSchema = z.object({
 });
 
 const OTP_EXPIRATION_MINUTES = 2;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const parseResult = sendOtpSchema.safeParse(body);
+    const parsed = sendOtpSchema.safeParse(body);
 
-    if (!parseResult.success) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "داده‌های ورودی نامعتبر است", details: parseResult.error.flatten() },
-        { status: 400 }
+        {
+          success: false,
+          error: "داده‌های ورودی نامعتبر است",
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 422 }
       );
     }
 
-    const { target: rawTarget, purpose } = parseResult.data;
+    const { target: rawTarget, purpose } = parsed.data;
     const phone = normalizePhone(rawTarget);
-
-    if (!/^09\d{9}$/.test(phone)) {
-      return NextResponse.json(
-        { error: "شماره موبایل وارد شده نامعتبر است" },
-        { status: 400 }
-      );
-    }
-
     const now = new Date();
 
-    const activeOtp = await prisma.otpVerification.findFirst({
+    const latestOtp = await prisma.otpVerification.findFirst({
       where: {
         target: phone,
         channel: OtpChannel.PHONE,
         purpose,
-        consumedAt: null,
-        expiresAt: { gt: now },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        createdAt: true,
+      },
     });
 
-    if (activeOtp) {
-      const remainingSeconds = Math.ceil(
-        (activeOtp.expiresAt.getTime() - now.getTime()) / 1000
+    if (latestOtp) {
+      const secondsSinceLastRequest = Math.floor(
+        (now.getTime() - latestOtp.createdAt.getTime()) / 1000
       );
-      return NextResponse.json(
-        {
-          error: `لطفاً ${remainingSeconds} ثانیه دیگر مجدداً تلاش کنید`,
-          retryAfter: remainingSeconds,
-        },
-        { status: 429 }
-      );
+
+      if (secondsSinceLastRequest < OTP_RESEND_COOLDOWN_SECONDS) {
+        const retryAfter =
+          OTP_RESEND_COOLDOWN_SECONDS - secondsSinceLastRequest;
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: `لطفاً ${retryAfter} ثانیه دیگر مجدداً تلاش کنید`,
+            retryAfter,
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(retryAfter),
+            },
+          }
+        );
+      }
     }
 
-    const code = generateOtpCode();
-    const codeHash = hashOtpCode(code);
-    const expiresAt = new Date(now.getTime() + OTP_EXPIRATION_MINUTES * 60 * 1000);
+    const plainCode = generateOtpCode();
+    const codeHash = hashOtpCode(plainCode);
+    const expiresAt = new Date(
+      now.getTime() + OTP_EXPIRATION_MINUTES * 60 * 1000
+    );
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("========================================");
+      console.log(`🔑 DEV OTP Code for [${phone}]: ${plainCode}`);
+      console.log("========================================");
+    } else {
+      const smsResult = await sendOtpSms({
+        to: phone,
+        code: plainCode,
+      });
+
+      if (!smsResult.success) {
+        console.error("[SEND_OTP_SMS_FAILED]", smsResult.error);
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "ارسال پیامک انجام نشد. لطفاً دوباره تلاش کنید.",
+          },
+          { status: 502 }
+        );
+      }
+    }
 
     await prisma.otpVerification.create({
       data: {
@@ -74,27 +116,34 @@ export async function POST(req: Request) {
       },
     });
 
-    await sendOtpSms({to : phone, code});
-
     return NextResponse.json(
       {
         success: true,
         message: "کد تأیید با موفقیت ارسال شد",
         expiresIn: OTP_EXPIRATION_MINUTES * 60,
+        retryAfter: OTP_RESEND_COOLDOWN_SECONDS,
       },
       { status: 200 }
     );
-  }  catch (error) {
-  console.error("[SEND_OTP_ERROR]:", error);
-  
-  if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error) {
+    console.error("[SEND_OTP_ERROR]", error);
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "خطای داخلی سرور",
+      },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(
-    { error: "خطای داخلی سرور" },
-    { status: 500 }
-  );
-}
-
 }

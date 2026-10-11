@@ -1,20 +1,8 @@
 "use client";
 
-import {
-  MoreHorizontal,
-  Pin,
-  PinOff,
-  EyeOff,
-} from "lucide-react";
-
-import type {
-  Column,
-} from "@tanstack/react-table";
-
-import {
-  Button,
-} from "@/components/ui/button";
-
+import { Column } from "@tanstack/react-table";
+import { useTranslations } from "next-intl";
+import { ArrowLeftToLine, ArrowRightToLine, EyeOff, PinOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,82 +10,48 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
-interface Props<TData, TValue> {
+interface DataTableColumnMenuProps<TData, TValue> {
   column: Column<TData, TValue>;
 }
 
-export function DataTableColumnMenu<
-  TData,
-  TValue,
->({
+export function DataTableColumnMenu<TData, TValue>({
   column,
-}: Props<TData, TValue>) {
-  const pinned =
-    column.getIsPinned();
+}: DataTableColumnMenuProps<TData, TValue>) {
+  const t = useTranslations("DataTable");
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-        >
-          <MoreHorizontal className="h-4 w-4" />
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+          <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-
       <DropdownMenuContent align="end">
         {column.getCanPin() && (
           <>
-            {!pinned && (
-              <>
-                <DropdownMenuItem
-                  onClick={() =>
-                    column.pin("left")
-                  }
-                >
-                  <Pin className="mr-2 h-4 w-4" />
-                  Pin left
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() =>
-                    column.pin("right")
-                  }
-                >
-                  <Pin className="mr-2 h-4 w-4" />
-                  Pin right
-                </DropdownMenuItem>
-              </>
-            )}
-
-            {pinned && (
-              <DropdownMenuItem
-                onClick={() =>
-                  column.pin(false)
-                }
-              >
-                <PinOff className="mr-2 h-4 w-4" />
-                Unpin
+            <DropdownMenuItem onClick={() => column.pin("left")}>
+              <ArrowLeftToLine className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+              {t("pinLeft")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => column.pin("right")}>
+              <ArrowRightToLine className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+              {t("pinRight")}
+            </DropdownMenuItem>
+            {column.getIsPinned() && (
+              <DropdownMenuItem onClick={() => column.pin(false)}>
+                <PinOff className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                {t("unpin")}
               </DropdownMenuItem>
             )}
-
             <DropdownMenuSeparator />
           </>
         )}
-
         {column.getCanHide() && (
-          <DropdownMenuItem
-            onClick={() =>
-              column.toggleVisibility(
-                false,
-              )
-            }
-          >
-            <EyeOff className="mr-2 h-4 w-4" />
-            Hide column
+          <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
+            <EyeOff className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+            {t("hideColumn")}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

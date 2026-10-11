@@ -5,9 +5,19 @@ export function normalizePhone(phone: string | null | undefined): string {
     throw new Error("شماره موبایل الزامی است.");
   }
 
-  let cleaned = phone.replace(/\D/g, "");
+  const normalizedDigits = phone
+    .replace(/[۰-۹]/g, (digit) =>
+      String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))
+    )
+    .replace(/[٠-٩]/g, (digit) =>
+      String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))
+    );
 
-  if (cleaned.startsWith("989")) {
+  let cleaned = normalizedDigits.replace(/\D/g, "");
+
+  if (cleaned.startsWith("0098")) {
+    cleaned = "0" + cleaned.slice(4);
+  } else if (cleaned.startsWith("98")) {
     cleaned = "0" + cleaned.slice(2);
   } else if (cleaned.startsWith("9") && cleaned.length === 10) {
     cleaned = "0" + cleaned;
@@ -33,10 +43,13 @@ export function normalizeEmail(email: string): string {
 }
 
 export function generateOtpCode(): string {
-  return Math.floor(10000 + Math.random() * 90000).toString();
+  return crypto.randomInt(10000, 100000).toString();
 }
-
 
 export function hashOtpCode(code: string): string {
-  return crypto.createHash("sha256").update(code).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(code)
+    .digest("hex");
 }
+

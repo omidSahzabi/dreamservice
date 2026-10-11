@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { AlertCircle, Check } from "lucide-react";
-
+import { useTranslations } from "next-intl";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -29,7 +29,7 @@ export const FieldRenderer = memo(function FieldRenderer({
     control,
     formState: { errors },
   } = useFormContext<OrderFormData>();
-
+  const t = useTranslations("OrderForm");
   const error = errors[field.id]?.message as string | undefined;
 
   return (
@@ -90,7 +90,7 @@ export const FieldRenderer = memo(function FieldRenderer({
                   onValueChange={formField.onChange}
                 >
                   <SelectTrigger id={field.id} className={baseInputClass}>
-                    <SelectValue placeholder="انتخاب کنید..." />
+                    <SelectValue placeholder={t("selectPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent
                     dir="rtl"
@@ -204,7 +204,9 @@ export const FieldRenderer = memo(function FieldRenderer({
               return (
                 <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-medium text-destructive">
                   <AlertCircle className="size-4" />
-                  <span>نوع فیلد پشتیبانی نمی‌شود: {field.type}</span>
+                  <span> 
+                 {t("unsupportedField")}
+                    {field.type}</span>
                 </div>
               );
           }

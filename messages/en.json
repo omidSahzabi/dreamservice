@@ -3,6 +3,213 @@
     "home": "Home",
     "dashboard": "Dashboard",
     "login": "Login",
-    "logout": "Logout"
-  }
+    "logout": "Logout",
+    "faq": "FAQ",
+    "services": "Services",
+    "blog": "Blog",
+    "about": "About Us",
+    "webDesign": "Web Design",
+    "webDesignDesc": "Modern & fast design focused on user experience",
+    "webApp": "Web App Development",
+    "webAppDesc": "Building scalable applications with Next.js",
+    "gameDev": "Game Development",
+    "gameDevDesc": "Professional 2D and 3D game development",
+    "seo": "SEO & Optimization",
+    "seoDesc": "Boost your speed, rank, and site performance"
+  },
+  "Hero": {
+    "title": "Your dream services start here",
+    "subtitle": "We help you turn your ideas into reality.",
+    "cta": "Get Started"
+  },
+  "Packages": {
+    "title": "Our Packages",
+    "description": "Diverse packages tailored to your needs"
+  },
+  "Footer": {
+    "copyright": "All rights reserved © 2024",
+    "links": "Quick Links"
+  },
+  "About": {
+    "eyebrow": "About Dream Services",
+    "title": "People who turn ideas into real experiences.",
+    "description": "We are a multidisciplinary team of designers, developers, and ideators who have come together to build simple, beautiful, and reliable digital products.",
+    "primaryAction": "Start a Collaboration",
+    "secondaryAction": "View Services",
+    "teamBadge": "Our Team",
+    "teamTitle": "Behind every good experience stands a coordinated team.",
+    "teamDescription": "From the first idea to the last detail of execution, we move with a focus on the real needs of users and your business goals. For us, collaboration is not just delivering a project; it's building a long-term relationship and a measurable result.",
+    "valuesBadge": "Why Us?",
+    "valuesTitle": "Our focus is not just on code.",
+    "valuesDescription": "We believe in the right combination of strategy, design, and technology.",
+    "values": {
+      "one": { "title": "Human Experience", "description": "We make every decision by understanding the behavior and real needs of the user." },
+      "two": { "title": "Building with Purpose", "description": "Every feature must solve a specific problem and create value." },
+      "three": { "title": "True Partnership", "description": "We stay by your side throughout the entire journey; from ideation to product growth." }
+    },
+    "members": "Active Members",
+    "disciplines": "Disciplines",
+    "approach": "Our Approach",
+    "disciplineValue": "Design + Code",
+    "approachValue": "Human-first",
+    "loading": "Loading team members...",
+    "empty": "There are currently no members to display.",
+    "error": "Failed to fetch team information.",
+    "retry": "Try Again",
+    "dreamTeam": "Dream Team",
+    "heroTagline": "Design,\nTechnology,\nHuman Impact."
+  },
+  "Metadata": {
+    "title": "Dream Service | Web Design",
+    "description": "Professional web design and development services"
+  },
+    "Toast": {
+    "loginSuccess": "You have successfully logged in",
+    "loginFailed": "Login failed",
+    "otpSent": "Verification code sent",
+    "genericError": "Something went wrong",
+    "orderSubmitted": "Your order was submitted successfully"
+  },
+  "AuthModal": {
+    "title": {
+      "phone": "Sign In or Sign Up",
+      "otp": "Verify Phone Number",
+      "register": "Complete Your Account Information"
+    },
+    "description": {
+      "phone": "Enter your phone number to continue.",
+      "otp": "Enter the 5-digit verification code sent to {phone}.",
+      "register": "Please enter your name and details to complete registration."
+    },
+    "label": {
+      "phone": "Phone Number",
+      "otp": "5-Digit Verification Code",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email (Optional)"
+    },
+    "placeholder": {
+      "phone": "09123456789",
+      "otp": "12345",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "info@example.com"
+    },
+    "validation": {
+      "phoneMin": "Phone number must be at least 10 digits",
+      "phoneInvalid": "The entered mobile number is not valid",
+      "otpLength": "Verification code must be 5 digits",
+      "firstNameMin": "First name must be at least 2 characters",
+      "lastNameMin": "Last name must be at least 2 characters",
+      "emailInvalid": "The entered email is not valid"
+    },
+    "button": {
+      "sending": "Sending...",
+      "sendOtp": "Get Verification Code",
+      "verifying": "Verifying...",
+      "verify": "Verify & Continue",
+      "registering": "Registering...",
+      "register": "Complete Registration"
+    },
+    "action": {
+      "changePhone": "Change Number",
+      "resendCountdown": "Resend ({seconds}s)",
+      "resendOtp": "Resend Code"
+    },
+    "toast": {
+      "otpSent": "Verification code sent",
+      "authSuccess": "Signed in successfully",
+      "registerSuccess": "Registration completed successfully"
+    },
+    "errors": {
+      "sendOtp": "Error sending verification code",
+      "verifyOtp": "The entered verification code is incorrect",
+      "register": "Error submitting information"
+    }
+  },
+  "DataTable": {
+  "empty": "No items found to display.",
+  "showing": "Showing {from} to {to} of {total} items",
+  "perPage": "Items per page:",
+  "page": "Page {pageIndex} of {pageCount}",
+  "filters": "Filters",
+  "clear": "Clear",
+  "density": "Density",
+  "compact": "Compact",
+  "default": "Default",
+  "comfortable": "Comfortable",
+  "pinLeft": "Pin to left",
+  "pinRight": "Pin to right",
+  "unpin": "Unpin",
+  "hideColumn": "Hide column"
+},
+"OrderStatus": {
+  "PENDING": "Pending review",
+  "PROCESSING": "Processing",
+  "COMPLETED": "Completed",
+  "CANCELLED": "Cancelled",
+  "REJECTED": "Rejected"
+},
+"Order": {
+  "id": "ID",
+  "client": "Client",
+  "status": "Status",
+  "selectStatus": "Select status",
+  "orderType": "Order type",
+  "budget": "Budget range",
+  "searchPlaceholder": "Search orders...",
+  "actions": "Actions",
+  "viewDetails": "View details",
+  "contact": "Contact"
+},
+  "ReviewOrders": {
+    "title": "Order Management & Review",
+    "subtitle": "View and manage submitted orders across the platform",
+    "totalCount": "Total: {count} orders",
+    "refresh": "Refresh",
+    "errorTitle": "Failed to load data",
+    "errorDefault": "A problem occurred while communicating with the server",
+    "retry": "Retry",
+    "emptyTitle": "No orders found",
+    "emptyDescription": "When new orders are submitted, they will appear in this table",
+    "noName": "Unnamed",
+    "viewDetails": "View Details",
+    "filters": {
+      "status": "Status",
+      "selectStatus": "Select status",
+      "type": "Order Type",
+      "budgetRange": "Budget Range",
+      "clientId": "Client ID"
+    },
+    "columns": {
+      "id": "ID",
+      "customer": "Customer",
+      "contact": "Contact Info",
+      "serviceType": "Service Type",
+      "budget": "Budget Range",
+      "pageCount": "Page Count",
+      "status": "Status",
+      "description": "Description",
+      "actions": "Actions"
+    }
+  },
+  "OrderForm": {
+  "loading": "Loading order form...",
+  "loadError": "Failed to connect to the server and load the order form.",
+  "retry": "Try Again",
+  "unknownSubmitError": "An unknown error occurred while submitting the order.",
+  "successTitle": "Your order has been submitted successfully!",
+  "successDescription": "Your information has been received and is being processed. Our experts will contact you soon.",
+  "badge": "Online Order",
+  "stepProgress": "Step {current} of {total}",
+  "previous": "Previous",
+  "submitting": "Submitting...",
+  "submit": "Submit Order",
+  "next": "Next",
+  "privacyNotice": "Your information is processed with complete privacy and security."
+},
+"requiredInformation": "Required information",
+"selectPlaceholder": "Select...",
+"unsupportedField": "This field type is not supported."
+
 }

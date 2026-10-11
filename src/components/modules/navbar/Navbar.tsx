@@ -1,31 +1,33 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useMemo } from "react";
 import Logo from "./Logo";
 import DesktopNav from "./DesktopNav";
 import MobileMenu from "./MobileMenu";
-import AuthButton from "./AuthButton";
+import { AuthButton } from "./AuthButton";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggleButton from "./LanguageToggleButton";
 
-
 export default function Navbar() {
-
   const pathname = usePathname();
+  const locale = useLocale();
 
   const isActive = useMemo(() => {
     return (href?: string): boolean => {
       if (!href) return false;
-      if (href === "/") return pathname === "/";
-      return pathname?.startsWith(href) ?? false;
+      const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), "") || "/";
+      
+      if (href === "/") return pathWithoutLocale === "/";
+      return pathWithoutLocale.startsWith(href);
     };
-  }, [pathname]);
+  }, [pathname, locale]);
 
   return (
     <div className="w-full flex justify-center pt-6 px-4">
       <nav
-        dir="rtl"
+        dir={locale === "fa" ? "rtl" : "ltr"}
         className="w-full max-w-6xl border border-cyan-400/40 rounded-2xl px-6 py-4 flex items-center justify-between shadow-lg"
       >
         <Logo />

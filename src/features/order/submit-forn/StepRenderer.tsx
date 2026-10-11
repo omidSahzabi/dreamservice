@@ -6,12 +6,14 @@ import { Label } from "@/components/ui/label";
 import { getVisibleFields } from "@/schemas/orderSchema";
 import type { FormStep, OrderFormData } from "@/types/order";
 import { FieldRenderer } from "./FieldRenderer";
+import { useTranslations } from "next-intl";
 
 export const StepRenderer = memo(function StepRenderer({
   step,
 }: {
   step: FormStep;
 }) {
+  const t = useTranslations("OrderForm");
   const formValues = useWatch<OrderFormData>();
   const visibleFields = getVisibleFields(step, formValues as OrderFormData);
 
@@ -21,7 +23,7 @@ export const StepRenderer = memo(function StepRenderer({
         <div className="mb-2 flex items-center gap-2">
           <span className="size-2 rounded-full bg-primary" />
           <span className="text-xs font-bold uppercase tracking-wide text-primary">
-            اطلاعات مورد نیاز
+            {t("requiredInformation")}
           </span>
         </div>
         <h2 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">

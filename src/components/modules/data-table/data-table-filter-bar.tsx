@@ -1,83 +1,68 @@
-"use client"
-import { useState } from "react"
-import { ChevronDown, Filter, X } from "lucide-react"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { DataTableFilterForm } from "./data-table-filter-form"
-import type {
-  DataTableFilterField,
-  DataTableFilterValues,
-} from "./data-table-filter-types"
+import * as React from "react";
+import { useTranslations } from "next-intl";
+import { Filter, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-type Props = {
-  fields: DataTableFilterField[]
-  values: DataTableFilterValues
-  onChange: (values: DataTableFilterValues) => void
+interface DataTableFilterBarProps {
+  filterValues?: Record<string, unknown>;
+  onClearFilters?: () => void;
+  children: React.ReactNode;
 }
 
 export function DataTableFilterBar({
-  fields,
-  values,
-  onChange,
-}: Props) {
-  const [isOpen, setIsOpen] = useState(false)
+  filterValues,
+  onClearFilters,
+  children,
+}: DataTableFilterBarProps) {
+  const t = useTranslations("DataTable");
+  const [isOpen, setIsOpen] = React.useState(false);
 
-  const activeCount = Object.values(values).filter(Boolean).length
-
-  const clearFilters = () => {
-    onChange({})
-  }
+  const activeFiltersCount = React.useMemo(() => {
+    if (!filterValues) return 0;
+    return Object.values(filterValues).filter(
+      (v) => v !== undefined && v !== "" && v !== null
+    ).length;
+  }, [filterValues]);
 
   return (
-    <div className="w-full">
+    <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Button
-          type="button"
           variant="outline"
           size="sm"
-          onClick={() => setIsOpen((current) => !current)}
-          className="h-8 gap-2 border-white/10 bg-[#0C1633] text-xs text-white/80 hover:bg-[#101C44] hover:text-white"
+          onClick={() => setIsOpen(!isOpen)}
+          className="h-8 gap-2"
         >
-          <Filter className="size-4" />
-
-          <span>فیلترها</span>
-
-          {activeCount > 0 && (
-            <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-              {activeCount}
-            </span>
+          <Filter className="h-4 w-4" />
+          <span>{t("filters")}</span>
+          {activeFiltersCount > 0 && (
+            <Badge variant="secondary" className="px-1.5 py-0.5 text-xs">
+              {activeFiltersCount}
+            </Badge>
           )}
-
-          <ChevronDown
-            className={`size-3.5 transition-transform ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          />
         </Button>
 
-        {activeCount > 0 && (
+        {activeFiltersCount > 0 && onClearFilters && (
           <Button
-            type="button"
             variant="ghost"
             size="sm"
-            onClick={clearFilters}
-            className="h-8 gap-1.5 text-xs text-white/60 hover:bg-white/5 hover:text-white"
+            onClick={onClearFilters}
+            className="h-8 gap-1 text-muted-foreground hover:text-foreground"
           >
-            <X className="size-3.5" />
-            پاک کردن
+            <X className="h-3.5 w-3.5" />
+            <span>{t("clear")}</span>
           </Button>
         )}
       </div>
 
       {isOpen && (
-        <div className="mt-3 w-full border-y border-white/10 bg-[#0C1633]/70 px-3 py-3">
-          <DataTableFilterForm
-            fields={fields}
-            values={values}
-            onChange={onChange}
-          />
+        <div className="p-4 rounded-lg border border-border/40 bg-card/50">
+          {children}
         </div>
       )}
     </div>
-  )
+  );
 }

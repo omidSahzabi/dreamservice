@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   NavigationMenuItem,
@@ -5,55 +7,58 @@ import {
   NavigationMenuContent,
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
-import type { NavChild } from "@/lib/dictionary";
+import { NavChild } from "./types";
 
-type NavDropdownProps = {
+interface NavDropdownProps {
   label: string;
   items: NavChild[];
-  isActive: boolean;
+  activeParent: boolean;
   isChildActive: (href: string) => boolean;
-};
+}
 
 export default function NavDropdown({
   label,
   items,
-  isActive,
+  activeParent,
   isChildActive,
 }: NavDropdownProps) {
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger
-        className={cn(
-          "bg-transparent text-sm font-medium hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent",
-          isActive ? "text-cyan-400" : "text-slate-300 hover:text-white"
-        )}
+        className={`bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent text-sm font-medium transition-colors ${
+          activeParent ? "text-cyan-400" : "text-slate-300 hover:text-white"
+        }`}
       >
         {label}
       </NavigationMenuTrigger>
-      <NavigationMenuContent>
-        <div className="grid w-[320px] gap-3 p-4 bg-bg-primary">
-          {items.map((item) => (
-            <NavigationMenuLink asChild key={item.href}>
-              <Link
-                href={item.href}
-                className={cn(
-                  "block rounded-xl p-3 transition-colors",
-                  isChildActive(item.href)
-                    ? "bg-cyan-400/10 text-cyan-400"
-                    : "hover:bg-slate-800 text-slate-300 hover:text-white"
-                )}
-              >
-                <div className="text-sm font-medium">{item.label}</div>
-                {item.description && (
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    {item.description}
-                  </p>
-                )}
-              </Link>
-            </NavigationMenuLink>
-          ))}
-        </div>
+
+      <NavigationMenuContent className="p-3 bg-slate-900/95 border border-cyan-400/30 backdrop-blur-md rounded-xl shadow-xl">
+        <ul className="grid w-[320px] gap-2 p-1">
+          {items.map((child) => {
+            const active = isChildActive(child.href);
+            return (
+              <li key={child.label}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href={child.href}
+                    className={`block select-none rounded-lg p-3 text-sm leading-none no-underline outline-none transition-colors ${
+                      active
+                        ? "bg-cyan-400/10 text-cyan-400"
+                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold">{child.label}</div>
+                    {child.description && (
+                      <p className="line-clamp-2 text-xs leading-snug text-slate-400 mt-1">
+                        {child.description}
+                      </p>
+                    )}
+                  </Link>
+                </NavigationMenuLink>
+              </li>
+            );
+          })}
+        </ul>
       </NavigationMenuContent>
     </NavigationMenuItem>
   );

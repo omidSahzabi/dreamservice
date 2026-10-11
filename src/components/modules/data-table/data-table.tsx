@@ -1,45 +1,65 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
+import { useTranslations } from "next-intl";
 import {
+  ColumnDef,
+  ColumnFiltersState,
+  PaginationState,
+  SortingState,
+  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  type ColumnDef,
-  type ColumnFiltersState,
-  type RowSelectionState,
-  type SortingState,
-  type VisibilityState,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTablePagination } from "./data-table-pagination";
+import { DataTableFilterBar } from "./data-table-filter-bar";
+import { DataTableToolbar } from "./data-table-toolbar";
+import { DataTableSkeleton } from "./data-table-skeleton";
+import { DensityState } from "./data-table-types";
+import { densityRowClasses, densityCellClasses } from "./data-table-density";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-
-import { DataTablePagination } from "./data-table-pagination"
-import { DataTableSkeleton } from "./data-table-skeleton"
-import { DataTableToolbar } from "./data-table-toolbar"
-import type { DataTableProps } from "./data-table-types"
+interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  isLoading?: boolean;
+  filterForm?: React.ReactNode;
+  filterValues?: Record<string, unknown>;
+  onFilterChange?: (values: Record<string, unknown>) => void;
+  enableColumnVisibility?: boolean;
+  enableColumnResizing?: boolean;
+  enablePinning?: boolean;
+  enableDensityToggle?: boolean;
+  enableExport?: boolean;
+  enablePagination?: boolean;
+  manualPagination?: boolean;
+  pageCount?: number;
+  rowCount?: number;
+  pagination?: PaginationState;
+  onPaginationChange?: (pagination: PaginationState) => void;
+  onColumnOrderChange?: (columnOrder: string[]) => void;
+  initialState?: {
+    density?: DensityState;
+    columnVisibility?: VisibilityState;
+  };
+  emptyMessage?: string;
+}
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  isLoading,
+  isLoading = false,
   filterForm,
-  filterValues = {},
+  filterValues,
   onFilterChange,
   enableColumnVisibility = true,
-  enableColumnResizing = false,
   enablePinning = false,
-  enableColumnPinning = false,
+  enableDensityToggle = true,
+  enableExport = false,
   enablePagination = true,
   manualPagination = false,
   pageCount,
@@ -47,125 +67,105 @@ export function DataTable<TData, TValue>({
   pagination,
   onPaginationChange,
   onColumnOrderChange,
-  emptyMessage = "موردی برای نمایش یافت نشد.",
   initialState,
+  emptyMessage,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const t = useTranslations("DataTable");
+  const resolvedEmptyMessage = emptyMessage ?? t("empty");
+
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
     initialState?.columnVisibility ?? {}
-  )
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
+  );
+  const [density, setDensity] = React.useState<DensityState>(
+    initialState?.density ?? "default"
+  );
+  const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  const currentPagination = pagination ?? internalPagination;
+  const handlePaginationChange = onPaginationChange ?? setInternalPagination;
 
   const table = useReactTable({
     data,
-    columns: columns as ColumnDef<TData, unknown>[],
-    manualPagination,
-    pageCount: manualPagination ? pageCount : undefined,
-    rowCount: manualPagination ? rowCount : undefined,
+    columns,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
-      ...(pagination ? { pagination } : {}),
+      pagination: currentPagination,
     },
-    enablePinning: enablePinning || enableColumnPinning,
-    enableColumnResizing,
-    enableSorting: true,
+    pageCount: manualPagination ? pageCount : undefined,
+    manualPagination,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    onPaginationChange,
+    onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-  })
-
-  const visibleColumnCount = Math.max(table.getVisibleLeafColumns().length, 1)
-  const pageSize = table.getState().pagination?.pageSize || 5
-  const skeletonRowCount = Math.min(Math.max(pageSize, 5), 10)
+  });
 
   return (
     <div className="w-full space-y-4">
       <DataTableToolbar
         table={table}
-        filterForm={filterForm}
-        filterValues={filterValues}
-        onFilterChange={onFilterChange}
         enableColumnVisibility={enableColumnVisibility}
-        onColumnOrderChange={onColumnOrderChange}
+        enableDensityToggle={enableDensityToggle}
+        enableExport={enableExport}
+        density={density}
+        onDensityChange={setDensity}
       />
 
-      <div
-        className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C1633]"
-        aria-busy={isLoading}
-      >
+      {filterForm && (
+        <DataTableFilterBar
+          filterValues={filterValues}
+          onClearFilters={() => onFilterChange?.({})}
+        >
+          {filterForm}
+        </DataTableFilterBar>
+      )}
+
+      <div className="rounded-lg border border-border/40 bg-card overflow-hidden">
         <Table>
-          <TableHeader className="bg-[#101C44]">
+          <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="border-white/[0.08] hover:bg-transparent"
-              >
+              <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className="h-12 px-4 text-xs font-bold text-white/80"
-                    style={{
-                      width:
-                        header.getSize() !== 150
-                          ? header.getSize()
-                          : undefined,
-                    }}
-                  >
+                  <TableHead key={header.id} className="text-start">
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
-
-          <TableBody className="bg-[#0C1633]">
+          <TableBody>
             {isLoading ? (
-              <DataTableSkeleton
-                rows={skeletonRowCount}
-                columns={visibleColumnCount}
-              />
-            ) : table.getRowModel().rows.length > 0 ? (
+              <DataTableSkeleton columns={columns.length} rows={5} />
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="border-white/[0.06] bg-transparent transition-colors hover:bg-[#101C44]/70 data-[state=selected]:bg-[#101C44]"
+                  className={densityRowClasses[density]}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="px-4 py-3 text-xs text-white/80"
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                    <TableCell key={cell.id} className={densityCellClasses[density]}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
-              <TableRow className="hover:bg-transparent">
-                <TableCell
-                  colSpan={visibleColumnCount}
-                  className="h-32 text-center text-xs text-white/50"
-                >
-                  {emptyMessage}
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                  {resolvedEmptyMessage}
                 </TableCell>
               </TableRow>
             )}
@@ -175,5 +175,5 @@ export function DataTable<TData, TValue>({
 
       {enablePagination && <DataTablePagination table={table} />}
     </div>
-  )
+  );
 }

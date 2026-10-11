@@ -1,89 +1,65 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+import { AlignJustify, List, Rows } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  Check,
-  Rows3,
-} from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { DensityState } from "./data-table-types";
 
-import {
-  Button,
-} from "@/components/ui/button";
+export const densityRowClasses: Record<DensityState, string> = {
+  compact: "h-8",
+  default: "h-12",
+  comfortable: "h-16",
+};
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+export const densityCellClasses: Record<DensityState, string> = {
+  compact: "py-1 px-2 text-xs",
+  default: "py-2 px-3 text-sm",
+  comfortable: "py-4 px-4 text-base",
+};
 
-import type {
-  DataTableDensity,
-} from "./data-table-types";
-
-interface Props {
-  density: DataTableDensity;
-  onChange: (
-    density: DataTableDensity,
-  ) => void;
+interface DataTableDensityProps {
+  density: DensityState;
+  onDensityChange: (density: DensityState) => void;
 }
-
-const options: {
-  value: DataTableDensity;
-  label: string;
-}[] = [
-  {
-    value: "compact",
-    label: "Compact",
-  },
-  {
-    value: "default",
-    label: "Default",
-  },
-  {
-    value: "comfortable",
-    label: "Comfortable",
-  },
-];
 
 export function DataTableDensity({
   density,
-  onChange,
-}: Props) {
+  onDensityChange,
+}: DataTableDensityProps) {
+  const t = useTranslations("DataTable");
+
+  const options: { value: DensityState; labelKey: "compact" | "default" | "comfortable"; icon: typeof List }[] = [
+    { value: "compact", labelKey: "compact", icon: Rows },
+    { value: "default", labelKey: "default", icon: List },
+    { value: "comfortable", labelKey: "comfortable", icon: AlignJustify },
+  ];
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8"
-        >
-          <Rows3 className="mr-2 h-4 w-4" />
-          Density
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 gap-2">
+          <List className="h-4 w-4" />
+          <span>{t("density")}</span>
         </Button>
-      </PopoverTrigger>
-
-      <PopoverContent
-        align="end"
-        className="w-[180px]"
-      >
-        <div className="space-y-1">
-          {options.map((option) => (
-            <Button
-              key={option.value}
-              variant="ghost"
-              className="w-full justify-between"
-              onClick={() =>
-                onChange(option.value)
-              }
-            >
-              {option.label}
-
-              {density === option.value && (
-                <Check className="h-4 w-4" />
-              )}
-            </Button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {options.map(({ value, labelKey, icon: Icon }) => (
+          <DropdownMenuItem
+            key={value}
+            onClick={() => onDensityChange(value)}
+            className={density === value ? "bg-accent font-semibold" : ""}
+          >
+            <Icon className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+            {t(labelKey)}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
