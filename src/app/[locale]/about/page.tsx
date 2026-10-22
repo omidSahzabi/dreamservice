@@ -14,7 +14,7 @@ export default function AboutPage() {
 
   return (
     <main
-      className="min-h-screen overflow-hidden bg-[#070d25] text-white"
+      className="min-h-screen overflow-hidden bg-background text-foreground"
     >
       <AboutHero />
       <TeamSection />

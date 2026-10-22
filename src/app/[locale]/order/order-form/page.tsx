@@ -4,11 +4,15 @@ export function generateMetadata({params}: {params: Promise<{locale: string}>}) 
 }
 
 import { OrderForm } from "@/features/order/submit-forn/OrderForm";
+import { getAuthenticatedPrincipal } from "@/lib/auth/authorization";
+import { AccessRequired } from "@/components/modules/auth/AccessRequired";
 
-export default function OrderFormPage() {
+export default async function OrderFormPage() {
+  const principal = await getAuthenticatedPrincipal();
+  if (!principal) return <AccessRequired />;
   return (
     <div>
-        <OrderForm />
+        <OrderForm key={principal.id} />
     </div>
 );
 }

@@ -1,3 +1,4 @@
+import "server-only";
 import crypto from "crypto";
 
 export function normalizePhone(phone: string | null | undefined): string {
@@ -45,11 +46,3 @@ export function normalizeEmail(email: string): string {
 export function generateOtpCode(): string {
   return crypto.randomInt(10000, 100000).toString();
 }
-
-export function hashOtpCode(code: string): string {
-  return crypto
-    .createHash("sha256")
-    .update(code)
-    .digest("hex");
-}
-

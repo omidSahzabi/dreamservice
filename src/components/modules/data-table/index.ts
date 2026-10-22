@@ -21,8 +21,8 @@ export {
 export type {
   DataTableDensity,
   DataTableMeta,
-  DataTableProps,
 } from "./data-table-types";
+export type {DataTableProps} from "./data-table";
 
 export * from "./data-table-filter-bar"
 export * from "./data-table-filter-form"

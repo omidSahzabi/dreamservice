@@ -26,10 +26,17 @@ import type {DataTableFilterValues} from "./data-table-filter-types";
 import { DensityState } from "./data-table-types";
 import { densityRowClasses, densityCellClasses } from "./data-table-density";
 
-interface DataTableProps<TData, TValue> {
+export interface DataTableProps<TData, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  getRowId?: (row: TData, index: number) => string;
   isLoading?: boolean;
+  errorMessage?: string;
+  onRetry?: () => void;
+  sorting?: SortingState;
+  onSortingChange?: OnChangeFn<SortingState>;
+  manualSorting?: boolean;
+  manualFiltering?: boolean;
   filterForm?: React.ReactNode;
   filterValues?: DataTableFilterValues;
   onFilterChange?: (values: DataTableFilterValues) => void;
@@ -55,7 +62,14 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
+  getRowId,
   isLoading = false,
+  errorMessage,
+  onRetry,
+  sorting: controlledSorting,
+  onSortingChange,
+  manualSorting = false,
+  manualFiltering = false,
   filterForm,
   filterValues,
   onFilterChange,
@@ -94,9 +108,10 @@ export function DataTable<TData, TValue>({
 
   const table = useReactTable({
     data,
+    getRowId,
     columns,
     state: {
-      sorting,
+      sorting: controlledSorting ?? sorting,
       columnFilters,
       columnVisibility,
       columnOrder,
@@ -104,7 +119,9 @@ export function DataTable<TData, TValue>({
     },
     pageCount: manualPagination ? pageCount : undefined,
     manualPagination,
-    onSortingChange: setSorting,
+    onSortingChange: onSortingChange ?? setSorting,
+    manualSorting,
+    manualFiltering,
     onColumnFiltersChange: setColumnFilters,
     rowCount: manualPagination ? rowCount : undefined,
     onColumnOrderChange: setColumnOrder,
@@ -117,7 +134,11 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4" aria-busy={isLoading}>
+      {errorMessage && <div role="alert" className="rounded-lg border border-destructive p-4 text-destructive">
+        <p>{errorMessage}</p>
+        {onRetry && <button type="button" onClick={onRetry} className="mt-2 underline">{t("retry")}</button>}
+      </div>}
       <DataTableToolbar
         table={table}
         enableColumnVisibility={enableColumnVisibility}
@@ -143,7 +164,7 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="text-start">
+                  <TableHead key={header.id} className="text-start" aria-sort={header.column.getIsSorted() === "asc" ? "ascending" : header.column.getIsSorted() === "desc" ? "descending" : undefined}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -153,7 +174,7 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {errorMessage ? null : isLoading ? (
               <DataTableSkeleton columns={columns.length} rows={5} />
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
@@ -171,7 +192,7 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-32 text-start text-muted-foreground lg:text-center">
                   {resolvedEmptyMessage}
                 </TableCell>
               </TableRow>
@@ -180,7 +201,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {enablePagination && <DataTablePagination table={table} rowCount={manualPagination ? rowCount : undefined} />}
+      {enablePagination && !errorMessage && <DataTablePagination table={table} rowCount={manualPagination ? rowCount : undefined} />}
     </div>
   );
 }

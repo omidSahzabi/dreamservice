@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { Popover as PopoverPrimitive } from "radix-ui"
 
 function Popover({
@@ -31,18 +31,13 @@ function PopoverContent({
         sideOffset={sideOffset}
         {...props}
         className={cn(
-          "z-[9999] w-72 origin-(--radix-popover-content-transform-origin) rounded-md border border-white/10 p-4 text-white opacity-100 shadow-2xl outline-hidden",
+          "z-[100] w-72 max-w-[calc(100vw-2rem)] origin-(--radix-popover-content-transform-origin) rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-soft outline-hidden",
           "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className
         )}
-        style={{
-          ...style,
-          backgroundColor: "#0c1633",
-          color: "#ffffff",
-          opacity: 1,
-        }}
+        style={style}
       />
     </PopoverPrimitive.Portal>
   )

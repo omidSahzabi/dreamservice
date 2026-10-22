@@ -17,16 +17,16 @@ type TeamCardProps = {
 
 const accents = [
   {
-    glow: "from-violet-500/30 via-fuchsia-500/10 to-transparent",
-    badge: "bg-violet-500/15 text-violet-200 ring-violet-400/20",
+    glow: "from-primary/10 via-transparent to-transparent",
+    badge: "bg-card/95 text-primary ring-border",
   },
   {
-    glow: "from-cyan-500/30 via-blue-500/10 to-transparent",
-    badge: "bg-cyan-500/15 text-cyan-200 ring-cyan-400/20",
+    glow: "from-primary/10 via-transparent to-transparent",
+    badge: "bg-card/95 text-primary ring-border",
   },
   {
-    glow: "from-emerald-500/30 via-teal-500/10 to-transparent",
-    badge: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/20",
+    glow: "from-primary/10 via-transparent to-transparent",
+    badge: "bg-card/95 text-primary ring-border",
   },
 ];
 
@@ -71,14 +71,14 @@ export function TeamCard({ member, index }: TeamCardProps) {
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.45, delay: Math.min(index * 0.08, 0.3) }}
       whileHover={{ y: -8 }}
-      className="group relative h-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-2 shadow-2xl shadow-black/20 backdrop-blur-xl"
+      className="motion-reduce:opacity-100! motion-reduce:transform-none! group relative h-full overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-soft"
     >
       <div
         className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accent.glow} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
       />
 
-      <div className="relative flex h-full flex-col overflow-hidden rounded-[1.55rem] border border-white/10 bg-[#0c1534]/90">
-        <div className="relative aspect-[1.15/1] overflow-hidden bg-gradient-to-br from-white/10 to-white/[0.02]">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card">
+        <div className="relative aspect-[1.15/1] overflow-hidden bg-secondary">
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -87,14 +87,14 @@ export function TeamCard({ member, index }: TeamCardProps) {
               className="h-full w-full object-cover grayscale transition duration-700 group-hover:scale-105 group-hover:grayscale-0"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500/30 via-blue-500/20 to-cyan-500/20">
-              <span className="text-6xl font-black tracking-tight text-white/90">
+            <div className="flex h-full w-full items-center justify-center bg-primary/10">
+              <span className="text-6xl font-black tracking-tight text-primary">
                 {initials}
               </span>
             </div>
           )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1534] via-transparent to-black/5" />
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-black/5" />
 
           <div
             className={`absolute start-5 top-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 backdrop-blur-md ${accent.badge}`}
@@ -106,12 +106,12 @@ export function TeamCard({ member, index }: TeamCardProps) {
 
         <div className="flex flex-1 flex-col p-6">
           <div className="mb-5">
-            <h3 className="text-xl font-bold tracking-tight text-white">
+            <h3 className="text-xl font-bold tracking-tight text-foreground">
               <bdi>{fullName}</bdi>
             </h3>
 
-            <div className="mt-2 flex items-center gap-2 text-sm text-slate-400">
-              <BriefcaseBusiness className="size-4 text-violet-300" />
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+              <BriefcaseBusiness className="size-4 text-primary" />
               <span><bdi>{role}</bdi></span>
             </div>
           </div>
@@ -120,13 +120,13 @@ export function TeamCard({ member, index }: TeamCardProps) {
             {profileHref ? (
               <a
                 href={profileHref}
-                className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-violet-300/30 hover:bg-violet-400/10 hover:text-white"
+                className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-semibold text-text-secondary transition hover:border-primary/40 hover:bg-accent hover:text-foreground"
               >
                 <span>{t("viewProfile")}</span>
                 <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </a>
             ) : (
-              <div className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3 text-sm font-semibold text-slate-500">
+              <div className="flex w-full items-center justify-between rounded-2xl border border-border bg-secondary px-4 py-3 text-sm font-semibold text-muted-foreground">
                 <span>{t("noProfile")}</span>
                 <ExternalLink className="size-4" />
               </div>

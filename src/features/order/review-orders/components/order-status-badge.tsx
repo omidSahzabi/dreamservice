@@ -10,20 +10,21 @@ const statusConfig: Record<
   OrderStatus,
   { className: string }
 > = {
+  NEGOTIATING: {className: "bg-primary/10 text-primary border-primary/20"},
   PENDING: {
-    className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    className: "bg-warning/10 text-warning border-warning/25",
   },
   PROCESSING: {
     className: "bg-primary/10 text-primary border-primary/20",
   },
   COMPLETED: {
-    className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    className: "bg-success/10 text-success border-success/25",
   },
   CANCELLED: {
     className: "bg-surface-2 text-text-muted border-border-soft",
   },
   REJECTED: {
-    className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+    className: "bg-destructive/10 text-destructive border-destructive/25",
   },
 };
 

@@ -1,28 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { requireAuth } from "@/lib/auth/authorization";
+import { privateJson, SecurityError, securityFailure } from "@/lib/security/http";
 
 const emptyToUndefined = (val: unknown) =>
   typeof val === "string" && val.trim() === "" ? undefined : val;
 
-export const GetOrdersQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
+const GetOrdersQuerySchema = z.object({
+  page: z.coerce.number().int().positive().max(10000).default(1),
   limit: z.coerce.number().int().positive().max(100).default(10),
   search: z.preprocess(emptyToUndefined, z.string().trim().min(1).max(100).optional()),
-  type: z.preprocess(emptyToUndefined, z.string().trim().optional()),
-  status: z.preprocess(emptyToUndefined, z.string().trim().optional()),
-  budget_range: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+  type: z.preprocess(emptyToUndefined, z.string().trim().max(150).optional()),
+  status: z.preprocess(emptyToUndefined, z.string().trim().max(50).optional()),
+  budget_range: z.preprocess(emptyToUndefined, z.string().trim().max(150).optional()),
   client_id: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
   sortBy: z.enum(["order_id", "type", "status", "page_count", "cr"]).default("order_id"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   includeClient: z.preprocess(
-    (val) => val === "true" || val === true || val === "1",
+    (val) => val === undefined || val === "false" || val === "0" ? false : val === "true" || val === "1" ? true : val,
     z.boolean().default(false)
   ),
-});
+}).strict();
 
-export type GetOrdersQuery = z.infer<typeof GetOrdersQuerySchema>;
+type GetOrdersQuery = z.infer<typeof GetOrdersQuerySchema>;
 
 function buildOrdersFilter(query: GetOrdersQuery): Prisma.OrderWhereInput {
   const { client_id, type, status, budget_range, search } = query;
@@ -47,29 +49,22 @@ function buildOrdersFilter(query: GetOrdersQuery): Prisma.OrderWhereInput {
 
 export async function GET(request: NextRequest) {
   try {
+    const principal = await requireAuth();
     const rawParams = Object.fromEntries(request.nextUrl.searchParams.entries());
+    if (Object.keys(rawParams).some(key => request.nextUrl.searchParams.getAll(key).length !== 1)) throw new SecurityError(422, "INVALID_INPUT");
     const validationResult = GetOrdersQuerySchema.safeParse(rawParams);
 
     if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "INVALID_INPUT",
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid query parameters.",
-            details: validationResult.error.flatten().fieldErrors,
-          },
-        },
-        { status: 422 }
-      );
+      throw new SecurityError(422, "INVALID_INPUT");
     }
 
     const { data: filters } = validationResult;
     const { page, limit, sortBy, sortOrder, includeClient } = filters;
+    if (principal.permission !== "ADMIN" && ((filters.client_id && filters.client_id !== principal.id) || includeClient)) throw new SecurityError(403, "FORBIDDEN");
     const skip = (page - 1) * limit;
 
     const where = buildOrdersFilter(filters);
+    if (principal.permission !== "ADMIN") where.client_id = principal.id;
 
     const [total, orders] = await prisma.$transaction([
       prisma.order.count({ where }),
@@ -78,8 +73,11 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder },
-        include: {
-          client: includeClient
+        select: {
+          order_id: true, client_id: true, type: true, page_count: true, budget_range: true,
+          description: true, status: true, cr: true, meta: principal.permission === "ADMIN",
+          statusHistory: {take: 1, orderBy: [{createdAt: "desc"}, {id: "desc"}], select: {message: true, createdAt: true}},
+          client: principal.permission === "ADMIN" && includeClient
             ? {
                 select: {
                   id: true,
@@ -96,10 +94,10 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil(total / limit);
 
-    return NextResponse.json(
+    return privateJson(
       {
         success: true,
-        data: orders,
+        data: orders.map(({statusHistory, ...order}) => ({ ...order, meta: principal.permission === "ADMIN" ? order.meta : null, latestDecision: statusHistory?.[0] ?? null })),
         pagination: {
           page,
           limit,
@@ -108,25 +106,9 @@ export async function GET(request: NextRequest) {
           hasNextPage: page < totalPages,
           hasPrevPage: page > 1,
         },
-      },
-      {
-        status: 200,
-        headers: {
-          "Cache-Control": "private, no-cache, no-store, must-revalidate",
-        },
       }
     );
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        code: "ORDER_LOAD_FAILED",
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "An unexpected error occurred while processing your request.",
-        },
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return securityFailure(error, "ORDER_LOAD_FAILED");
   }
 }

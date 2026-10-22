@@ -24,6 +24,8 @@ import { Label } from "@/components/ui/label";
 
 import { localizeApiError } from "@/lib/api/errors";
 import { normalizeDigits } from "@/lib/i18n/digits";
+import { clearSensitiveState } from "@/lib/auth/client-state";
+import { useRouter } from "@/lib/i18n/navigation";
 
 export function AuthModal() {
   const locale = useLocale();
@@ -77,6 +79,7 @@ export function AuthModal() {
   } = useAuthModalStore();
 
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -101,11 +104,22 @@ export function AuthModal() {
     resolver: zodResolver(registerSchema),
     defaultValues: { fname: "", lname: "", email: "" },
   });
+  const resetPhone = phoneForm.reset;
+  const resetOtp = otpForm.reset;
+  const resetRegistration = registerForm.reset;
+  useEffect(() => {
+    if (!isOpen) {
+      resetPhone({phone: ""});
+      resetOtp({code: ""});
+      resetRegistration({fname: "", lname: "", email: ""});
+    }
+  }, [isOpen, resetPhone, resetOtp, resetRegistration]);
 
   const handleSendOtp = async (data: PhoneFormValues) => {
     try {
       setIsSubmitting(true);
       const res = await sendOtp(data.phone);
+      resetOtp({code: ""});
       setPhone(data.phone);
       setResendCooldown(res.retryAfter || 60);
       setStep("OTP");
@@ -121,10 +135,13 @@ export function AuthModal() {
     try {
       setIsSubmitting(true);
       const res = await verifyOtp(phone, data.code);
+      resetOtp({code: ""});
       if (res.isNewUser) {
         setStep("REGISTER");
       } else {
+        await clearSensitiveState(queryClient);
         await queryClient.invalidateQueries({ queryKey: ["authUser"] });
+        router.refresh();
         if (onSuccessCallback) onSuccessCallback();
         closeAuthModal();
         toast.success(t("toast.authSuccess"));
@@ -145,7 +162,9 @@ export function AuthModal() {
         lname: data.lname,
         email: data.email || undefined,
       });
+      await clearSensitiveState(queryClient);
       await queryClient.invalidateQueries({ queryKey: ["authUser"] });
+      router.refresh();
       if (onSuccessCallback) onSuccessCallback();
       closeAuthModal();
       toast.success(t("toast.registerSuccess"));

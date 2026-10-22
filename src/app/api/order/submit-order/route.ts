@@ -1,85 +1,35 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-
-const DEFAULT_TEST_CLIENT_ID = "08023504-6341-4cca-9a08-3d969907b90a";
-
-const createOrderSchema = z.object({
-  type: z.string().min(1, "نوع سفارش الزامی است"),
-  budget_range: z.string().min(1, "بازه بودجه الزامی است"),
-  status: z.string().default("PENDING"),
-  page_count: z.number().int().optional().nullable(),
-  description: z.string().optional().nullable(),
-  client_id: z.string().uuid().optional(),
-  meta: z.record(z.string(), z.json()).optional().default({}),
-});
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth/authorization";
+import { digest } from "@/lib/security/crypto";
+import { canonicalJson, parseOrderRequest, validateOrder } from "@/lib/order/validation";
+import { privateJson, readJson, SecurityError, securityFailure, validateMutation } from "@/lib/security/http";
 
 export async function POST(request: Request) {
   try {
-    const rawBody = await request.json();
-    const payload = rawBody?.data ?? rawBody;
-
-    const type = payload.type || payload.service_type;
-    const description = payload.description || payload.project_description || null;
-    const budget_range = payload.budget_range;
-    const page_count = payload.page_count ? Number(payload.page_count) : null;
-    const status = payload.status || "PENDING";
-    const client_id = payload.client_id || DEFAULT_TEST_CLIENT_ID;
-
-    const validated = createOrderSchema.parse({
-      type,
-      budget_range,
-      status,
-      page_count,
-      description,
-      client_id,
-      meta: {
-        ...(rawBody.formKey !== undefined ? { formKey: rawBody.formKey } : {}),
-        ...payload,
-      },
-    });
-
-    const newOrder = await prisma.order.create({
-      data: {
-        client_id: validated.client_id ?? client_id,
-        type: validated.type,
-        budget_range: validated.budget_range,
-        status: validated.status,
-        page_count: validated.page_count,
-        description: validated.description,
-        meta: validated.meta,
-      },
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "سفارش با موفقیت در دیتابیس ثبت شد",
-        order_id: newOrder.order_id,
-        data: newOrder,
-      },
-      { status: 201 }
-    );
-  } catch (error: unknown) {
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "ORDER_INVALID", message: "اطلاعات ارسالی معتبر نیست",
-          errors: error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
+    const principal = await requireAuth();
+    validateMutation(request);
+    const input = parseOrderRequest(await readJson(request));
+    const key = z.string().uuid().safeParse(request.headers.get("idempotency-key"));
+    if (!key.success) throw new SecurityError(400, "INVALID_INPUT");
+    const requestHash = digest(canonicalJson(input));
+    const where = { client_id_idempotency_key: { client_id: principal.id, idempotency_key: key.data } };
+    const existing = await prisma.order.findUnique({ where, select: { order_id: true, request_hash: true } });
+    if (existing) {
+      if (existing.request_hash !== requestHash) throw new SecurityError(409, "IDEMPOTENCY_CONFLICT");
+      return privateJson({ success: true, order_id: existing.order_id });
     }
-
-    return NextResponse.json(
-      {
-        success: false,
-        code: "ORDER_SUBMIT_FAILED", message: "خطایی در ثبت سفارش رخ داد",
-        error: "Internal Server Error",
-      },
-      { status: 500 }
-    );
-  }
+    const validated = await validateOrder(input);
+    try {
+      const order = await prisma.order.create({ data: { ...validated, client_id: principal.id, status: "PENDING", idempotency_key: key.data, request_hash: requestHash }, select: { order_id: true } });
+      return privateJson({ success: true, order_id: order.order_id }, 201);
+    } catch (error) {
+      // Resolve the unique-key race without retrying an unscoped write.
+      if (!error || typeof error !== "object" || !("code" in error) || error.code !== "P2002") throw error;
+      const winner = await prisma.order.findUnique({ where, select: { order_id: true, request_hash: true } });
+      if (!winner) throw error;
+      if (winner.request_hash !== requestHash) throw new SecurityError(409, "IDEMPOTENCY_CONFLICT");
+      return privateJson({ success: true, order_id: winner.order_id });
+    }
+  } catch (error) { return securityFailure(error, "ORDER_SUBMIT_FAILED"); }
 }

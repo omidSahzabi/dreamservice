@@ -1,26 +1,10 @@
-import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { ADMIN_ROLE } from "@/lib/auth/authorization";
+import { privateJson, securityFailure } from "@/lib/security/http";
 
 export async function GET() {
   try {
     const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, user: null },
-        { status: 200 }
-      );
-    }
-
-    const { id, fname, lname, contact, email, roles, profiles } = user;
-    return NextResponse.json({
-      success: true,
-      user: { id, fname, lname, contact, email, roles, profiles },
-    });
-  } catch {
-    return NextResponse.json(
-      { success: false, code: "UNKNOWN", error: "خطا در دریافت اطلاعات کاربر" },
-      { status: 500 }
-    );
-  }
+    return privateJson({ success: Boolean(user), user: user ? { ...user, permission: user.roles.includes(ADMIN_ROLE) ? "ADMIN" : "CUSTOMER" } : null });
+  } catch (error) { return securityFailure(error); }
 }

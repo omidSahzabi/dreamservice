@@ -10,12 +10,14 @@ import { useTranslations } from "next-intl";
 
 export const StepRenderer = memo(function StepRenderer({
   step,
+  steps,
 }: {
   step: FormStep;
+  steps?: FormStep[];
 }) {
   const t = useTranslations("OrderForm");
   const formValues = useWatch<OrderFormData>();
-  const visibleFields = getVisibleFields(step, Object.fromEntries(Object.entries(formValues).map(([key, value]) => [key, Array.isArray(value) ? value.filter(item => typeof item === "string") : value])));
+  const visibleFields = getVisibleFields(step, Object.fromEntries(Object.entries(formValues).map(([key, value]) => [key, Array.isArray(value) ? value.filter(item => typeof item === "string") : value])), steps);
 
   return (
     <div className="space-y-8">
@@ -50,7 +52,7 @@ export const StepRenderer = memo(function StepRenderer({
                 </span>
               )}
             </Label>
-            {field.description && <p className="text-xs text-text-secondary">{field.description}</p>}
+            {field.description && <p id={`${field.id}-description`} className="text-xs text-text-secondary">{field.description}</p>}
             <FieldRenderer field={field} />
           </div>
         ))}

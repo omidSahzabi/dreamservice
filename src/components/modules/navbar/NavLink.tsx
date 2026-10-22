@@ -16,13 +16,13 @@ export default function NavLink({ href, label, active }: NavLinkProps) {
         href={href}
         className={`relative text-sm font-medium transition-colors duration-200 ${
           active
-            ? "text-cyan-400 font-semibold"
-            : "text-slate-300 hover:text-white"
+            ? "text-primary font-semibold"
+            : "text-text-secondary hover:text-foreground"
         }`}
       >
         {label}
         {active && (
-          <span className="w-full h-0.5 bg-cyan-400 absolute -bottom-2 inset-x-0 rounded-full" />
+          <span className="w-full h-0.5 bg-primary absolute -bottom-2 inset-x-0 rounded-full" />
         )}
       </Link>
     </NavigationMenuLink>

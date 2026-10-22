@@ -1,15 +1,7 @@
-import type {
-  RowData,
-  ColumnDef,
-  InitialTableState,
-  PaginationState,
-  OnChangeFn,
-} from "@tanstack/react-table";
 
 
-import type {
-  DataTableFilterValues,
-} from "./data-table-filter-types"
+
+
 
 
 export type DataTableDensity =
@@ -89,68 +81,4 @@ export interface DataTableStorage {
   density: DataTableDensity;
 }
 
-export interface DataTableProps<
-  TData extends RowData,
-  TValue = unknown,
-> {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
-
-  storageKey?: string;
-  tableId?: string;
-
-  
-
-  isLoading?: boolean;
-
-  /**
-   * Server-side filters.
-   *
-   * When supplied, the filter button is displayed.
-   */
-  filterForm?: DataTableFilterConfig[];  
-  filterValues?: DataTableFilterValues
-  onFilterChange?: (values: DataTableFilterValues) => void
-
-  /**
-   * Current filters.
-   */
-  filters?: DataTableFilters;
-
-  /**
-   * Called whenever filters change.
-   *
-   * The parent should use these values
-   * to make a new API request.
-   */
-  onFiltersChange?: (
-    filters: DataTableFilters,
-  ) => void;
-
-  enableColumnVisibility?: boolean;
-  enableColumnOrdering?: boolean;
-  enableColumnResizing?: boolean;
-  enableColumnPinning?: boolean;
-  enablePinning?: boolean;
-
-  enableRowSelection?: boolean;
-
-  enablePagination?: boolean;
-
-  enableExport?: boolean;
-
-  manualPagination?: boolean;
-
-  pageCount?: number;
-  rowCount?: number;
-
-  pagination?: PaginationState;
-
-  onPaginationChange?: OnChangeFn<PaginationState>;
-
-  emptyMessage?: string;
-
-  pageSize?: number;
-
-  initialState?: InitialTableState;
-}
+export type {DataTableProps} from "./data-table";

@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type { OrderFormData } from "@/types/order";
 
 interface OrderStore {
   currentStep: number;
   formData: OrderFormData;
+  submission: { fingerprint: string; key: string } | null;
+  setSubmission: (submission: { fingerprint: string; key: string }) => void;
 
   setStep: (step: number) => void;
   nextStep: () => void;
@@ -16,10 +17,11 @@ interface OrderStore {
 }
 
 export const useOrderStore = create<OrderStore>()(
-  persist(
     (set) => ({
       currentStep: 0,
       formData: {},
+      submission: null,
+      setSubmission: (submission) => set({ submission }),
 
       setStep: (step) =>
         set({
@@ -50,10 +52,7 @@ export const useOrderStore = create<OrderStore>()(
         set({
           currentStep: 0,
           formData: {},
+          submission: null,
         }),
-    }),
-    {
-      name: "order-form-storage", 
-    }
-  )
+    })
 );

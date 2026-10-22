@@ -21,9 +21,11 @@ model User {
   fname   String?
   lname   String?
   natcode String?
+  contactVerifiedAt DateTime?
 
   orders   Order[]   @relation("ClientOrders")
   sessions Session[]
+  orderDecisions OrderStatusHistory[]
 
   @@map("users")
   @@schema("entity")
@@ -53,6 +55,8 @@ model OtpVerification {
   expiresAt  DateTime
   consumedAt DateTime?
   createdAt  DateTime   @default(now())
+  browserBindingHash String?
+  deliveryState      String?
 
   @@index([target, channel, purpose])
   @@map("otp_verifications")
@@ -72,6 +76,30 @@ model Session {
   @@schema("entity")
 }
 
+model RegistrationGrant {
+  tokenHash          String     @id
+  phone              String
+  browserBindingHash String
+  purpose            OtpPurpose @default(REGISTER)
+  expiresAt          DateTime
+  consumedAt         DateTime?
+  createdAt          DateTime   @default(now())
+
+  @@index([expiresAt])
+  @@map("registration_grants")
+  @@schema("entity")
+}
+
+model SecurityRateLimit {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("security_rate_limits")
+  @@schema("entity")
+}
+
 model Order {
   order_id     Int     @id @default(autoincrement())
   client_id    String  @db.Uuid
@@ -82,10 +110,35 @@ model Order {
   status       String?
   cr           String?
   meta         Json?
+  idempotency_key String?
+  request_hash    String?
 
   client User @relation("ClientOrders", fields: [client_id], references: [id])
+  statusHistory OrderStatusHistory[]
+
+  @@unique([client_id, idempotency_key])
 
   @@map("orders")
+  @@schema("entity")
+}
+
+model OrderStatusHistory {
+  id String @id @default(uuid()) @db.Uuid
+  orderId Int
+  previousStatus String
+  newStatus String
+  adminUserId String @db.Uuid
+  message String @db.VarChar(2000)
+  createdAt DateTime @default(now())
+  notificationState String @default("PENDING")
+  notificationAttempts Int @default(0)
+  notificationNextAttemptAt DateTime @default(now())
+  notificationUpdatedAt DateTime @default(now())
+  order Order @relation(fields: [orderId], references: [order_id], onDelete: Restrict)
+  admin User @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
   @@schema("entity")
 }
 
@@ -143,6 +196,7 @@ model Image {
   ownerId   String
   createdAt DateTime @default(now())
 
+  @@index([ownerId, type], map: "images_owner_id_type_idx")
   @@map("images")
   @@schema("entity")
 }

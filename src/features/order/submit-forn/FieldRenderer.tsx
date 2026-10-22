@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { FormField, OrderFormData } from "@/types/order";
 
 const baseInputClass =
-  "h-12 rounded-xl border border-border-soft bg-bg-primary/50 px-4 text-sm text-text-primary shadow-sm transition-all duration-200 placeholder:text-text-muted hover:border-primary/30 focus-visible:border-primary focus-visible:bg-bg-primary focus-visible:ring-4 focus-visible:ring-primary/10";
+  "h-12 rounded-xl border border-input bg-card px-4 text-sm text-text-primary shadow-xs transition-colors duration-200 placeholder:text-text-muted hover:border-primary/60 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10";
 
 export const FieldRenderer = memo(function FieldRenderer({
   field,
@@ -32,6 +32,11 @@ export const FieldRenderer = memo(function FieldRenderer({
   const t = useTranslations("OrderForm");
   const locale = useLocale();
   const error = typeof errors[field.id]?.message === "string" ? errors[field.id]?.message : undefined;
+  const accessibility = {
+    "aria-invalid": Boolean(error),
+    "aria-required": Boolean(field.required),
+    "aria-describedby": [field.description ? `${field.id}-description` : null, error ? `${field.id}-error` : null].filter(Boolean).join(" ") || undefined,
+  };
 
   return (
     <div className="space-y-2">
@@ -48,6 +53,7 @@ export const FieldRenderer = memo(function FieldRenderer({
               return (
                 <Input
                   {...formField}
+                  {...accessibility}
                   id={field.id}
                   type={field.type}
                   value={typeof value === "string" ? value : ""}
@@ -60,8 +66,13 @@ export const FieldRenderer = memo(function FieldRenderer({
             case "number":
               return (
                 <Input
+                  {...formField}
+                  {...accessibility}
                   id={field.id}
                   type="number"
+                  min={field.validation?.min}
+                  max={field.validation?.max}
+                  step={field.id === "page_count" ? 1 : "any"}
                   value={value !== undefined && value !== null ? String(value) : ""}
                   placeholder={field.placeholder}
                   onChange={(e) => {
@@ -77,10 +88,11 @@ export const FieldRenderer = memo(function FieldRenderer({
               return (
                 <Textarea
                   {...formField}
+                  {...accessibility}
                   id={field.id}
                   value={typeof value === "string" ? value : ""}
                   placeholder={field.placeholder}
-                  className="min-h-32 resize-y rounded-xl border border-border-soft bg-bg-primary/50 p-4 text-sm text-text-primary placeholder:text-text-muted focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10"
+                  className="min-h-32 resize-y rounded-xl border border-input bg-card p-4 text-sm text-text-primary placeholder:text-text-muted focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10"
                 />
               );
 
@@ -90,12 +102,12 @@ export const FieldRenderer = memo(function FieldRenderer({
                   value={typeof value === "string" ? value : ""}
                   onValueChange={formField.onChange}
                 >
-                  <SelectTrigger id={field.id} className={baseInputClass}>
+                  <SelectTrigger {...accessibility} ref={formField.ref} onBlur={formField.onBlur} id={field.id} className={baseInputClass}>
                     <SelectValue placeholder={t("selectPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent
                     dir={locale === "fa" ? "rtl" : "ltr"}
-                    className="rounded-xl border border-border-soft bg-bg-primary p-1 shadow-xl"
+                    className="rounded-xl border border-border-soft bg-popover p-1 shadow-soft"
                   >
                     {field.options?.map((opt) => (
                       <SelectItem
@@ -113,6 +125,11 @@ export const FieldRenderer = memo(function FieldRenderer({
             case "radio":
               return (
                 <RadioGroup
+                  {...accessibility}
+                  ref={formField.ref}
+                  onBlur={formField.onBlur}
+                  id={field.id}
+                  tabIndex={-1}
                   aria-label={field.label}
                   value={typeof value === "string" ? value : ""}
                   onValueChange={formField.onChange}
@@ -146,7 +163,7 @@ export const FieldRenderer = memo(function FieldRenderer({
                           </span>
                         </div>
                         {isSelected && (
-                          <div className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                          <div className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                             <Check className="size-3" strokeWidth={3} />
                           </div>
                         )}
@@ -168,7 +185,7 @@ export const FieldRenderer = memo(function FieldRenderer({
               };
 
               return (
-                <div role="group" aria-label={field.label} className="grid gap-2.5 sm:grid-cols-2">
+                <div {...accessibility} ref={formField.ref} onBlur={formField.onBlur} id={field.id} tabIndex={-1} role="group" aria-label={field.label} className="grid gap-2.5 sm:grid-cols-2">
                   {field.options?.map((opt) => {
                     const isChecked = selectedValues.includes(opt.value);
                     return (
@@ -214,7 +231,7 @@ export const FieldRenderer = memo(function FieldRenderer({
           }
         }}
       />
-      {error && <p role="alert" className="text-xs font-medium text-destructive">{error}</p>}
+      {error && <p id={`${field.id}-error`} role="alert" className="text-xs font-medium text-destructive">{error}</p>}
     </div>
   );
 });

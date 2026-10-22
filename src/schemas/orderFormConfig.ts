@@ -39,4 +39,20 @@ export const orderFormConfigSchema = z.object({
       }))
     })).min(1)
   })
+}).superRefine((config, context) => {
+  const fields = config.form.steps.flatMap(step => step.fields);
+  const byId = new Map(fields.map(field => [field.id, field]));
+  const visited = new Set<string>();
+  const active = new Set<string>();
+  let invalid = byId.size !== fields.length;
+  function visit(id: string) {
+    if (active.has(id) || !byId.has(id)) { invalid = true; return; }
+    if (visited.has(id)) return;
+    active.add(id);
+    for (const condition of byId.get(id)?.visibility?.conditions ?? []) visit(condition.field);
+    active.delete(id);
+    visited.add(id);
+  }
+  for (const field of fields) visit(field.id);
+  if (invalid) context.addIssue({ code: "custom", message: "Invalid field dependency graph" });
 });

@@ -2,33 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import vm from 'node:vm';
-import {createRequire, registerHooks} from 'node:module';
-import ts from 'typescript';
+import {load} from './test-loader.mjs';
+import {randomUUID} from 'node:crypto';
 import {createTranslator, createFormatter} from 'use-intl/core';
 import {NextRequest} from 'next/server.js';
 
 const root = path.resolve(import.meta.dirname, '..');
-const require = createRequire(import.meta.url);
-// Next's bundler resolves extensionless framework imports; native Node needs the extension.
-registerHooks({resolve(specifier, context, nextResolve) {
-  return nextResolve(specifier === 'next/server' ? 'next/server.js' : specifier, context);
-}});
-function load(relative, overrides = {}) {
-  const filename = path.resolve(root, relative);
-  const source = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
-    compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true}
-  }).outputText;
-  const compiledModule = {exports: {}};
-  const localRequire = name => {
-    if (name in overrides) return overrides[name];
-    if (name.startsWith('@/')) return load('src/' + name.slice(2) + '.ts', overrides);
-    if (name.startsWith('.')) return load(path.relative(root, path.resolve(path.dirname(filename), name + '.ts')), overrides);
-    return require(name);
-  };
-  vm.runInThisContext('(function(require,module,exports){' + source + '\n})', {filename})(localRequire, compiledModule, compiledModule.exports);
-  return compiledModule.exports;
-}
 const messages = Object.fromEntries(['en', 'fa'].map(locale => [locale, JSON.parse(fs.readFileSync(path.join(root, 'messages', locale + '.json'), 'utf8'))]));
 const errors = load('src/lib/api/errors.ts');
 const schemas = load('src/schemas/orderSchema.ts');
@@ -37,22 +16,31 @@ const {orderFormConfigSchema} = load('src/schemas/orderFormConfig.ts');
 test('order submission accepts legacy flat JSON and preserves wrapped form keys', async () => {
   const created = [];
   const {POST} = load('src/app/api/order/submit-order/route.ts', {
-    '@/lib/prisma': {prisma: {order: {create: async ({data}) => {
+    '@/lib/auth/authorization': {requireAuth: async () => ({id: 'fixture-customer', permission: 'CUSTOMER'})},
+    '@/lib/prisma': {prisma: {order: {findUnique: async () => null, create: async ({data}) => {
       created.push(data);
-      return {order_id: 'fixture-order'};
-    }}}}
+      return {order_id: 1};
+    }}, orderForm: {findFirst: async () => ({id: 1, form_key: 'order', show_progress: true, allow_back: true,
+      steps: [{id: 1, step_key: 'details', step_order: 1, fields: [
+        {field_key: 'type', field_type: 'text', required: true, options: []},
+        {field_key: 'budget_range', field_type: 'text', required: true, options: []},
+        {field_key: 'description', field_type: 'text', options: []}
+      ]}]
+    })}}}
   });
   const data = {type: 'web', budget_range: 'small', description: 'Synthetic fixture'};
   for (const body of [data, {formKey: 'order', data}]) {
     const response = await POST(new Request('http://localhost/api/order/submit-order', {
-      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+      method: 'POST', headers: {'Content-Type': 'application/json', Origin: 'http://localhost', 'Idempotency-Key': randomUUID()}, body: JSON.stringify(body)
     }));
     assert.equal(response.status, 201);
   }
-  assert.equal('formKey' in created[0].meta, false);
+  assert.equal(created[0].meta.formKey, 'order');
   assert.equal(created[1].meta.formKey, 'order');
   assert.equal(created[0].meta.type, data.type);
   assert.equal(created[1].meta.budget_range, data.budget_range);
+  assert.equal(created[0].client_id, 'fixture-customer');
+  assert.equal(created[0].status, 'PENDING');
 });
 
 test('all stable API errors translate safely in both locales', () => {
@@ -62,9 +50,14 @@ test('all stable API errors translate safely in both locales', () => {
       const error = errors.readApiError({code, retryAfter: 12, remainingAttempts: 2, error: 'DO_NOT_DISPLAY'}, 'UNKNOWN');
       const message = errors.localizeApiError(error, t);
       assert.ok(message && !message.includes('DO_NOT_DISPLAY') && message !== code);
+      if (locale === 'fa') assert.match(message, /[\u0600-\u06ff]/);
     }
     assert.equal(errors.localizeApiError(new Error('DO_NOT_DISPLAY'), t), t('UNKNOWN'));
     assert.equal(errors.readApiError({code: 'UNKNOWN_CODE', message: 'DO_NOT_DISPLAY'}, 'ORDER_LOAD_FAILED').code, 'ORDER_LOAD_FAILED');
+    for (const message of Object.values(messages[locale].Security)) {
+      assert.ok(message.trim());
+      if (locale === 'fa') assert.match(message, /[\u0600-\u06ff]/);
+    }
   }
 });
 
@@ -164,13 +157,13 @@ test('form API emits localized database labels with unchanged option values', as
     const expected = fixture(locale).form.steps[0].fields[0];
     const route = load('src/app/api/order/order-form-config/route.ts', {
       '@/lib/prisma': {prisma: {orderForm: {findFirst: async () => ({
-        id: 1n, form_key: 'order', translations: [{title: fixture(locale).form.title}],
+        id: 1n, form_key: 'order', translations: [{locale, title: fixture(locale).form.title}],
         show_progress: true, allow_back: true, submit_button_text: {},
-        steps: [{id: 1n, step_key: 'details', step_order: 1, translations: [{title: 'Fixture'}],
+        steps: [{id: 1n, step_key: 'details', step_order: 1, translations: [{locale, title: 'Fixture'}],
           fields: [{field_key: expected.id, field_type: expected.type, required: true,
-            translations: [{label: expected.label}], placeholder: {[locale]: 'Fixture placeholder'},
+            translations: [{locale, label: expected.label}], placeholder: {[locale]: 'Fixture placeholder'},
             validation: {}, visibility: {}, default_value: 'web_store',
-            options: [{option_value: 'web_store', translations: [{label: expected.options[0].label}], metadata: {}}]
+            options: [{option_value: 'web_store', translations: [{locale, label: expected.options[0].label}], metadata: {}}]
           }]
         }]
       })}}}
@@ -182,6 +175,7 @@ test('form API emits localized database labels with unchanged option values', as
     assert.equal(field.options[0].value, 'web_store');
     assert.equal(field.options[0].label, expected.options[0].label);
     assert.equal(field.placeholder, 'Fixture placeholder');
+    assert.equal('metadata' in field.options[0], false);
   }
 });
 

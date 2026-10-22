@@ -122,14 +122,14 @@ export function DataTableFilters({
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 gap-2 border-white/10 bg-[#0C1633] text-xs text-white/80 hover:bg-[#101C44] hover:text-white"
+            className="h-8 gap-2 border-border bg-card text-xs text-text-secondary hover:bg-secondary hover:text-foreground"
           >
             <Filter className="size-3.5" />
 
             <span>{t("filters")}</span>
 
             {activeFilterCount > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+              <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 {format.number(activeFilterCount)}
               </span>
             )}
@@ -138,12 +138,12 @@ export function DataTableFilters({
 
         <PopoverContent
           align="start"
-          className="w-[360px] border-white/10 bg-[#0C1633] p-0 text-white"
+          className="w-[360px] max-w-[calc(100vw-2rem)] border-border bg-card p-0 text-foreground"
         >
           <div className="flex min-h-[280px]">
             {/* Filter keys */}
-            <div className="w-[140px] border-e border-white/10 p-2">
-              <div className="px-2 py-2 text-[11px] font-semibold text-white/40">
+            <div className="w-[140px] border-e border-border p-2">
+              <div className="px-2 py-2 text-[11px] font-semibold text-muted-foreground">
                 {t("filters")}
               </div>
 
@@ -169,7 +169,7 @@ export function DataTableFilters({
                       className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-start text-xs transition-colors ${
                         isActive
                           ? "bg-primary/15 text-primary"
-                          : "text-white/70 hover:bg-white/5 hover:text-white"
+                          : "text-text-secondary hover:bg-accent hover:text-foreground"
                       }`}
                     >
                       <span>
@@ -188,7 +188,7 @@ export function DataTableFilters({
             {/* Filter form */}
             <div className="flex-1 p-4">
               {!activeFilter ? (
-                <div className="flex h-full min-h-[240px] items-center justify-center text-center text-xs text-white/40">
+                <div className="flex h-full min-h-[240px] items-center justify-center text-center text-xs text-muted-foreground">
                   <div className="space-y-2">
                     <Filter className="mx-auto size-5 opacity-50" />
 
@@ -222,8 +222,8 @@ export function DataTableFilters({
           </div>
 
           {activeFilterCount > 0 && (
-            <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
-              <span className="text-[11px] text-white/40">
+            <div className="flex items-center justify-between border-t border-border px-3 py-2">
+              <span className="text-[11px] text-muted-foreground">
                 {t("activeFilters", {count: activeFilterCount})}
               </span>
 
@@ -232,7 +232,7 @@ export function DataTableFilters({
                 variant="ghost"
                 size="sm"
                 onClick={clearAll}
-                className="h-7 gap-1.5 px-2 text-[11px] text-white/50 hover:bg-white/5 hover:text-white"
+                className="h-7 gap-1.5 px-2 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
               >
                 <X className="size-3" />
                 {t("removeAll")}
@@ -274,11 +274,11 @@ function FilterField({
     return (
       <div className="space-y-3">
         <div>
-          <Label className="text-xs font-semibold text-white">
+          <Label className="text-xs font-semibold text-foreground">
             {filter.label}
           </Label>
 
-          <p className="mt-1 text-[11px] text-white/40">
+          <p className="mt-1 text-[11px] text-muted-foreground">
             {t("selectValue")}
           </p>
         </div>
@@ -304,7 +304,7 @@ function FilterField({
                   className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-start text-xs transition-colors ${
                     selected
                       ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-white/5 bg-white/[0.02] text-white/70 hover:bg-white/5 hover:text-white"
+                      : "border-border bg-card text-text-secondary hover:bg-accent hover:text-foreground"
                   }`}
                 >
                   <span>
@@ -326,7 +326,7 @@ function FilterField({
             variant="ghost"
             size="sm"
             onClick={onClear}
-            className="h-7 w-full text-xs text-white/50 hover:bg-white/5 hover:text-white"
+            className="h-7 w-full text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             {t("removeFilter")}
           </Button>
@@ -339,7 +339,7 @@ function FilterField({
     return (
       <div className="space-y-3">
         <div>
-          <Label className="text-xs font-semibold text-white">
+          <Label className="text-xs font-semibold text-foreground">
             {filter.label}
           </Label>
         </div>
@@ -360,7 +360,7 @@ function FilterField({
           placeholder={
             filter.placeholder
           }
-          className="h-9 border-white/10 bg-white/5 text-xs text-white placeholder:text-white/30"
+          className="h-9 border-border bg-card text-xs text-foreground placeholder:text-muted-foreground"
         />
 
         {value !== undefined && (
@@ -369,7 +369,7 @@ function FilterField({
             variant="ghost"
             size="sm"
             onClick={onClear}
-            className="h-7 w-full text-xs text-white/50 hover:bg-white/5 hover:text-white"
+            className="h-7 w-full text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             {t("removeFilter")}
           </Button>
@@ -381,7 +381,7 @@ function FilterField({
   return (
     <div className="space-y-3">
       <div>
-        <Label className="text-xs font-semibold text-white">
+        <Label className="text-xs font-semibold text-foreground">
           {filter.label}
         </Label>
       </div>
@@ -397,7 +397,7 @@ function FilterField({
         placeholder={
           filter.placeholder
         }
-        className="h-9 border-white/10 bg-white/5 text-xs text-white placeholder:text-white/30"
+        className="h-9 border-border bg-card text-xs text-foreground placeholder:text-muted-foreground"
       />
 
       {value !== undefined && (
@@ -406,7 +406,7 @@ function FilterField({
           variant="ghost"
           size="sm"
           onClick={onClear}
-          className="h-7 w-full text-xs text-white/50 hover:bg-white/5 hover:text-white"
+          className="h-7 w-full text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           {t("removeFilter")}
         </Button>

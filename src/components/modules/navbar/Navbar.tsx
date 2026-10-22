@@ -28,7 +28,7 @@ export default function Navbar() {
     <div className="w-full flex justify-center pt-6 px-4">
       <nav
         dir={locale === "fa" ? "rtl" : "ltr"}
-        className="w-full max-w-6xl border border-cyan-400/40 rounded-2xl px-6 py-4 flex items-center justify-between shadow-lg"
+        className="w-full max-w-6xl border border-border bg-card rounded-2xl px-4 py-3 sm:px-5 flex items-center justify-between gap-4 shadow-soft"
       >
         <Logo />
         <DesktopNav isActive={isActive} />

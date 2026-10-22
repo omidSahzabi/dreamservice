@@ -5,11 +5,12 @@ import {notFound} from "next/navigation";
 import {routing} from "../../../i18n/routing";
 
 import QueryProvider from "@/providers/QueryProvider";
+import ThemeProvider from "@/components/providers/ThemeProvider";
 import Navbar from "@/components/modules/navbar/Navbar";
 import Footer from "@/components/modules/footer/footer";
 import { AuthModal } from "@/components/modules/auth/AuthModal";
 
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/providers/ThemedToaster";
 
 import "@/styles/globals.css";
 
@@ -56,30 +57,32 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={locale === "fa" ? "rtl" : "ltr"}
-      className="dark"
+      suppressHydrationWarning
     >
       <body id="top">
         <NextIntlClientProvider
           locale={locale}
           messages={messages}
         >
-          <QueryProvider>
-            <Navbar />
+          <ThemeProvider>
+            <QueryProvider>
+              <Navbar />
 
-            {children}
+              {children}
 
-            <AuthModal />
+              <AuthModal />
 
-            <Toaster
-              dir={locale === "fa" ? "rtl" : "ltr"}
-              containerAriaLabel={common("notifications")}
-              toastOptions={{closeButtonAriaLabel: common("close")}}
-              position="top-center"
-              richColors
-            />
+              <ThemedToaster
+                dir={locale === "fa" ? "rtl" : "ltr"}
+                containerAriaLabel={common("notifications")}
+                toastOptions={{closeButtonAriaLabel: common("close")}}
+                position="top-center"
+                richColors
+              />
 
-            <Footer year={new Date().getUTCFullYear()} />
-          </QueryProvider>
+              <Footer year={new Date().getUTCFullYear()} />
+            </QueryProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

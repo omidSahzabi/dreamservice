@@ -202,22 +202,22 @@ export const DreamForm: React.FC<DreamFormProps> = ({
 
 const baseInputClasses = clsx(
   'w-full px-4 py-3 rounded-lg border transition-all duration-200',
-  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-  'disabled:bg-gray-800 disabled:cursor-not-allowed',
-  'placeholder:text-gray-500',
+  'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
+  'disabled:bg-muted disabled:cursor-not-allowed',
+  'placeholder:text-muted-foreground',
   error 
-    ? 'border-red-500 focus:ring-red-500 bg-red-900/20' 
-    : 'border-gray-700 bg-gray-800/50 text-white hover:border-gray-600',
+    ? 'border-destructive focus:ring-destructive bg-destructive/10'
+    : 'border-input bg-card text-foreground hover:border-primary/60',
   field.inputClassName
 );
 
     const labelClasses = clsx(
-      'block text-sm font-medium text-gray-700 mb-2',
+      'block text-sm font-medium text-text-secondary mb-2',
       field.labelClassName
     );
 
     const errorClasses = clsx(
-      'text-sm text-red-500 mt-1',
+      'text-sm text-destructive mt-1',
       field.errorClassName
     );
 
@@ -305,9 +305,9 @@ const baseInputClasses = clsx(
                           trigger(field.name);
                         }}
                         disabled={field.disabled || option.disabled}
-                        className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="w-5 h-5 text-primary rounded border-input focus:ring-ring"
                       />
-                      <span className="text-gray-700">{option.label}</span>
+                      <span className="text-text-secondary">{option.label}</span>
                     </label>
                   );
                 })}
@@ -331,9 +331,9 @@ const baseInputClasses = clsx(
                   }}
                   onBlur={registerResult.onBlur}
                   disabled={field.disabled}
-                  className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  className="w-5 h-5 text-primary rounded border-input focus:ring-ring"
                 />
-                <span className="text-gray-700">{field.label}</span>
+                <span className="text-text-secondary">{field.label}</span>
               </label>
             );
           }
@@ -361,9 +361,9 @@ const baseInputClasses = clsx(
                       trigger(field.name);
                     }}
                     disabled={field.disabled || option.disabled}
-                    className="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    className="w-5 h-5 text-primary border-input focus:ring-ring"
                   />
-                  <span className="text-gray-700">{option.label}</span>
+                  <span className="text-text-secondary">{option.label}</span>
                 </label>
               ))}
             </div>
@@ -386,7 +386,7 @@ const baseInputClasses = clsx(
               }}
               onBlur={registerResult.onBlur}
               disabled={field.disabled}
-              className={clsx(baseInputClasses, 'file:me-4 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer')}
+              className={clsx(baseInputClasses, 'file:me-4 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground file:cursor-pointer')}
             />
           );
 
@@ -407,9 +407,9 @@ const baseInputClasses = clsx(
                 }}
                 onBlur={registerResult.onBlur}
                 disabled={field.disabled}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
               />
-              <span className="text-sm font-medium text-gray-700 min-w-[40px] text-center">
+              <span className="text-sm font-medium text-text-secondary min-w-[40px] text-center">
                 {inputValue(watchedValues[field.name]) || 0}
               </span>
             </div>
@@ -432,7 +432,7 @@ const baseInputClasses = clsx(
                 }}
                 onBlur={registerResult.onBlur}
                 disabled={field.disabled}
-                className="w-12 h-12 p-1 rounded-lg border border-gray-300 cursor-pointer"
+                className="w-12 h-12 p-1 rounded-lg border border-input cursor-pointer"
               />
               <input
                 type="text"
@@ -458,7 +458,7 @@ const baseInputClasses = clsx(
           return (
             <div className="relative">
               {field.prefix && (
-                <span className="absolute start-4 top-1/2 -translate-y-1/2 text-gray-500">
+                <span className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                   {field.prefix}
                 </span>
               )}
@@ -491,7 +491,7 @@ const baseInputClasses = clsx(
                 )}
               />
               {field.suffix && (
-                <span className="absolute end-4 top-1/2 -translate-y-1/2 text-gray-500">
+                <span className="absolute end-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                   {field.suffix}
                 </span>
               )}
@@ -516,7 +516,7 @@ const baseInputClasses = clsx(
   <label htmlFor={field.name} className={labelClasses}>
     {field.label}
     {field.validation?.some(v => v.type === 'required') && (
-      <span className="text-red-500 ms-1">*</span>
+      <span className="text-destructive ms-1">*</span>
     )}
   </label>
 )}
@@ -552,8 +552,8 @@ const baseInputClasses = clsx(
           type="submit"
           disabled={isSubmitting}
           className={clsx(
-            'flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg',
-            'hover:bg-blue-700 focus:ring-4 focus:ring-blue-300',
+            'flex-1 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg',
+            'hover:bg-primary-hover focus:ring-4 focus:ring-blue-300',
             'transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
             submitClassName
           )}
@@ -576,8 +576,8 @@ const baseInputClasses = clsx(
             type="button"
             onClick={handleReset}
             className={clsx(
-              'px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg',
-              'hover:bg-gray-300 focus:ring-4 focus:ring-gray-300',
+              'px-6 py-3 bg-secondary text-text-secondary font-medium rounded-lg',
+              'hover:bg-accent focus:ring-4 focus:ring-gray-300',
               'transition-all duration-200',
               resetClassName
             )}

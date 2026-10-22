@@ -1,78 +1,18 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { privateJson, securityFailure } from "@/lib/security/http";
 
 export async function GET() {
   try {
-    const profiles = await prisma.personProfile.findMany();
-
-    const userIds = profiles
-      .map((profile) => profile.user_id)
-      .filter((userId): userId is string => Boolean(userId));
-
-    if (userIds.length === 0) {
-      return NextResponse.json([]);
-    }
-
-    const [users, images] = await Promise.all([
-      prisma.user.findMany({
-        where: {
-          id: {
-            in: userIds,
-          },
-        },
-        select: {
-          id: true,
-          fname: true,
-          lname: true,
-        },
-      }),
-      prisma.image.findMany({
-        where: {
-          ownerId: {
-            in: userIds,
-          },
-          type: "PROFILE",
-        },
-      }),
-    ]);
-
-    const usersById = new Map(
-      users.map((user) => [user.id, user]),
-    );
-
-    const imagesByOwnerId = new Map<
-      string,
-      (typeof images)[number]
-    >();
-
-    for (const image of images) {
-      if (!imagesByOwnerId.has(image.ownerId)) {
-        imagesByOwnerId.set(image.ownerId, image);
-      }
-    }
-
-    const result = profiles.map((profile) => {
-      const user = usersById.get(profile.user_id);
-      const image = imagesByOwnerId.get(profile.user_id) ?? null;
-
-      return {
-        ...profile,
-        user: user ?? null,
-        image,
-      };
-    });
-
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("GET /api/team failed:", error);
-
-    return NextResponse.json(
-      {
-        error: "Failed to load team",
-      },
-      {
-        status: 500,
-      },
-    );
-  }
+    // Public presentation requires explicit publication; role assignments are never a roster.
+    const configured = (process.env.PUBLIC_TEAM_PROFILE_IDS ?? "").split(",").filter(value => /^\d+$/.test(value.trim())).map(Number).filter(Number.isSafeInteger);
+    if (!configured.length) return privateJson([]);
+    const profiles = await prisma.personProfile.findMany({ where: { pr_id: { in: configured } }, select: { user_id: true } });
+    const ids = profiles.map(profile => profile.user_id);
+    const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, fname: true, lname: true } });
+    const images = await prisma.image.findMany({ where: { ownerId: { in: ids }, type: "PROFILE" }, select: { ownerId: true, url: true, altText: true } });
+    return privateJson(users.map(user => {
+      const image = images.find(item => item.ownerId === user.id);
+      return { user: { fname: user.fname, lname: user.lname }, image: image && /^https?:\/\//.test(image.url) ? { url: image.url, altText: image.altText } : null };
+    }));
+  } catch (error) { return securityFailure(error); }
 }

@@ -16,7 +16,7 @@ export function DataTableSkeleton({ rows, columns }: Props) {
       {Array.from({ length: rows }).map((_, rowIndex) => (
         <TableRow
           key={`skeleton-row-${rowIndex}`}
-          className="border-white/[0.06] hover:bg-transparent"
+          className="border-border hover:bg-transparent"
         >
           {Array.from({ length: columns }).map((__, columnIndex) => {
             const width =
@@ -28,7 +28,7 @@ export function DataTableSkeleton({ rows, columns }: Props) {
                 className="h-[74px] px-4 py-3"
               >
                 <div
-                  className={`h-3 ${width} max-w-full animate-pulse rounded-sm bg-white/10`}
+                  className={`h-3 ${width} max-w-full animate-pulse rounded-sm bg-muted`}
                 />
               </TableCell>
             )

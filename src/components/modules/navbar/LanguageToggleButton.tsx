@@ -10,7 +10,7 @@ export default function LanguageToggleButton() {
   return (
     <button type="button" aria-label={t("switchLanguage")} lang={nextLocale}
       onClick={() => router.replace(pathname + window.location.search + window.location.hash, {locale: nextLocale, scroll: false})}
-      className="px-3 py-1 rounded-lg border">
+      className="inline-flex h-10 min-w-10 items-center justify-center px-3 rounded-lg border border-border text-sm font-medium text-text-secondary hover:bg-accent hover:text-foreground transition-colors">
       {locale === "fa" ? "EN" : "فا"}
     </button>
   );

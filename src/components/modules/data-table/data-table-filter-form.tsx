@@ -35,7 +35,7 @@ export function DataTableFilterForm({
           key={field.id}
           className="min-w-[180px] flex-1 space-y-1.5"
         >
-          <label htmlFor={`filter-${field.id}`} className="text-xs font-medium text-white/60">
+          <label htmlFor={`filter-${field.id}`} className="text-xs font-medium text-muted-foreground">
             {field.label}
           </label>
 
@@ -47,7 +47,7 @@ export function DataTableFilterForm({
               onChange={(event) =>
                 updateValue(field.id, event.target.value)
               }
-              className="h-9 border-white/10 bg-[#101C44] text-xs text-white placeholder:text-white/40"
+              className="h-9 border-border bg-secondary text-xs text-foreground placeholder:text-muted-foreground"
             />
           ) : (
             <Select
@@ -57,7 +57,7 @@ export function DataTableFilterForm({
   <SelectTrigger
     id={`filter-${field.id}`}
     size="sm"
-    className="h-8 w-full min-w-[180px] border-white/10 bg-[#101C44] text-xs text-white hover:bg-[#162653]"
+    className="h-8 w-full min-w-[180px] border-border bg-secondary text-xs text-foreground hover:bg-accent"
   >
     <SelectValue placeholder={field.placeholder} />
   </SelectTrigger>
@@ -65,13 +65,13 @@ export function DataTableFilterForm({
   <SelectContent
     position="popper"
     align="start"
-    className="z-[100] min-w-[180px] border border-white/10 bg-[#0C1633] text-white shadow-xl"
+    className="z-[100] min-w-[180px] border border-border bg-card text-foreground shadow-xl"
   >
     {field.options?.map((option) => (
       <SelectItem
         key={option.value}
         value={option.value}
-        className="cursor-pointer text-xs text-white focus:bg-[#101C44] focus:text-white"
+        className="cursor-pointer text-xs text-foreground focus:bg-secondary focus:text-foreground"
       >
         {option.label}
       </SelectItem>

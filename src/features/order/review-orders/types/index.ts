@@ -1,5 +1,6 @@
 export type OrderStatus =
   | "PENDING"
+  | "NEGOTIATING"
   | "PROCESSING"
   | "COMPLETED"
   | "CANCELLED"
@@ -22,6 +23,7 @@ export interface OrderMeta {
 }
 
 export interface OrderItem {
+  latestDecision?: {message: string; createdAt: string} | null;
   order_id: number;
   client_id: string;
   type: string | null;
@@ -49,6 +51,8 @@ export interface OrdersApiResponse {
 }
 
 export interface OrdersQueryParams {
+  sortBy?: "order_id" | "type" | "status" | "page_count" | "cr"
+  sortOrder?: "asc" | "desc"
   page?: number
   limit?: number
   search?: string

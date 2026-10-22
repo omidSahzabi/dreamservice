@@ -9,6 +9,7 @@ return [
     placeholder: t("filters.selectStatus"),
     options: [
       { value: "PENDING", label: status("PENDING") },
+      { value: "NEGOTIATING", label: status("NEGOTIATING") },
       { value: "PROCESSING", label: status("PROCESSING") },
       { value: "COMPLETED", label: status("COMPLETED") },
       { value: "CANCELLED", label: status("CANCELLED") },

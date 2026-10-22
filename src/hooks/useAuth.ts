@@ -8,10 +8,13 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { localizeApiError } from "@/lib/api/errors";
+import { clearSensitiveState } from "@/lib/auth/client-state";
+import { useRouter } from "@/lib/i18n/navigation";
 
 export function useAuth() {
   const t = useTranslations("Errors");
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { activeRole, setActiveRole } = useUserStore();
 
   const {
@@ -23,9 +26,21 @@ export function useAuth() {
   } = useQuery<UserResponse | null>({
     queryKey: ["authUser"],
     queryFn: getMe,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
     retry: false,
   });
+
+  useEffect(() => {
+    if (isLoading) return;
+    const identity = isError || !user ? "anonymous" : JSON.stringify([user.id, user.permission, [...user.roles].sort()]);
+    if (queryClient.getQueryData(["security-identity"]) !== identity) {
+      queryClient.setQueryData(["security-identity"], identity);
+      void clearSensitiveState(queryClient);
+      router.refresh();
+    }
+  }, [user, isLoading, isError, queryClient, router]);
 
   useEffect(() => {
     if (user && user.roles.length > 0) {
@@ -40,10 +55,12 @@ export function useAuth() {
   const logoutMutation = useMutation({
     mutationFn: logoutUser,
     onError: error => toast.error(localizeApiError(error, t)),
-    onSuccess: () => {
+    onSettled: async () => {
+      await clearSensitiveState(queryClient);
       setActiveRole(null);
       queryClient.setQueryData(["authUser"], null);
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
+      router.refresh();
     },
   });
 

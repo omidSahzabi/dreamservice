@@ -5,6 +5,7 @@ export function useRandomAutoplay(swiper: SwiperType | null) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const getRandomDelay = () => 1000 + Math.random() * 1000;
+  const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const clearExistingTimeout = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -12,8 +13,9 @@ export function useRandomAutoplay(swiper: SwiperType | null) {
 
   const scheduleNextSlide = () => {
     clearExistingTimeout();
+    if (reducedMotion()) return;
     timeoutRef.current = setTimeout(() => {
-      if (swiper) {
+      if (swiper && !reducedMotion()) {
         swiper.slideNext();
         scheduleNextSlide();
       }

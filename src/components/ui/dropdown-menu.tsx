@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useLocale } from "next-intl"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
@@ -45,18 +45,13 @@ function DropdownMenuContent({
         sideOffset={sideOffset}
         {...props}
         className={cn(
-          "z-[9999] max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border border-white/10 p-1 text-white opacity-100 shadow-2xl",
+          "z-[100] max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-soft",
           "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className
         )}
-        style={{
-          ...style,
-          backgroundColor: "#0c1633",
-          color: "#ffffff",
-          opacity: 1,
-        }}
+        style={style}
       />
     </DropdownMenuPrimitive.Portal>
   )
@@ -245,18 +240,13 @@ function DropdownMenuSubContent({
         data-slot="dropdown-menu-sub-content"
         {...props}
         className={cn(
-          "z-[9999] min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border border-white/10 p-1 text-white opacity-100 shadow-2xl",
+          "z-[100] min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-soft",
           "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className
         )}
-        style={{
-          ...style,
-          backgroundColor: "#0c1633",
-          color: "#ffffff",
-          opacity: 1,
-        }}
+        style={style}
       />
     </DropdownMenuPrimitive.Portal>
   )

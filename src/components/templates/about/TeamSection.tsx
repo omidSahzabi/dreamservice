@@ -13,7 +13,7 @@ function TeamSkeleton() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="h-[26rem] animate-pulse rounded-[2rem] border border-white/10 bg-white/[0.04]"
+          className="h-[26rem] animate-pulse rounded-2xl border border-border bg-card"
         />
       ))}
     </div>
@@ -36,25 +36,25 @@ export default function TeamSection() {
 
   return (
     <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8 lg:px-10">
-      <h2 className="text-3xl font-black text-white">{t("title")}</h2>
-      <p className="mt-3 text-base text-slate-400">{t("description")}</p>
+      <h2 className="text-3xl font-black text-foreground">{t("title")}</h2>
+      <p className="mt-3 text-base text-muted-foreground">{t("description")}</p>
 
       <div className="mt-12">
         {isLoading ? (
           <TeamSkeleton />
         ) : isError ? (
-          <div className="flex flex-col items-center gap-4 rounded-[2rem] border border-red-400/20 bg-red-400/[0.06] py-16">
-            <p className="text-sm text-red-200">{t("error")}</p>
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-destructive/20 bg-destructive/10 py-16">
+            <p className="text-sm text-destructive">{t("error")}</p>
             <button
               onClick={() => refetch()}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground transition hover:bg-accent"
             >
               <RefreshCw className="size-4" />
               {t("retry")}
             </button>
           </div>
         ) : team.length === 0 ? (
-          <p className="py-16 text-center text-sm text-slate-500">
+          <p className="py-16 text-center text-sm text-muted-foreground">
             {t("empty")}
           </p>
         ) : (

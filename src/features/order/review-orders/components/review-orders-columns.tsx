@@ -1,18 +1,16 @@
 "use client";
 import {useTranslations, useFormatter} from "next-intl";
 import {useOrderFormConfig} from "@/hooks/useOrderForm";
-import {Dialog, DialogContent, DialogTitle, DialogTrigger, DialogDescription} from "@/components/ui/dialog";
-import { ColumnDef } from "@tanstack/react-table";
+import {OrderActions} from "@/features/order/workflow/OrderActions";
+import {DataTableColumnHeader} from "@/components/modules/data-table/data-table-column-header";
+import { ColumnDef, CellContext } from "@tanstack/react-table";
 import { OrderItem } from "../types";
 import { OrderStatusBadge } from "./order-status-badge";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Eye, Phone, Mail, Building, FileText } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
+import { Phone, Mail, Building, FileText } from "lucide-react";
+function OrderActionCell({row}: CellContext<OrderItem, unknown>) {
+  return <OrderActions order={row.original} />;
+}
 
 export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
   const t = useTranslations("ReviewOrders");
@@ -24,7 +22,7 @@ export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
   {
     accessorKey: "order_id",
     meta: {label: t("columns.id")},
-    header: () => <div className="text-center font-bold">{t("columns.id")}</div>,
+    header: ({column}) => <DataTableColumnHeader column={column} title={t("columns.id")} />,
     size: 80,
     cell: ({ row }) => (
       <div className="flex justify-center">
@@ -35,7 +33,7 @@ export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
     ),
   },
   {
-    id: "customer",
+    id: "customer", enableSorting: false,
     meta: {label: t("columns.customer")},
     header: () => <div className="text-start font-bold">{t("columns.customer")}</div>,
     accessorFn: (row) => row.meta?.full_name ?? "-",
@@ -85,7 +83,7 @@ export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
   {
     accessorKey: "type",
     meta: {label: t("columns.serviceType")},
-    header: () => <div className="text-center font-bold">{t("columns.serviceType")}</div>,
+    header: ({column}) => <DataTableColumnHeader column={column} title={t("columns.serviceType")} />,
     size: 130,
     cell: ({ row }) => (
       <div className="flex justify-center">
@@ -96,7 +94,7 @@ export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
     ),
   },
   {
-    accessorKey: "budget_range",
+    accessorKey: "budget_range", enableSorting: false,
     meta: {label: t("columns.budget")},
     header: () => <div className="text-center font-bold">{t("columns.budget")}</div>,
     size: 120,
@@ -111,7 +109,7 @@ export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
   {
     accessorKey: "page_count",
     meta: {label: t("columns.pageCount")},
-    header: () => <div className="text-center font-bold">{t("columns.pageCount")}</div>,
+    header: ({column}) => <DataTableColumnHeader column={column} title={t("columns.pageCount")} />,
     size: 110,
     cell: ({ row }) => (
       <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
@@ -123,7 +121,7 @@ export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
   {
     accessorKey: "status",
     meta: {label: t("columns.status")},
-    header: () => <div className="text-center font-bold">{t("columns.status")}</div>,
+    header: ({column}) => <DataTableColumnHeader column={column} title={t("columns.status")} />,
     size: 140,
     cell: ({ row }) => (
       <div className="flex justify-center">
@@ -132,7 +130,7 @@ export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
     ),
   },
   {
-    accessorKey: "description",
+    accessorKey: "description", enableSorting: false,
     meta: {label: t("columns.description")},
     header: () => <div className="text-start font-bold">{t("columns.description")}</div>,
     size: 220,
@@ -151,34 +149,7 @@ export function useReviewOrdersColumns(): ColumnDef<OrderItem>[] {
     size: 70,
     enableResizing: false,
     enableSorting: false,
-    cell: ({ row }) => (
-      <div className="flex justify-center">
-        <Dialog>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={t("columns.actions")}
-              className="size-8 rounded-lg text-text-muted hover:bg-surface-2 hover:text-text-primary"
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="border-border-soft bg-bg-primary">
-            <DialogTrigger asChild><DropdownMenuItem
-              className="gap-2 text-xs text-text-primary focus:bg-surface-1 focus:text-primary cursor-pointer"
-              onSelect={event => event.preventDefault()}
-            >
-              <Eye className="size-3.5" />
-              {t("viewDetails")}
-            </DropdownMenuItem></DialogTrigger>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DialogContent><DialogTitle>{t("viewDetails")}</DialogTitle><DialogDescription>{optionLabel("type", row.original.type)}</DialogDescription><p className="whitespace-pre-wrap"><bdi>{row.original.description || "—"}</bdi></p><OrderStatusBadge status={row.original.status} /></DialogContent>
-        </Dialog>
-      </div>
-    ),
+    cell: OrderActionCell,
   },
 ];
 }

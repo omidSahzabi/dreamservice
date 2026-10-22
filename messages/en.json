@@ -34,7 +34,8 @@
       "customer": "Customer",
       "admin": "Administrator",
       "developer": "Developer",
-      "other": "Account role"
+      "other": "Account role",
+      "app-admin": "Administrator"
     },
     "logoAlt": "DreamService logo"
   },
@@ -289,14 +290,16 @@
     "dragStart": "Moving column {label}.",
     "dragOver": "Column {label} is over {target}.",
     "dragEnd": "Column {label} moved.",
-    "dragCancel": "Moving column {label} cancelled."
+    "dragCancel": "Moving column {label} cancelled.",
+    "retry": "Retry"
   },
   "OrderStatus": {
     "PENDING": "Pending review",
     "PROCESSING": "Processing",
     "COMPLETED": "Completed",
     "CANCELLED": "Cancelled",
-    "REJECTED": "Rejected"
+    "REJECTED": "Rejected",
+    "NEGOTIATING": "Negotiating"
   },
   "Order": {
     "id": "ID",
@@ -350,6 +353,8 @@
     "retry": "Try Again",
     "unknownSubmitError": "An unknown error occurred while submitting the order.",
     "successTitle": "Your order has been submitted successfully!",
+    "orderReference": "Order #{id}",
+    "trackOrder": "Track your order",
     "successDescription": "Your information has been received and is being processed. Our experts will contact you soon.",
     "badge": "Online Order",
     "stepProgress": "Step {current, number} of {total, number}",
@@ -523,6 +528,93 @@
     "ORDER_INVALID": "Check the order information and try again.",
     "FORM_TRANSLATION_MISSING": "This form is unavailable in your language.",
     "FORM_NOT_FOUND": "The order form is currently unavailable.",
-    "FORM_LOAD_FAILED": "We could not load the order form. Please try again."
+    "FORM_LOAD_FAILED": "We could not load the order form. Please try again.",
+    "NOT_FOUND": "The requested item was not found.",
+    "IDEMPOTENCY_CONFLICT": "This submission changed. Please review the form and try again.",
+    "ORDER_STATUS_CONFLICT": "This order changed. Refresh and review its current status.",
+    "ORDER_TRANSITION_INVALID": "This status transition is not allowed.",
+    "NOTIFICATION_RETRY_UNAVAILABLE": "Notification retry is unavailable or the retry delay has not elapsed."
+  },
+  "Security": {
+    "signInRequired": "Sign in to continue.",
+    "forbidden": "You do not have permission to view this page.",
+    "signIn": "Sign in",
+    "home": "Return home"
+  },
+  "CustomerPanel": {
+    "tracking": "Track an order",
+    "details": "Order details",
+    "backToOrders": "Back to my orders",
+    "invalidOrder": "This order link is invalid. Return to your orders to choose an order.",
+    "refresh": "Show latest orders",
+    "newOrder": "Submit your first order",
+    "viewDetails": "View details and history",
+    "viewOrder": "View details for order #{id}",
+    "lastDecision": "Last decision:",
+    "awaitingDecision": "No admin message has been recorded for this order.",
+    "pagination": "Order list pages",
+    "page": "Page {page} of {total}",
+    "service": "Service",
+    "budget": "Budget range",
+    "pages": "Page count",
+    "description": "Project description",
+    "noDescription": "No project description was provided.",
+    "emptyDescription": "Tell us what you would like to build. Your requests and project updates will appear here."
+  },
+  "OrderWorkflow": {
+    "actions": "Order actions",
+    "details": "Order details",
+    "order": "Order #{id}",
+    "confirmDescription": "Confirm this decision for order #{id}. The customer will see your message.",
+    "message": "Admin message (required)",
+    "messageRequired": "Enter a message of 1 to 2000 characters.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "close": "Close",
+    "saving": "Saving?",
+    "success": "Decision saved. Notification delivery is tracked separately.",
+    "history": "Status history",
+    "latestMessage": "Latest admin message",
+    "noHistory": "No decisions yet.",
+    "loading": "Loading?",
+    "retry": "Retry",
+    "retryNotification": "Retry notification",
+    "delivery": "Notification: {state}",
+    "myOrders": "My orders",
+    "noOrders": "You have no orders yet.",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page}",
+    "sms": "Your request status has changed. Sign in to your DreamService order panel for details.",
+    "action": {
+      "NEGOTIATING": "Approve request",
+      "REJECTED": "Reject request",
+      "PROCESSING": "Start project"
+    },
+    "notification": {
+      "PENDING": "Pending",
+      "CLAIMED": "Delivery claimed; reconciliation required if interrupted",
+      "SENT": "Sent",
+      "FAILED": "Failed",
+      "UNKNOWN": "Delivery uncertain; manual reconciliation required",
+      "SKIPPED": "Skipped: account phone has not been verified"
+    }
+  },
+  "Recovery": {
+    "home": "Return to homepage",
+    "back": "Go back",
+    "retry": "Try again",
+    "notFound": {
+      "eyebrow": "A route uncharted",
+      "title": "This page is off the map.",
+      "description": "The link may have changed, or this page may no longer exist. Let's find your way back.",
+      "documentTitle": "Page not found | DreamService"
+    },
+    "error": {
+      "eyebrow": "Connection interrupted",
+      "title": "Let's reconnect.",
+      "description": "Something interrupted this page. Try loading it again, or return home and continue from there.",
+      "documentTitle": "Something went wrong | DreamService"
+    }
   }
 }

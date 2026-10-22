@@ -1,0 +1,69 @@
+.structure {
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  color: var(--primary);
+  overflow: hidden;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.face {
+  fill: var(--card);
+  stroke: currentColor;
+  stroke-opacity: .65;
+  stroke-width: 1.2;
+}
+
+.edge {
+  fill: var(--secondary);
+  stroke: currentColor;
+  stroke-opacity: .4;
+  stroke-width: .8;
+}
+
+.inset, .trace, .grid {
+  stroke: currentColor;
+  stroke-width: .7;
+}
+
+.inset { stroke-opacity: .3; }
+.trace { stroke-opacity: .4; }
+.grid { stroke-opacity: .14; }
+.port, .particle { fill: currentColor; }
+
+.core {
+  fill: var(--accent);
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.coreInset {
+  fill: currentColor;
+  fill-opacity: .2;
+  stroke: currentColor;
+  stroke-width: .8;
+}
+
+.signal { stroke: currentColor; stroke-opacity: .6; stroke-width: 1; }
+.footprint { stroke: currentColor; stroke-opacity: .12; stroke-width: .8; }
+.fragment { fill: var(--card); stroke: currentColor; stroke-width: .8; }
+.beams { transform-origin: 140px 218px; }
+.curtain { opacity: .24; }
+.glow { display: none; }
+:global(.dark) .glow { display: block; opacity: .35; }
+:global(.dark) .face { stroke-opacity: .8; }
+
+@media (max-width: 639px) {
+  .secondary, .fragment, .particle, .footprint, .grid, .trace { display: none; }
+  .face { stroke-width: 1.8; }
+  .curtain { opacity: .08; }
+}
+
+/* CSS also covers the server-rendered frame before motion preferences hydrate. */
+@media (prefers-reduced-motion: reduce) {
+  .layer, .particle { transform: none !important; }
+  .beams { transform: scaleY(.65) !important; opacity: .55 !important; }
+  .fragment { display: none; }
+  .particle { opacity: .3 !important; }
+}

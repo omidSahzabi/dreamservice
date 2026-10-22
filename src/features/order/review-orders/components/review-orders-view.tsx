@@ -4,9 +4,7 @@ import {useTranslations} from "next-intl"
 import {localizeApiError} from "@/lib/api/errors"
 import {DataTableFilterForm} from "@/components/modules/data-table/data-table-filter-form"
 import {
-  AlertCircle,
   ClipboardList,
-  Inbox,
   RefreshCw,
 } from "lucide-react"
 
@@ -18,6 +16,7 @@ import { useReviewOrdersColumns } from "./review-orders-columns"
 
 export function ReviewOrdersView() {
   const t = useTranslations("ReviewOrders")
+  const errors = useTranslations("Errors")
   const status = useTranslations("OrderStatus")
   const columns = useReviewOrdersColumns()
   const fields = getReviewOrdersFilters(t, status)
@@ -32,19 +31,13 @@ export function ReviewOrdersView() {
     setPagination,
     filters,
     updateFilters,
+    sorting,
+    updateSorting,
   } = useReviewOrdersState()
 
   const totalOrders = data?.pagination?.total ?? 0
   const totalPages = data?.pagination?.totalPages ?? 1
 
-  if (isError) {
-    return (
-      <ErrorState
-        error={error}
-        onRetry={() => refetch()}
-      />
-    )
-  }
 
   return (
     <div className="space-y-5 pb-16">
@@ -55,17 +48,25 @@ export function ReviewOrdersView() {
         onRefresh={() => refetch()}
       />
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0C1633] shadow-lg shadow-black/20">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
         <div className="max-w-full overflow-x-auto p-4 sm:p-5">
           <DataTable
             columns={columns}
             data={data?.data ?? []}
+            getRowId={order => String(order.order_id)}
             isLoading={isLoading}
+            errorMessage={isError ? localizeApiError(error, errors) : undefined}
+            onRetry={() => void refetch()}
+            emptyMessage={t("emptyTitle")}
             filterForm={<DataTableFilterForm fields={fields} values={filters} onChange={updateFilters} />}
             filterValues={filters}
             onFilterChange={updateFilters}
             enablePagination
             manualPagination
+            manualSorting
+            manualFiltering
+            sorting={sorting}
+            onSortingChange={updateSorting}
             pageCount={totalPages}
             rowCount={totalOrders}
             pagination={pagination}
@@ -81,7 +82,7 @@ export function ReviewOrdersView() {
         </div>
       </div>
 
-      {!isLoading && data?.data?.length === 0 && <EmptyState />}
+
     </div>
   )
 }
@@ -108,10 +109,10 @@ function ReviewOrdersHeader({
         </div>
 
         <div>
-          <h1 className="text-lg font-bold text-white sm:text-xl">
+          <h1 className="text-lg font-bold text-foreground sm:text-xl">
             {t("title")}
           </h1>
-          <p className="text-xs text-white/60">
+          <p className="text-xs text-muted-foreground">
             {t("subtitle")}
           </p>
         </div>
@@ -119,7 +120,7 @@ function ReviewOrdersHeader({
 
       <div className="flex items-center gap-3 self-end sm:self-auto">
         {hasPagination && (
-          <div className="rounded-lg border border-white/10 bg-[#0C1633] px-3 py-1.5 text-xs text-white/80">
+          <div className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-text-secondary">
             {t("totalCount", {count: totalOrders})}
           </div>
         )}
@@ -129,7 +130,7 @@ function ReviewOrdersHeader({
           size="sm"
           disabled={isFetching}
           onClick={onRefresh}
-          className="h-9 gap-1.5 rounded-lg border-white/10 bg-[#0C1633] px-3 text-xs text-white/80 hover:bg-[#101C44] hover:text-white"
+          className="h-9 gap-1.5 rounded-lg border-border bg-card px-3 text-xs text-text-secondary hover:bg-secondary hover:text-foreground"
         >
           <RefreshCw
             className={`size-3.5 ${
@@ -139,57 +140,6 @@ function ReviewOrdersHeader({
           <span>{t("refresh")}</span>
         </Button>
       </div>
-    </div>
-  )
-}
-
-type ErrorStateProps = {
-  error: unknown
-  onRetry: () => void
-}
-
-function ErrorState({ error, onRetry }: ErrorStateProps) {
-  const t = useTranslations("ReviewOrders")
-  const errors = useTranslations("Errors")
-  const message = localizeApiError(error, errors)
-
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-10 text-center">
-      <div className="flex size-12 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400">
-        <AlertCircle className="size-6" />
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-sm font-bold text-white">
-          {t("errorTitle")}
-        </h3>
-        <p className="text-xs text-white/60">{message}</p>
-      </div>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onRetry}
-        className="mt-2 gap-2 border-white/10 bg-[#101C44] text-xs text-white/90 hover:bg-[#152352]] hover:text-white"
-      >
-        <RefreshCw className="size-3.5" />
-        <span>{t("retry")}</span>
-      </Button>
-    </div>
-  )
-}
-
-function EmptyState() {
-  const t = useTranslations("ReviewOrders")
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/10 bg-[#0C1633]/50 py-14 text-center">
-      <Inbox className="size-8 text-white/40" />
-      <p className="text-sm font-medium text-white/80">
-        {t("emptyTitle")}
-      </p>
-      <p className="text-xs text-white/40">
-        {t("emptyDescription")}
-      </p>
     </div>
   )
 }

@@ -3,7 +3,8 @@ import {ApiError, fetchJson} from '@/lib/api/errors';
 
 const userSchema = z.object({
   id: z.string(), fname: z.string().nullable(), lname: z.string().nullable(),
-  contact: z.string().nullable(), email: z.string().nullable(), roles: z.array(z.string())
+  contact: z.string().nullable(), email: z.string().nullable(), roles: z.array(z.string()),
+  permission: z.enum(['CUSTOMER', 'ADMIN'])
 });
 export type UserResponse = z.infer<typeof userSchema>;
 

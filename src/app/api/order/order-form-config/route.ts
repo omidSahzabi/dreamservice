@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       include: {
         translations: {
           where: {
-            locale,
+            locale: {in: ["fa", "en"]},
           },
         },
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
           include: {
             translations: {
               where: {
-                locale,
+                locale: {in: ["fa", "en"]},
               },
             },
 
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
               include: {
                 translations: {
                   where: {
-                    locale,
+                    locale: {in: ["fa", "en"]},
                   },
                 },
 
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
                   include: {
                     translations: {
                       where: {
-                        locale,
+                        locale: {in: ["fa", "en"]},
                       },
                     },
                   },
@@ -79,11 +79,11 @@ export async function GET(request: Request) {
       );
     }
 
-    const formTranslation = form.translations[0];
+    const formTranslation = getTranslation(form.translations, locale, "title");
 
     const missingTranslation = !formTranslation?.title?.trim() || form.steps.some(step =>
-      !step.translations[0]?.title?.trim() || step.fields.some(field =>
-        !field.translations[0]?.label?.trim() || field.options.some(option => !option.translations[0]?.label?.trim())
+      !getTranslation(step.translations, locale, "title") || step.fields.some(field =>
+        !getTranslation(field.translations, locale, "label") || field.options.some(option => !getTranslation(option.translations, locale, "label"))
       )
     );
     if (missingTranslation) {
@@ -110,7 +110,7 @@ export async function GET(request: Request) {
         },
 
         steps: form.steps.map((step) => {
-          const translation = step.translations[0];
+          const translation = getTranslation(step.translations, locale, "title");
 
           return {
             id: step.id.toString(),
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
 
             fields: step.fields.map((field) => {
               const fieldTranslation =
-                field.translations[0];
+                getTranslation(field.translations, locale, "label");
 
               return {
                 id: field.field_key,
@@ -152,7 +152,7 @@ export async function GET(request: Request) {
 
                 options: field.options.map((option) => {
                   const optionTranslation =
-                    option.translations[0];
+                    getTranslation(option.translations, locale, "label");
 
                   return {
                     value: option.option_value,
@@ -165,7 +165,6 @@ export async function GET(request: Request) {
                       optionTranslation?.description ??
                       "",
 
-                    metadata: option.metadata,
                   };
                 }),
               };
@@ -190,6 +189,13 @@ export async function GET(request: Request) {
   }
 }
 
+function getTranslation<T extends {locale: string; title?: string; label?: string}>(
+  translations: T[], locale: "fa" | "en", key: "title" | "label"
+): T | undefined {
+  return translations.find(row => row.locale === locale && row[key]?.trim())
+    ?? translations.find(row => row[key]?.trim());
+}
+
 function getLocalizedValue(
   value: unknown,
   locale: "fa" | "en"
@@ -204,7 +210,7 @@ function getLocalizedValue(
 
   const data = value;
 
-  const localizedValue: unknown = Reflect.get(data, locale);
+  const localizedValue: unknown = Reflect.get(data, locale) ?? Reflect.get(data, locale === "en" ? "fa" : "en");
 
   return typeof localizedValue === "string"
     ? localizedValue

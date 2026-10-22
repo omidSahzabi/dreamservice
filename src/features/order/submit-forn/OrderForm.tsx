@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
@@ -25,8 +25,12 @@ import {localizeApiError} from "@/lib/api/errors";
 import type {ApiError} from "@/lib/api/errors";
 
 import { StepRenderer } from "./StepRenderer";
+import { useAuth } from "@/hooks/useAuth";
+import { AccessRequired } from "@/components/modules/auth/AccessRequired";
+import {OrderReceipt} from "./OrderReceipt";
 
 export function OrderForm() {
+  const {user, isLoading: authLoading, isError: authFailed} = useAuth();
   const t = useTranslations("OrderForm");
   const locale = useLocale();
   const errors = useTranslations("Errors");
@@ -42,13 +46,15 @@ export function OrderForm() {
 
   const isRtl = locale === "fa";
 
-  if (isLoading) {
+  if (authFailed || (!authLoading && !user)) return <AccessRequired />;
+
+  if (isLoading || authLoading) {
     return (
       <main
         dir={isRtl ? "rtl" : "ltr"}
         className="flex min-h-screen items-center justify-center bg-bg-primary p-4"
       >
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-border-soft/60 bg-bg-secondary/40 p-8 text-center shadow-xl backdrop-blur-md">
+        <div role="status" className="flex flex-col items-center gap-3 rounded-2xl border border-border-soft/60 bg-bg-secondary/40 p-8 text-center shadow-soft">
           <Loader2 className="size-8 animate-spin text-primary" />
           <p className="text-sm font-medium text-text-secondary">
             {t("loading")}
@@ -64,7 +70,7 @@ export function OrderForm() {
         dir={isRtl ? "rtl" : "ltr"}
         className="flex min-h-screen items-center justify-center bg-bg-primary p-4"
       >
-        <div className="flex max-w-md flex-col items-center gap-4 rounded-2xl border border-destructive/20 bg-bg-secondary/60 p-8 text-center shadow-xl">
+        <div role="alert" className="flex max-w-md flex-col items-center gap-4 rounded-2xl border border-destructive/20 bg-bg-secondary/60 p-8 text-center shadow-xl">
           <p className="text-sm font-medium text-destructive">
             {error ? localizeApiError(error, errors) : t("loadError")}
           </p>
@@ -82,7 +88,8 @@ export function OrderForm() {
     );
   }
 
-  return <OrderFormWizardContent config={config} />;
+  if (!user) return <AccessRequired />;
+  return <OrderFormWizardContent key={user.id} config={config} />;
 }
 
 function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
@@ -99,7 +106,9 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
   const initialData = useOrderStore((state) => state.formData);
 
   const [submitError, setSubmitError] = useState<ApiError | Error | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedOrderId, setSubmittedOrderId] = useState<number | null>(null);
+  const submissionLock = useRef(false);
+  const focusField = useRef<string | null>(null);
 
   const submitMutation = useSubmitOrder();
 
@@ -117,8 +126,14 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
     resolver: (values, context, options) => zodResolver(createFormSchema(steps, values, t))(values, context, options),
   });
 
-  const { trigger, getValues, handleSubmit, subscribe } = methods;
+  const { trigger, getValues, handleSubmit, subscribe, setFocus } = methods;
   useEffect(() => subscribe({formState: {values: true}, callback: ({values}) => updateFormData(values)}), [subscribe, updateFormData]);
+  useEffect(() => {
+    if (focusField.current) {
+      setFocus(focusField.current);
+      focusField.current = null;
+    }
+  }, [activeStep, setFocus]);
 
   if (!step) return <p role="status">{t("empty")}</p>;
 
@@ -134,10 +149,11 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
       step,
       currentValues,
       t,
+      steps,
     ).safeParse(currentValues);
 
     if (!stepValidation.success) {
-      await trigger(step.fields.map((field) => field.id));
+      await trigger(step.fields.map((field) => field.id), {shouldFocus: true});
       return;
     }
 
@@ -151,18 +167,21 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
   };
 
   const onFinalSubmit = async (data: OrderFormData) => {
+    if (submissionLock.current) return;
+    submissionLock.current = true;
     setSubmitError(null);
     updateFormData(data);
 
     try {
-      await submitMutation.mutateAsync({
+      const result = await submitMutation.mutateAsync({
         formKey: key,
         data,
       });
 
-      setIsSubmitted(true);
+      setSubmittedOrderId(result.order_id);
       resetForm();
     } catch (err: unknown) {
+      submissionLock.current = false;
       if (err instanceof Error) {
         setSubmitError(err);
       } else {
@@ -171,37 +190,30 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
     }
   };
 
-  if (isSubmitted) {
-    return (
-      <main
-        dir={isRtl ? "rtl" : "ltr"}
-        className="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-bg-secondary to-bg-primary p-4"
-      >
-        <div className="flex max-w-md flex-col items-center gap-4 rounded-2xl border border-border-soft bg-bg-primary/90 p-8 text-center shadow-xl backdrop-blur-xl">
-          <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Check className="size-8" strokeWidth={2.5} />
-          </div>
-
-          <h2 className="text-2xl font-bold text-text-primary">
-            {t("successTitle")}
-          </h2>
-
-          <p className="text-sm leading-relaxed text-text-secondary">
-            {t("successDescription")}
-          </p>
-        </div>
-      </main>
-    );
+  if (submittedOrderId !== null) {
+    return <OrderReceipt orderId={submittedOrderId} />;
   }
 
   return (
     <FormProvider {...methods}>
       <form
-        onSubmit={handleSubmit(onFinalSubmit)}
+        onSubmit={event => {
+          if (!isLastStep) {event.preventDefault(); void handleNext(); return;}
+          void handleSubmit(onFinalSubmit, fieldErrors => {
+            const index = steps.findIndex(item => item.fields.some(field => fieldErrors[field.id]));
+            const field = steps[index]?.fields.find(item => fieldErrors[item.id]);
+            if (field) {
+              if (index === activeStep) setFocus(field.id);
+              else {focusField.current = field.id; useOrderStore.getState().setStep(index);}
+            }
+          })(event);
+        }}
+        aria-busy={submitMutation.isPending}
         dir={isRtl ? "rtl" : "ltr"}
         noValidate
       >
-        <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-bg-secondary to-bg-primary px-4 py-8 selection:bg-primary/20 selection:text-primary sm:py-12 lg:py-16">
+        <fieldset disabled={submitMutation.isPending} className="min-w-0 border-0 p-0">
+        <main className="min-h-screen bg-background px-4 py-8 selection:bg-primary/20 selection:text-primary sm:py-12 lg:py-16">
           <div className="mx-auto w-full max-w-2xl">
             <header className="mb-8 text-center sm:mb-10">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur-md">
@@ -220,7 +232,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
               )}
             </header>
 
-            <div className="overflow-hidden rounded-2xl border border-border-soft/80 bg-bg-primary/80 shadow-[0_20px_50px_rgba(0,0,0,0.06)] backdrop-blur-xl">
+            <div className="overflow-hidden rounded-2xl border border-border-soft/80 bg-card shadow-soft">
               {settings.showProgress && (
                 <div className="border-b border-border-soft/60 bg-bg-secondary/30 p-5 sm:p-6">
                   <div className="mb-6 flex items-center justify-between">
@@ -237,7 +249,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
                             <div
                               className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold transition-all duration-300 sm:size-10 ${
                                 isCompleted
-                                  ? "bg-primary text-white shadow-md shadow-primary/25"
+                                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
                                   : isActive
                                     ? "border-2 border-primary bg-primary/10 text-primary ring-4 ring-primary/15"
                                     : "border border-border-soft bg-bg-primary text-text-muted"
@@ -302,12 +314,12 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
 
               <section className="p-6 sm:p-8">
                 {submitError && (
-                  <div className="mb-6 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-medium text-destructive">
+                  <div role="alert" className="mb-6 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-medium text-destructive">
                     {localizeApiError(submitError, errors)}
                   </div>
                 )}
 
-                <StepRenderer step={step} />
+                <StepRenderer step={step} steps={steps} />
               </section>
 
               <div className="border-t border-border-soft/60 bg-bg-secondary/40 px-6 py-4 sm:px-8 sm:py-5">
@@ -336,7 +348,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
                     <Button
                       type="submit"
                       disabled={submitMutation.isPending}
-                      className="h-11 gap-2 rounded-xl bg-primary px-7 font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary-hover disabled:opacity-50"
+                      className="h-11 gap-2 rounded-xl bg-primary px-7 font-semibold text-primary-foreground shadow-xs hover:bg-primary-hover disabled:opacity-50"
                     >
                       {submitMutation.isPending ? (
                         <>
@@ -356,7 +368,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
                     <Button
                       type="button"
                       onClick={handleNext}
-                      className="h-11 gap-2 rounded-xl bg-primary px-7 font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary-hover"
+                      className="h-11 gap-2 rounded-xl bg-primary px-7 font-semibold text-primary-foreground shadow-xs hover:bg-primary-hover"
                     >
                       <span>{t("next")}</span>
 
@@ -378,6 +390,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
             </footer>
           </div>
         </main>
+        </fieldset>
       </form>
     </FormProvider>
   );

@@ -2,52 +2,31 @@
 
 import {useTranslations} from "next-intl";
 import {useRouter} from "@/lib/i18n/navigation";
-import { motion } from "framer-motion";
+import {useRef} from "react";
+import {useScroll, useSpring} from "framer-motion";
 import ContactCard from "@/components/modules/dream-form/ContactCard";
+import {IsometricDigitalStructure} from "@/components/modules/hero/IsometricDigitalStructure";
 import { Phone, MessageCircle , Users, FileText } from "lucide-react"; 
 
 export default function Hero() {
   const t = useTranslations("Hero");
   const router = useRouter();
+  const heroRef = useRef<HTMLDivElement>(null);
+  const {scrollYProgress} = useScroll({target: heroRef, offset: ["start start", "center start"]});
+  const progress = useSpring(scrollYProgress, {stiffness: 130, damping: 30, mass: .35});
   return (
-    <div className="flex w-full flex-col items-center justify-center px-4 pt-7 gap-6">
-      <div className="flex w-full max-w-6xl min-w-0 items-center justify-center gap-4 md:gap-8">
-        <motion.svg
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="hidden shrink-0 sm:block sm:w-16 sm:h-16 md:w-32 md:h-32 text-cyan-400 me-4 md:me-8"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 19V5M5 12l7-7 7 7" />
-        </motion.svg>
+    <div ref={heroRef} className="flex w-full flex-col items-center justify-center px-4 pt-6 sm:pt-8 gap-6">
+      <div className="grid w-full max-w-6xl min-w-0 items-center gap-x-4 gap-y-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,3.2fr)_minmax(0,1fr)] lg:gap-x-6">
+        <IsometricDigitalStructure progress={progress} variation="spire" className="col-start-1 row-start-1 h-28 w-24 justify-self-start sm:h-36 sm:w-32 lg:h-[19rem] lg:w-full" />
 
-        <h1 className="min-w-0 break-words text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-bold text-center leading-tight">
-          {t.rich("headline", {highlight: chunks => <span className="text-cyan-400">{chunks}</span>})}
+        <h1 className="col-start-1 row-start-2 min-w-0 break-words text-4xl sm:text-5xl md:text-6xl lg:col-start-2 lg:row-start-1 lg:text-7xl font-bold text-center leading-tight">
+          {t.rich("headline", {highlight: chunks => <span className="text-primary">{chunks}</span>})}
         </h1>
 
-        <motion.svg
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 1 , ease: "easeOut", delay: 0.1 }}
-          className="hidden shrink-0 sm:block sm:w-16 sm:h-16 md:w-32 md:h-32 text-cyan-400 ms-4 md:ms-8"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 19V5M5 12l7-7 7 7" />
-        </motion.svg>
+        <IsometricDigitalStructure progress={progress} variation="terrace" className="col-start-1 row-start-1 h-28 w-24 justify-self-end sm:h-36 sm:w-32 lg:col-start-3 lg:h-[19rem] lg:w-full" />
       </div>
 
-      <p className="text-slate-400 text-center max-w-2xl">
+      <p className="text-muted-foreground text-center max-w-2xl">
         {t("subtitle")}
       </p>
 

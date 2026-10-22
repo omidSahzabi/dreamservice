@@ -1,17 +1,10 @@
-import { NextResponse } from "next/server";
 import { invalidateSession } from "@/lib/auth/session";
+import { privateJson, securityFailure, validateMutation } from "@/lib/security/http";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    validateMutation(request, false);
     await invalidateSession();
-    return NextResponse.json({
-      success: true,
-      message: "با موفقیت خارج شدید",
-    });
-  } catch {
-    return NextResponse.json(
-      { success: false, code: "LOGOUT_FAILED", error: "خطا در فرایند خروج" },
-      { status: 500 }
-    );
-  }
+    return privateJson({ success: true });
+  } catch (error) { return securityFailure(error, "LOGOUT_FAILED"); }
 }

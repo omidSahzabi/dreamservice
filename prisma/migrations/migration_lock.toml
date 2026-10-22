@@ -1,0 +1,2 @@
+# PostgreSQL migration provider. Per-database application state lives in Prisma history.
+provider = "postgresql"

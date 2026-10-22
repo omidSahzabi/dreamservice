@@ -2,6 +2,7 @@
 import React from 'react';
 import {useTranslations} from 'next-intl';
 import {Link} from '@/lib/i18n/navigation';
+import Logo from '@/components/modules/navbar/Logo';
 import type {LucideIcon} from 'lucide-react';
 import { 
   Instagram, 
@@ -55,32 +56,25 @@ export default function Footer({year}: {year: number}) {
   ];
 
   return (
-    <footer id="contact" className="relative bg-slate-950 border-t border-white/10">
-      {/* گرادینت بالای فوتر */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
+    <footer id="contact" className="relative bg-background border-t border-border">
 
       <div className="max-w-6xl mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* بخش اول - لوگو و توضیحات */}
           <div className="lg:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">{t("initial")}</span>
-              </div>
-              <span className="text-white font-bold text-xl">{t("name")}</span>
-            </div>
-            <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+            <div className="mb-4"><Logo /></div>
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
               {t("description")}
             </p>
             
             {/* اطلاعات تماس */}
             <div className="space-y-3">
-              <div className="flex items-center gap-3 text-gray-400 text-sm">
-                <Mail className="w-4 h-4 text-cyan-400" />
+              <div className="flex items-center gap-3 text-muted-foreground text-sm">
+                <Mail className="w-4 h-4 text-primary" />
                 <bdi>example@email.com</bdi>
               </div>
-              <div className="flex items-center gap-3 text-gray-400 text-sm">
-                <MapPin className="w-4 h-4 text-cyan-400" />
+              <div className="flex items-center gap-3 text-muted-foreground text-sm">
+                <MapPin className="w-4 h-4 text-primary" />
                 <span>{t("location")}</span>
               </div>
             </div>
@@ -89,20 +83,20 @@ export default function Footer({year}: {year: number}) {
           {/* لینک‌های فوتر */}
           {footerLinks.map((section, idx) => (
             <div key={idx}>
-              <h3 className="text-white font-bold mb-4">{section.title}</h3>
+              <h3 className="text-foreground font-bold mb-4">{section.title}</h3>
               <ul className="space-y-3">
                 {section.links.map((link, linkIdx) => {
                   const Icon = link.icon;
                   return (
                     <li key={linkIdx}>
                       {link.href === "#" ? (
-                        <span aria-disabled="true" className="text-gray-400 text-sm flex items-center gap-2">
+                        <span aria-disabled="true" className="text-muted-foreground text-sm flex items-center gap-2">
                           {Icon && <Icon className="w-4 h-4" />}{link.label}
                         </span>
                       ) : (
                       <Link
                         href={link.href}
-                        className="text-gray-400 hover:text-cyan-400 text-sm transition-colors flex items-center gap-2 group"
+                        className="text-muted-foreground hover:text-primary text-sm transition-colors flex items-center gap-2 group"
                       >
                         {Icon && <Icon className="w-4 h-4" />}
                         <span className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
@@ -119,11 +113,11 @@ export default function Footer({year}: {year: number}) {
         </div>
 
         {/* بخش پایین فوتر */}
-        <div className="mt-16 pt-8 border-t border-white/5">
+        <div className="mt-16 pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             {/* کپی‌رایت */}
-            <p className="text-gray-500 text-sm flex items-center gap-1">
-              {t.rich("copyright", {year, heart: () => <Heart aria-label={t("love")} className="w-4 h-4 text-red-500 fill-red-500" />})}
+            <p className="text-muted-foreground text-sm flex items-center gap-1">
+              {t.rich("copyright", {year, heart: () => <Heart aria-label={t("love")} className="w-4 h-4 text-destructive fill-red-500" />})}
             </p>
 
             {/* شبکه‌های اجتماعی */}
@@ -135,7 +129,7 @@ export default function Footer({year}: {year: number}) {
                     key={idx}
                     aria-disabled="true"
                     aria-label={social.name}
-                    className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 hover:border-cyan-400/50 transition-all group"
+                    className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary hover:border-primary/40 transition-all group"
                   >
                     <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   </span>
@@ -147,7 +141,7 @@ export default function Footer({year}: {year: number}) {
             <a
               href="#top"
               aria-label={t("backToTop")}
-              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-cyan-400 hover:border-cyan-400 transition-all group"
+              className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all group"
             >
               <ArrowUpRight className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
             </a>
