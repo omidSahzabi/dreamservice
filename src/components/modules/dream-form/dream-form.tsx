@@ -1,25 +1,22 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import {
-  useForm,
-  SubmitHandler,
-  FieldErrors,
-  RegisterOptions,
-  DefaultValues,
-} from 'react-hook-form';
+import React, { useEffect, useState } from 'react';
+import {useLocale, useTranslations} from 'next-intl';
+import {toast} from 'sonner';
+import { useForm, SubmitHandler, FieldErrors, RegisterOptions } from 'react-hook-form';
 import clsx from 'clsx';
+import { DreamServiceLoader } from '@/components/brand/DreamServiceLoader';
 
 // ============== Types ==============
-type InputType =
-  | 'text'
-  | 'email'
-  | 'password'
-  | 'number'
-  | 'tel'
-  | 'url'
-  | 'date'
-  | 'time'
+type InputType = 
+  | 'text' 
+  | 'email' 
+  | 'password' 
+  | 'number' 
+  | 'tel' 
+  | 'url' 
+  | 'date' 
+  | 'time' 
   | 'datetime-local'
   | 'color'
   | 'range'
@@ -29,14 +26,7 @@ type InputType =
   | 'textarea'
   | 'file';
 
-type ValidationType =
-  | 'required'
-  | 'email'
-  | 'minLength'
-  | 'maxLength'
-  | 'min'
-  | 'max'
-  | 'pattern';
+type ValidationType = 'required' | 'email' | 'minLength' | 'maxLength' | 'min' | 'max' | 'pattern';
 
 interface ValidationRule {
   type: ValidationType;
@@ -50,13 +40,12 @@ interface SelectOption {
   disabled?: boolean;
 }
 
-interface FieldConfig {
+export interface FieldConfig {
   name: string;
   label: string;
   type: InputType;
   placeholder?: string;
-  showLabel?: boolean;
-  description?: string;
+    showLabel?: boolean;
   defaultValue?: string | number | boolean | string[];
   options?: SelectOption[];
   validation?: ValidationRule[];
@@ -71,365 +60,452 @@ interface FieldConfig {
   multiple?: boolean;
   prefix?: string | React.ReactNode;
   suffix?: string | React.ReactNode;
-  autoComplete?: string;
-  inputMode?:
-    | 'text'
-    | 'email'
-    | 'numeric'
-    | 'decimal'
-    | 'tel'
-    | 'search'
-    | 'url'
-    | 'none';
-  dir?: 'rtl' | 'ltr' | 'auto';
 }
+
+type FormValues = Record<string, unknown>;
+const inputValue = (value: unknown): string | number | readonly string[] => typeof value === "string" || typeof value === "number" ? value : Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : "";
+const arrayValue = (value: unknown): (string | number)[] => Array.isArray(value) ? value.filter((item): item is string | number => typeof item === "string" || typeof item === "number") : [];
 
 interface DreamFormProps {
   fields: FieldConfig[];
   submitText?: string;
   resetText?: string;
   showSubmitButton?: boolean;
-  onSubmit: (data: Record<string, any>) => void | Promise<void>;
-  onError?: (errors: FieldErrors<Record<string, any>>) => void;
+  onSubmit: (data: FormValues) => void | Promise<void>;
+  onError?: (errors: FieldErrors<FormValues>) => void;
   onReset?: () => void;
+  onValuesChange?: (data: FormValues) => void;
   className?: string;
   submitClassName?: string;
   resetClassName?: string;
   showResetButton?: boolean;
   layout?: 'vertical' | 'horizontal';
-  gridColumns?: 1 | 2 | 3 | 4;
-  formError?: string;
-  dir?: 'rtl' | 'ltr';
+  gridColumns?: number;
 }
-
-// ============== Helpers ==============
-const gridColsClassMap: Record<NonNullable<DreamFormProps['gridColumns']>, string> = {
-  1: 'grid grid-cols-1 gap-4',
-  2: 'grid grid-cols-1 md:grid-cols-2 gap-4',
-  3: 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4',
-  4: 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4',
-};
-
-const getValidationRules = (field: FieldConfig): RegisterOptions => {
-  const rules: RegisterOptions = {};
-
-  field.validation?.forEach((validation) => {
-    switch (validation.type) {
-      case 'required':
-        rules.required = validation.message;
-        break;
-      case 'email':
-        rules.pattern = {
-          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-          message: validation.message,
-        };
-        break;
-      case 'minLength':
-        rules.minLength = {
-          value: validation.value as number,
-          message: validation.message,
-        };
-        break;
-      case 'maxLength':
-        rules.maxLength = {
-          value: validation.value as number,
-          message: validation.message,
-        };
-        break;
-      case 'min':
-        rules.min = {
-          value: validation.value as number,
-          message: validation.message,
-        };
-        break;
-      case 'max':
-        rules.max = {
-          value: validation.value as number,
-          message: validation.message,
-        };
-        break;
-      case 'pattern':
-        rules.pattern = {
-          value: validation.value as RegExp,
-          message: validation.message,
-        };
-        break;
-    }
-  });
-
-  return rules;
-};
 
 // ============== Component ==============
 export const DreamForm: React.FC<DreamFormProps> = ({
   fields,
-  submitText = 'ثبت اطلاعات',
-  resetText = 'پاک کردن',
+  submitText,
+  resetText,
   onSubmit,
-  showSubmitButton = true,
+   showSubmitButton = true ,
   onError,
   onReset,
+  onValuesChange,
   className = '',
   submitClassName = '',
   resetClassName = '',
   showResetButton = true,
   layout = 'vertical',
   gridColumns = 2,
-  formError,
-  dir = 'rtl',
 }) => {
+  const t = useTranslations("DreamForm");
+  const locale = useLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const defaultValues = useMemo(() => {
-    return fields.reduce((acc, field) => {
-      if (field.defaultValue !== undefined) {
-        acc[field.name] = field.defaultValue;
-      } else {
-        if (field.type === 'checkbox' && field.options) acc[field.name] = [];
-        else if (field.type === 'checkbox') acc[field.name] = false;
-        else acc[field.name] = '';
-      }
-      return acc;
-    }, {} as DefaultValues<Record<string, any>>);
-  }, [fields]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<Record<string, any>>({
+    watch,
+    trigger,
+    subscribe,
+  } = useForm<FormValues>({
     mode: 'onChange',
-    defaultValues,
+    defaultValues: fields.reduce<FormValues>((acc, field) => {
+      if (field.defaultValue !== undefined) {
+        acc[field.name] = field.defaultValue;
+      }
+      return acc;
+    }, {}),
   });
 
-  const handleFormSubmit: SubmitHandler<Record<string, any>> = async (data) => {
+  useEffect(() => {
+    if (!onValuesChange) return;
+    return subscribe({formState: {values: true}, callback: ({values}) => onValuesChange(values)});
+  }, [subscribe, onValuesChange]);
+
+  const getValidationRules = (field: FieldConfig) => {
+    const rules: RegisterOptions<FormValues> = {};
+    
+    field.validation?.forEach((validation) => {
+      switch (validation.type) {
+        case 'required':
+          rules.required = validation.message;
+          break;
+        case 'email':
+          rules.pattern = {
+            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+            message: validation.message,
+          };
+          break;
+        case 'minLength':
+          rules.minLength = {
+            value: typeof validation.value === "number" ? validation.value : 0,
+            message: validation.message,
+          };
+          break;
+        case 'maxLength':
+          rules.maxLength = {
+            value: typeof validation.value === "number" ? validation.value : 0,
+            message: validation.message,
+          };
+          break;
+        case 'min':
+          rules.min = {
+            value: typeof validation.value === "number" ? validation.value : 0,
+            message: validation.message,
+          };
+          break;
+        case 'max':
+          rules.max = {
+            value: typeof validation.value === "number" ? validation.value : 0,
+            message: validation.message,
+          };
+          break;
+        case 'pattern':
+          rules.pattern = {
+            value: validation.value instanceof RegExp ? validation.value : new RegExp(String(validation.value ?? "")),
+            message: validation.message,
+          };
+          break;
+      }
+    });
+
+    return rules;
+  };
+
+  const handleFormSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsSubmitting(true);
     try {
       await onSubmit(data);
-    } catch (error) {
-      console.error('Form submission error:', error);
+    } catch {
+      toast.error(t("submitError"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleReset = () => {
-    reset(defaultValues);
+    reset();
     onReset?.();
   };
 
+  const watchedValues = watch();
+
   const renderField = (field: FieldConfig) => {
     const validationRules = getValidationRules(field);
-    const error = errors[field.name]?.message as string | undefined;
+    const registerResult = register(field.name, validationRules);
+    const message = errors[field.name]?.message;
+    const error = typeof message === "string" ? message : undefined;
 
-    const baseInputClasses = clsx(
-      'w-full px-4 py-3 rounded-lg border transition-all duration-200',
-      'focus:outline-none focus:ring-2 focus:border-transparent',
-      'disabled:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70',
-      'placeholder:text-gray-500',
-      error
-        ? 'border-red-500 focus:ring-red-500 bg-red-900/20 text-white'
-        : 'border-gray-700 bg-gray-800/50 text-white hover:border-gray-600 focus:ring-blue-500',
-      field.inputClassName
-    );
+const baseInputClasses = clsx(
+  'w-full px-4 py-3 rounded-lg border transition-all duration-200',
+  'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
+  'disabled:bg-muted disabled:cursor-not-allowed',
+  'placeholder:text-muted-foreground',
+  error 
+    ? 'border-destructive focus:ring-destructive bg-destructive/10'
+    : 'border-input bg-card text-foreground hover:border-primary/60',
+  field.inputClassName
+);
 
     const labelClasses = clsx(
-      'block text-sm font-medium text-gray-200 mb-2',
+      'block text-sm font-medium text-text-secondary mb-2',
       field.labelClassName
     );
 
     const errorClasses = clsx(
-      'text-sm text-red-400 mt-1',
+      'text-sm text-destructive mt-1',
       field.errorClassName
     );
 
-    const descriptionClasses = 'text-xs text-gray-400 mt-1';
+    const renderInput = () => {
+      switch (field.type) {
+        case 'select':
+          return (
+            <select
+              id={field.name}
+              aria-label={field.showLabel === false ? field.label : undefined}
+              value={inputValue(watchedValues[field.name])}
+              onChange={(e) => {
+                registerResult.onChange({ target: { name: field.name, value: e.target.value } });
+                trigger(field.name);
+              }}
+              onBlur={registerResult.onBlur}
+              disabled={field.disabled}
+              className={baseInputClasses}
+            >
+              <option value="">{field.placeholder || t("select")}</option>
+              {field.options?.map((option) => (
+                <option 
+                  key={option.value} 
+                  value={option.value}
+                  disabled={option.disabled}
+                >
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          );
 
-    if (field.type === 'select') {
-      return (
-        <div key={field.name} className={field.className}>
-          {field.showLabel !== false && (
-            <label htmlFor={field.name} className={labelClasses}>
-              {field.label}
-              {field.validation?.some((v) => v.type === 'required') && (
-                <span className="text-red-500 mr-1">*</span>
+        case 'textarea':
+          return (
+            <textarea
+              id={field.name}
+              aria-label={field.showLabel === false ? field.label : undefined}
+              value={inputValue(watchedValues[field.name])}
+              onChange={(e) => {
+                registerResult.onChange({ target: { name: field.name, value: e.target.value } });
+                trigger(field.name);
+              }}
+              onBlur={registerResult.onBlur}
+              placeholder={field.placeholder}
+              disabled={field.disabled}
+              readOnly={field.readOnly}
+              rows={field.rows || 4}
+              className={baseInputClasses}
+            />
+          );
+
+        case 'checkbox':
+          if (field.options) {
+            // چندتا checkbox (checkbox group)
+            return (
+              <div className="flex flex-col gap-2">
+                {field.options.map((option) => {
+                  const isChecked = arrayValue(watchedValues[field.name]).includes(option.value);
+                  
+                  return (
+                    <label 
+                      key={option.value} 
+                      className="flex items-center gap-3 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const currentValues = arrayValue(watchedValues[field.name]);
+                          if (e.target.checked) {
+                            registerResult.onChange({ 
+                              target: { 
+                                name: field.name, 
+                                value: [...currentValues, option.value] 
+                              } 
+                            });
+                          } else {
+                            registerResult.onChange({ 
+                              target: { 
+                                name: field.name, 
+                                value: currentValues.filter((v) => v !== option.value)
+                              } 
+                            });
+                          }
+                          trigger(field.name);
+                        }}
+                        disabled={field.disabled || option.disabled}
+                        className="w-5 h-5 text-primary rounded border-input focus:ring-ring"
+                      />
+                      <span className="text-text-secondary">{option.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            );
+          } else {
+            // تک checkbox
+            return (
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(watchedValues[field.name])}
+                  onChange={(e) => {
+                    registerResult.onChange({ 
+                      target: { 
+                        name: field.name, 
+                        value: e.target.checked 
+                      } 
+                    });
+                    trigger(field.name);
+                  }}
+                  onBlur={registerResult.onBlur}
+                  disabled={field.disabled}
+                  className="w-5 h-5 text-primary rounded border-input focus:ring-ring"
+                />
+                <span className="text-text-secondary">{field.label}</span>
+              </label>
+            );
+          }
+
+        case 'radio':
+          return (
+            <div className="flex flex-col gap-2">
+              {field.options?.map((option) => (
+                <label 
+                  key={option.value} 
+                  className="flex items-center gap-3 cursor-pointer"
+                >
+                  <input
+                    type="radio"
+                    name={field.name}
+                    value={option.value}
+                    checked={watchedValues[field.name] === option.value}
+                    onChange={(e) => {
+                      registerResult.onChange({ 
+                        target: { 
+                          name: field.name, 
+                          value: e.target.value 
+                        } 
+                      });
+                      trigger(field.name);
+                    }}
+                    disabled={field.disabled || option.disabled}
+                    className="w-5 h-5 text-primary border-input focus:ring-ring"
+                  />
+                  <span className="text-text-secondary">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          );
+
+        case 'file':
+          return (
+            <input
+              type="file"
+              accept={field.accept}
+              multiple={field.multiple}
+              onChange={(e) => {
+                registerResult.onChange({ 
+                  target: { 
+                    name: field.name, 
+                    value: e.target.files 
+                  } 
+                });
+                trigger(field.name);
+              }}
+              onBlur={registerResult.onBlur}
+              disabled={field.disabled}
+              className={clsx(baseInputClasses, 'file:me-4 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground file:cursor-pointer')}
+            />
+          );
+
+        case 'range':
+          return (
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                value={inputValue(watchedValues[field.name]) || 0}
+                onChange={(e) => {
+                  registerResult.onChange({ 
+                    target: { 
+                      name: field.name, 
+                      value: Number(e.target.value) 
+                    } 
+                  });
+                  trigger(field.name);
+                }}
+                onBlur={registerResult.onBlur}
+                disabled={field.disabled}
+                className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
+              />
+              <span className="text-sm font-medium text-text-secondary min-w-[40px] text-center">
+                {inputValue(watchedValues[field.name]) || 0}
+              </span>
+            </div>
+          );
+
+        case 'color':
+          return (
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={inputValue(watchedValues[field.name]) || "#000000"}
+                onChange={(e) => {
+                  registerResult.onChange({ 
+                    target: { 
+                      name: field.name, 
+                      value: e.target.value 
+                    } 
+                  });
+                  trigger(field.name);
+                }}
+                onBlur={registerResult.onBlur}
+                disabled={field.disabled}
+                className="w-12 h-12 p-1 rounded-lg border border-input cursor-pointer"
+              />
+              <input
+                type="text"
+                value={inputValue(watchedValues[field.name])}
+                onChange={(e) => {
+                  registerResult.onChange({ 
+                    target: { 
+                      name: field.name, 
+                      value: e.target.value 
+                    } 
+                  });
+                  trigger(field.name);
+                }}
+                onBlur={registerResult.onBlur}
+                placeholder={field.placeholder}
+                disabled={field.disabled}
+                className={baseInputClasses}
+              />
+            </div>
+          );
+
+        default:
+          return (
+            <div className="relative">
+              {field.prefix && (
+                <span className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  {field.prefix}
+                </span>
               )}
-            </label>
-          )}
-
-          <select
-            id={field.name}
-            dir={field.dir}
-            disabled={field.disabled}
-            className={baseInputClasses}
-            defaultValue={field.defaultValue ?? ''}
-            {...register(field.name, validationRules)}
-          >
-            <option value="">{field.placeholder || 'انتخاب کنید...'}</option>
-            {field.options?.map((option) => (
-              <option
-                key={String(option.value)}
-                value={option.value}
-                disabled={option.disabled}
-              >
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          {field.description && <p className={descriptionClasses}>{field.description}</p>}
-          {error && <span className={errorClasses}>{error}</span>}
-        </div>
-      );
-    }
-
-    if (field.type === 'textarea') {
-      return (
-        <div key={field.name} className={field.className}>
-          {field.showLabel !== false && (
-            <label htmlFor={field.name} className={labelClasses}>
-              {field.label}
-              {field.validation?.some((v) => v.type === 'required') && (
-                <span className="text-red-500 mr-1">*</span>
+              <input
+                type={field.type}
+                id={field.name}
+                aria-label={field.showLabel === false ? field.label : undefined}
+                dir={["email", "tel", "url", "number"].includes(field.type) ? "ltr" : undefined}
+                value={inputValue(watchedValues[field.name])}
+                onChange={(e) => {
+                  const value = field.type === 'number' 
+                    ? (e.target.value === '' ? '' : Number(e.target.value))
+                    : e.target.value;
+                  registerResult.onChange({ 
+                    target: { 
+                      name: field.name, 
+                      value 
+                    } 
+                  });
+                  trigger(field.name);
+                }}
+                onBlur={registerResult.onBlur}
+                placeholder={field.placeholder}
+                disabled={field.disabled}
+                readOnly={field.readOnly}
+                className={clsx(
+                  baseInputClasses, 
+                  field.prefix && 'ps-12',
+                  field.suffix && 'pe-12'
+                )}
+              />
+              {field.suffix && (
+                <span className="absolute end-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  {field.suffix}
+                </span>
               )}
-            </label>
-          )}
+            </div>
+          );
+      }
+    };
 
-          <textarea
-            id={field.name}
-            rows={field.rows || 4}
-            placeholder={field.placeholder}
-            disabled={field.disabled}
-            readOnly={field.readOnly}
-            dir={field.dir}
-            className={baseInputClasses}
-            {...register(field.name, validationRules)}
-          />
-
-          {field.description && <p className={descriptionClasses}>{field.description}</p>}
-          {error && <span className={errorClasses}>{error}</span>}
-        </div>
-      );
-    }
-
+    // اگر checkbox تکی باشد، فقط اینپوت را برگردان
     if (field.type === 'checkbox' && !field.options) {
       return (
         <div key={field.name} className={field.className}>
-          <label className="flex items-center gap-3 cursor-pointer text-gray-200">
-            <input
-              type="checkbox"
-              disabled={field.disabled}
-              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              {...register(field.name, validationRules)}
-            />
-            <span>{field.label}</span>
-          </label>
-
-          {field.description && <p className={descriptionClasses}>{field.description}</p>}
-          {error && <span className={errorClasses}>{error}</span>}
-        </div>
-      );
-    }
-
-    if (field.type === 'radio') {
-      return (
-        <div key={field.name} className={field.className}>
-          {field.showLabel !== false && (
-            <label className={labelClasses}>
-              {field.label}
-              {field.validation?.some((v) => v.type === 'required') && (
-                <span className="text-red-500 mr-1">*</span>
-              )}
-            </label>
-          )}
-
-          <div className="flex flex-col gap-2">
-            {field.options?.map((option) => (
-              <label
-                key={String(option.value)}
-                className="flex items-center gap-3 cursor-pointer text-gray-200"
-              >
-                <input
-                  type="radio"
-                  value={option.value}
-                  disabled={field.disabled || option.disabled}
-                  className="w-5 h-5 border-gray-300 text-blue-600 focus:ring-blue-500"
-                  {...register(field.name, validationRules)}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-
-          {field.description && <p className={descriptionClasses}>{field.description}</p>}
-          {error && <span className={errorClasses}>{error}</span>}
-        </div>
-      );
-    }
-
-    if (field.type === 'file') {
-      return (
-        <div key={field.name} className={field.className}>
-          {field.showLabel !== false && (
-            <label htmlFor={field.name} className={labelClasses}>
-              {field.label}
-              {field.validation?.some((v) => v.type === 'required') && (
-                <span className="text-red-500 mr-1">*</span>
-              )}
-            </label>
-          )}
-
-          <input
-            id={field.name}
-            type="file"
-            accept={field.accept}
-            multiple={field.multiple}
-            disabled={field.disabled}
-            className={clsx(
-              baseInputClasses,
-              'file:mr-4 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer'
-            )}
-            {...register(field.name, validationRules)}
-          />
-
-          {field.description && <p className={descriptionClasses}>{field.description}</p>}
-          {error && <span className={errorClasses}>{error}</span>}
-        </div>
-      );
-    }
-
-    if (field.type === 'checkbox' && field.options) {
-      return (
-        <div key={field.name} className={field.className}>
-          {field.showLabel !== false && (
-            <label className={labelClasses}>
-              {field.label}
-              {field.validation?.some((v) => v.type === 'required') && (
-                <span className="text-red-500 mr-1">*</span>
-              )}
-            </label>
-          )}
-
-          <div className="flex flex-col gap-2">
-            {field.options.map((option) => (
-              <label
-                key={String(option.value)}
-                className="flex items-center gap-3 cursor-pointer text-gray-200"
-              >
-                <input
-                  type="checkbox"
-                  value={String(option.value)}
-                  disabled={field.disabled || option.disabled}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  {...register(field.name, validationRules)}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-
-          {field.description && <p className={descriptionClasses}>{field.description}</p>}
+          {renderInput()}
           {error && <span className={errorClasses}>{error}</span>}
         </div>
       );
@@ -437,50 +513,15 @@ export const DreamForm: React.FC<DreamFormProps> = ({
 
     return (
       <div key={field.name} className={field.className}>
-        {field.showLabel !== false && (
-          <label htmlFor={field.name} className={labelClasses}>
-            {field.label}
-            {field.validation?.some((v) => v.type === 'required') && (
-              <span className="text-red-500 mr-1">*</span>
-            )}
-          </label>
-        )}
-
-        <div className="relative">
-          {field.prefix && (
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-              {field.prefix}
-            </span>
-          )}
-
-          <input
-            id={field.name}
-            type={field.type}
-            placeholder={field.placeholder}
-            disabled={field.disabled}
-            readOnly={field.readOnly}
-            autoComplete={field.autoComplete}
-            inputMode={field.inputMode}
-            dir={field.dir}
-            className={clsx(
-              baseInputClasses,
-              field.prefix && 'pr-12',
-              field.suffix && 'pl-12'
-            )}
-            {...register(field.name, {
-              ...validationRules,
-              valueAsNumber: field.type === 'number',
-            })}
-          />
-
-          {field.suffix && (
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-              {field.suffix}
-            </span>
-          )}
-        </div>
-
-        {field.description && <p className={descriptionClasses}>{field.description}</p>}
+{field.showLabel !== false && field.type !== 'checkbox' && (
+  <label htmlFor={field.name} className={labelClasses}>
+    {field.label}
+    {field.validation?.some(v => v.type === 'required') && (
+      <span className="text-destructive ms-1">*</span>
+    )}
+  </label>
+)}
+        {renderInput()}
         {error && <span className={errorClasses}>{error}</span>}
       </div>
     );
@@ -488,7 +529,8 @@ export const DreamForm: React.FC<DreamFormProps> = ({
 
   const containerClasses = clsx(
     'w-full',
-    layout === 'horizontal' ? gridColsClassMap[gridColumns] : 'flex flex-col gap-6',
+    layout === 'horizontal' && `grid grid-cols-${gridColumns} gap-4`,
+    layout === 'vertical' && 'flex flex-col gap-6',
     className
   );
 
@@ -498,68 +540,51 @@ export const DreamForm: React.FC<DreamFormProps> = ({
   );
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit, onError)} className={containerClasses} dir={dir}>
-      {formError && (
-        <div className="rounded-lg border border-red-500/40 bg-red-900/20 px-4 py-3 text-sm text-red-300">
-          {formError}
-        </div>
-      )}
-
+    <form noValidate
+      onSubmit={handleSubmit(handleFormSubmit, onError)} 
+      className={containerClasses}
+      dir={locale === "fa" ? "rtl" : "ltr"}
+    >
       {fields.map(renderField)}
 
-      {showSubmitButton && (
+      {showSubmitButton &&
         <div className={buttonContainerClasses}>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting || undefined}
+          className={clsx(
+            'flex-1 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg',
+            'hover:bg-primary-hover focus:ring-4 focus:ring-blue-300',
+            'transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+            submitClassName
+          )}
+        >
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <DreamServiceLoader loading size="sm" decorative className="text-inherit" />
+              {t("submitting")}
+            </span>
+          ) : (
+            submitText ?? t("submit")
+          )}
+        </button>
+
+        {showResetButton && (
           <button
-            type="submit"
-            disabled={isSubmitting}
+            type="button"
+            onClick={handleReset}
             className={clsx(
-              'flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg',
-              'hover:bg-blue-700 focus:ring-4 focus:ring-blue-300',
-              'transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
-              submitClassName
+              'px-6 py-3 bg-secondary text-text-secondary font-medium rounded-lg',
+              'hover:bg-accent focus:ring-4 focus:ring-gray-300',
+              'transition-all duration-200',
+              resetClassName
             )}
           >
-            {isSubmitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                در حال ارسال...
-              </span>
-            ) : (
-              submitText
-            )}
+            {resetText ?? t("reset")}
           </button>
-
-          {showResetButton && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className={clsx(
-                'px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg',
-                'hover:bg-gray-300 focus:ring-4 focus:ring-gray-300',
-                'transition-all duration-200',
-                resetClassName
-              )}
-            >
-              {resetText}
-            </button>
-          )}
-        </div>
-      )}
+        )}
+      </div>}
     </form>
   );
 };

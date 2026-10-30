@@ -18,7 +18,7 @@ export default function ProjectCard({ project, isActive }: ProjectCardProps) {
     <motion.div
       whileHover={{ y: -10 }}
       transition={{ type: "spring", stiffness: 300 }}
-      className={`cursor-pointer transition-all duration-500 ${isActive ? 'scale-100' : 'scale-90 opacity-60'}`}
+      className={`motion-reduce:transform-none! cursor-pointer transition-all duration-500 ${isActive ? 'scale-100' : 'scale-90 opacity-60'}`}
     >
       <div 
         className="rounded-2xl overflow-hidden border transition-all duration-300 shadow-soft"

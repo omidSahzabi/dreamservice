@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { MotionConfig } from "framer-motion";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -13,5 +14,9 @@ export default function ThemeProvider({
   children,
   ...props
 }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+  return (
+    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange {...props}>
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+    </NextThemesProvider>
+  );
 }

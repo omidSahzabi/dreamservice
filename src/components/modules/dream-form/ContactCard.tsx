@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Phone, MessageCircle, Info, LucideIcon } from 'lucide-react';
+import {useTranslations} from 'next-intl';
+import { MessageCircle, LucideIcon } from 'lucide-react';
 
 interface ButtonConfig {
   text: string;
@@ -12,8 +13,9 @@ interface ButtonConfig {
 
 interface ContactCardProps {
   // اطلاعات تماس
-  phoneNumber: string;
-  phoneLabel?: string;
+  contactHref: string;
+  contactText: string;
+  contactLabel?: string;
   
   // آیکون‌ها
   mainIcon?: LucideIcon;
@@ -30,68 +32,69 @@ interface ContactCardProps {
 }
 
 export const ContactCard: React.FC<ContactCardProps> = ({
-  phoneNumber,
-  phoneLabel = 'تماس با ما',
-  mainIcon: MainIcon = Phone,
+  contactHref,
+  contactText,
+  contactLabel,
+  mainIcon: MainIcon = MessageCircle,
   badgeIcon: BadgeIcon = MessageCircle,
-  buttons = [
-    { text: 'درخواست همکاری', icon: MessageCircle, onClick: () => {}, variant: 'outline' },
-    { text: 'درباره ما', icon: Info, onClick: () => {}, variant: 'filled' },
-  ],
+  buttons = [],
   className = '',
   style,
   width,
-  gradient = 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+  gradient,
 }) => {
+  const t = useTranslations("ContactCard");
   return (
     <div
       className={`
         relative overflow-hidden
-        bg-white/10 backdrop-blur-lg
-        border border-white/20
+        bg-card
+        border border-border
         rounded-2xl p-6
-        shadow-xl
+        shadow-soft
         ${className}
       `}
       style={{ 
         background: gradient,
         width: width,
+        maxWidth: "100%",
         ...style,
       }}
     >
-      {/* گرادینت decorative */}
-      <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl" />
-      <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl" />
 
       <div className="relative flex items-center justify-between flex-wrap gap-4">
         {/* سمت چپ - اطلاعات تماس */}
-        <div className="flex items-center gap-4">
+        <a
+          href={contactHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-4 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+        >
           {/* آیکون اصلی */}
           <div className="relative">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <MainIcon className="w-6 h-6 text-white" />
+            <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <MainIcon aria-hidden="true" className="w-6 h-6" />
             </div>
             {/* آیکون badge */}
             {BadgeIcon && (
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                <BadgeIcon className="w-3 h-3 text-white" />
+              <div className="absolute -bottom-1 -end-1 w-5 h-5 bg-primary text-primary-foreground rounded-full border-2 border-card flex items-center justify-center">
+                <BadgeIcon className="w-3 h-3" />
               </div>
             )}
           </div>
 
           {/* متن */}
           <div className="flex flex-col">
-            <span className="text-white/70 text-sm font-medium">
-              {phoneLabel}
+            <span className="text-text-secondary text-sm font-medium">
+              {contactLabel ?? t("contact")}
             </span>
-            <a
-              href={`tel:${phoneNumber}`}
-              className="text-white text-xl font-bold hover:text-blue-300 transition-colors"
+            <span
+              className="text-foreground text-xl font-bold group-hover:text-primary transition-colors"
             >
-              {phoneNumber}
-            </a>
+              {contactText}
+            </span>
           </div>
-        </div>
+        </a>
 
         {/* سمت راست - دکمه‌های داینامیک */}
         <div className="flex gap-3 flex-wrap">
@@ -100,16 +103,15 @@ export const ContactCard: React.FC<ContactCardProps> = ({
             
             const baseClasses = `
               px-5 py-2.5
-              rounded-[20px_4px_20px_4px]
-              text-white font-medium text-sm
-              transition-all duration-300
-              hover:scale-105 hover:shadow-lg
+              rounded-lg
+              font-semibold text-sm
+              transition-colors duration-200
               flex items-center gap-2
             `;
 
             const variantClasses = button.variant === 'filled'
-              ? 'bg-cyan-400 hover:bg-blue-700'
-              : 'bg-white/20 hover:bg-white/30 border border-white/30 backdrop-blur-sm ';
+              ? 'bg-primary text-primary-foreground hover:bg-primary-hover'
+              : 'bg-card text-foreground hover:bg-accent border border-input';
 
             return (
               <button

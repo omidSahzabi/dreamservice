@@ -5,33 +5,35 @@ import {
   NavigationMenuList,
   NavigationMenuItem,
 } from "@/components/ui/navigation-menu";
-import { navItems } from "@/lib/dic";
-import type { NavItem } from "@/lib/dic";
 import NavLink from "./NavLink";
 import NavDropdown from "./NavDropdown";
+import { IsActiveFunction } from "./types";
+import { useNavItems } from "./useNavItems";
 
-type DesktopNavProps = {
-  isActive: (href?: string) => boolean;
-};
+interface DesktopNavProps {
+  isActive: IsActiveFunction;
+}
 
 export default function DesktopNav({ isActive }: DesktopNavProps) {
+  const navItems = useNavItems();
+
   return (
     <div className="hidden lg:flex items-center">
       <NavigationMenu>
-        <NavigationMenuList className="gap-6">
-          {(navItems as NavItem[]).map((item) => {
-            const activeParent: boolean =
-              isActive(item.href) ||
-              (item.children?.some((child) => isActive(child.href)) ?? false);
+        <NavigationMenuList className="flex items-center gap-6">
+          {navItems.map((item) => {
+            if (item.children) {
+              const activeParent =
+                isActive(item.href) ||
+                item.children.some((c) => isActive(c.href));
 
-            if (item.children?.length) {
               return (
                 <NavDropdown
                   key={item.label}
                   label={item.label}
                   items={item.children}
-                  isActive={activeParent}
-                  isChildActive={isActive}
+                  activeParent={activeParent}
+                  isChildActive={(href) => isActive(href)}
                 />
               );
             }
@@ -41,7 +43,7 @@ export default function DesktopNav({ isActive }: DesktopNavProps) {
                 <NavLink
                   href={item.href ?? "#"}
                   label={item.label}
-                  isActive={activeParent}
+                  active={isActive(item.href)}
                 />
               </NavigationMenuItem>
             );

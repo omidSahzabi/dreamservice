@@ -1,30 +1,18 @@
-import { useState, useEffect } from 'react';
-import { intervalToDuration, isBefore } from 'date-fns';
+"use client";
+import { useEffect, useState } from "react";
+import { countdownAt } from "@/lib/projects/countdown";
 
-export function useCountdown(targetDate: Date) {
-  const [state, setState] = useState({
-    days: 0, hours: 0, minutes: 0, seconds: 0, isLaunched: false
-  });
-
+export function useCountdown(deadline: string, serverNow: number) {
+  const [state, setState] = useState(() => countdownAt(deadline, serverNow));
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
-      if (isBefore(targetDate, new Date()))
-        return setState((s) => ({ ...s, isLaunched: true }));
-
-      const d = intervalToDuration({ start: new Date(), end: targetDate });
-      setState({
-        days: d.days ?? 0,
-        hours: d.hours ?? 0,
-        minutes: d.minutes ?? 0,
-        seconds: d.seconds ?? 0,
-        isLaunched: false,
-      });
+      const next = countdownAt(deadline, Date.now());
+      setState(next);
+      if (!next.expired) timer = setTimeout(tick, 1000);
     };
-
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [targetDate]);
-
-  return { timeLeft: state, isLaunched: state.isLaunched };
+    timer = setTimeout(tick, 0);
+    return () => clearTimeout(timer);
+  }, [deadline]);
+  return state;
 }

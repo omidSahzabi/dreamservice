@@ -1,4 +1,10 @@
-export function TimeUnitBox({ value, label, showDivider }) {
+interface TimeUnitBoxProps {
+  value: number;
+  label: string;
+  showDivider: boolean;
+}
+
+export function TimeUnitBox({ value, label, showDivider }: TimeUnitBoxProps) {
   return (
     <div className="relative group">
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center relative">

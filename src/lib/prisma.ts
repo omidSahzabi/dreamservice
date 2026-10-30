@@ -1,3 +1,4 @@
+import "server-only";
 import { PrismaClient } from "@prisma/client";
 
 declare global {
@@ -5,9 +6,10 @@ declare global {
 }
 
 export const prisma =
-  global.prisma ??
-  new PrismaClient({
-    log: ["query", "info", "warn", "error"],
-  });
+  (typeof global.prisma?.orderStatusHistory?.create === "function" &&
+   typeof global.prisma?.userManagementAudit?.create === "function" &&
+   typeof global.prisma?.project?.create === "function" &&
+   typeof global.prisma?.supportTicket?.create === "function" ? global.prisma : undefined) ??
+  new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") global.prisma = prisma;

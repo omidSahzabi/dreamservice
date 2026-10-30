@@ -9,38 +9,257 @@ datasource db {
   schemas  = ["public", "entity", "upro"]
 }
 
-model User {
-  id       String   @id @db.Uuid
-  email    String   @unique
-  contact  String?
-  cr       DateTime?
-  password String
-  fname    String?
-  lname    String?
-  natcode  String?
+// ============================================================
+// EXISTING MODELS
+// ============================================================
 
-  orders   Order[]  @relation("ClientOrders")
+model User {
+  id      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email   String?   @unique
+  username String? @unique @db.VarChar(30)
+  contact String?   @unique
+  cr      DateTime? @default(now())
+  fname   String?
+  lname   String?
+  natcode String?
+  contactVerifiedAt DateTime?
+  bannedAt DateTime?
+
+  orders   Order[]   @relation("ClientOrders")
+  sessions Session[]
+  orderDecisions OrderStatusHistory[]
+  managementActions UserManagementAudit[] @relation("ManagementActor")
+  managementHistory UserManagementAudit[] @relation("ManagementTarget")
+  supportTickets SupportTicket[]
+  supportMessages SupportTicketMessage[]
+  supportNotifications SupportTicketNotification[]
 
   @@map("users")
+  @@schema("entity")
+}
+
+enum OtpChannel {
+  PHONE
+  EMAIL
+
+  @@schema("entity")
+}
+
+enum OtpPurpose {
+  REGISTER
+  LOGIN
+
+  @@schema("entity")
+}
+
+model OtpVerification {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  target     String
+  channel    OtpChannel
+  purpose    OtpPurpose
+  codeHash   String     @db.VarChar(255)
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+  browserBindingHash String?
+  deliveryState      String?
+
+  @@index([target, channel, purpose])
+  @@map("otp_verifications")
+  @@schema("entity")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@schema("entity")
+}
+
+model RegistrationGrant {
+  tokenHash          String     @id
+  phone              String
+  browserBindingHash String
+  purpose            OtpPurpose @default(REGISTER)
+  expiresAt          DateTime
+  consumedAt         DateTime?
+  createdAt          DateTime   @default(now())
+
+  @@index([expiresAt])
+  @@map("registration_grants")
+  @@schema("entity")
+}
+
+model SecurityRateLimit {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("security_rate_limits")
   @@schema("entity")
 }
 
 model Order {
   order_id     Int     @id @default(autoincrement())
   client_id    String  @db.Uuid
-
-  type         String   // web, game, mobile...
-  page_count   Int?     // size indicator
-  budget_range String   // <1k, 1-5k, 5-10k, 10k+
-  status       String   // draft, submitted, etc
-
+  type         String?
+  page_count   Int?
+  budget_range String?
   description  String?
+  status       String?
+  cr           String?
+  meta         Json?
+  idempotency_key String?
+  request_hash    String?
 
-  meta         Json?    // ONLY extras
+  client User @relation("ClientOrders", fields: [client_id], references: [id])
+  statusHistory OrderStatusHistory[]
+  project Project?
+  supportTickets SupportTicket[]
 
-  client       User    @relation("ClientOrders", fields: [client_id], references: [id])
+  @@unique([client_id, idempotency_key])
 
   @@map("orders")
+  @@schema("entity")
+}
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+
+  @@schema("entity")
+}
+
+model Project {
+  id String @id @default(uuid()) @db.Uuid
+  orderId Int? @unique
+  title String @db.VarChar(200)
+  titleFa String @db.VarChar(200)
+  description String? @db.VarChar(5000)
+  descriptionFa String? @db.VarChar(5000)
+  status ProjectStatus @default(PLANNED)
+  startAt DateTime? @db.Timestamptz(3)
+  deadlineAt DateTime? @db.Timestamptz(3)
+  isPublic Boolean @default(false)
+  showOnHomepage Boolean @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  order Order? @relation(fields: [orderId], references: [order_id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@map("projects")
+  @@schema("entity")
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_CUSTOMER
+  CLOSED
+
+  @@schema("entity")
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+
+  @@schema("entity")
+}
+
+model SupportTicket {
+  id String @id @default(uuid()) @db.Uuid
+  number Int @unique @default(autoincrement())
+  customerId String @db.Uuid
+  orderId Int?
+  subject String @db.VarChar(200)
+  status SupportTicketStatus @default(OPEN)
+  priority SupportTicketPriority @default(NORMAL)
+  requestKey String @db.Uuid
+  requestHash String @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  lastMessageAt DateTime @default(now()) @db.Timestamptz(3)
+  closedAt DateTime? @db.Timestamptz(3)
+  customer User @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  order Order? @relation(fields: [orderId], references: [order_id], onDelete: Restrict)
+  messages SupportTicketMessage[]
+  notifications SupportTicketNotification[]
+
+  @@unique([customerId, requestKey])
+  @@index([customerId, lastMessageAt, id])
+  @@index([status, priority, lastMessageAt, id])
+  @@index([priority, lastMessageAt, id])
+  @@index([lastMessageAt, id])
+  @@index([orderId])
+  @@map("support_tickets")
+  @@schema("entity")
+}
+
+model SupportTicketMessage {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  senderId String @db.Uuid
+  isAdmin Boolean
+  body String @db.VarChar(8000)
+  requestKey String @db.Uuid
+  requestHash String @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  notification SupportTicketNotification?
+
+  @@unique([senderId, requestKey])
+  @@index([ticketId, createdAt, id])
+  @@map("support_ticket_messages")
+  @@schema("entity")
+}
+
+// A null recipient is the shared admin inbox. Reads exclude the message sender.
+model SupportTicketNotification {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  messageId String @unique @db.Uuid
+  recipientId String? @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  message SupportTicketMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  recipient User? @relation(fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@index([recipientId, createdAt, id])
+  @@index([ticketId])
+  @@map("support_ticket_notifications")
+  @@schema("entity")
+}
+
+model OrderStatusHistory {
+  id String @id @default(uuid()) @db.Uuid
+  orderId Int
+  previousStatus String
+  newStatus String
+  adminUserId String @db.Uuid
+  message String @db.VarChar(2000)
+  createdAt DateTime @default(now())
+  notificationState String @default("PENDING")
+  notificationAttempts Int @default(0)
+  notificationNextAttemptAt DateTime @default(now())
+  notificationUpdatedAt DateTime @default(now())
+  order Order @relation(fields: [orderId], references: [order_id], onDelete: Restrict)
+  admin User @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
   @@schema("entity")
 }
 
@@ -80,12 +299,355 @@ model BlogPost {
   @@schema("entity")
 }
 
+model UserManagementAudit {
+  id String @id @default(uuid()) @db.Uuid
+  targetUserId String @db.Uuid
+  actorUserId String @db.Uuid
+  action String @db.VarChar(20)
+  previousValue Json
+  newValue Json
+  reason String @db.VarChar(1000)
+  createdAt DateTime @default(now())
+  target User @relation("ManagementTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
+  actor User @relation("ManagementActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([targetUserId, createdAt])
+  @@map("user_management_audit")
+  @@schema("entity")
+}
+
 model PersonProfile {
   pr_id      Int     @id @default(autoincrement())
   user_id    String  @db.Uuid
   pr_company String?
   role       String?
 
+  @@index([user_id, role], map: "person_profile_user_id_role_idx")
+
   @@map("person_profile")
   @@schema("upro")
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  url       String
+  altText   String?
+  type      String
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  @@index([ownerId, type], map: "images_owner_id_type_idx")
+  @@map("images")
+  @@schema("entity")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum LocaleCode {
+  fa
+  en
+
+  @@map("locale_code")
+  @@schema("public")
+}
+
+enum ContentStatus {
+  draft
+  published
+  archived
+
+  @@map("content_status")
+  @@schema("public")
+}
+
+enum ContentType {
+  page
+  section
+  text
+  hero
+  feature
+  faq
+  cta
+  form
+
+  @@map("content_type")
+  @@schema("public")
+}
+
+enum FormFieldType {
+  text
+  email
+  tel
+  number
+  textarea
+  select
+  radio
+  checkbox
+
+  @@map("form_field_type")
+  @@schema("public")
+}
+
+// ============================================================
+// CONTENT
+// ============================================================
+
+model Content {
+  id          BigInt        @id @default(autoincrement())
+  content_key String        @unique @db.VarChar(150)
+  type        ContentType
+  status      ContentStatus @default(published)
+  parent_id   BigInt?
+  sort_order  Int           @default(0)
+  data        Json          @default("{}")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  parent   Content?  @relation("ContentHierarchy", fields: [parent_id], references: [id], onDelete: Cascade)
+  children Content[] @relation("ContentHierarchy")
+
+  translations ContentTranslation[]
+
+  @@index([parent_id], map: "content_parent_idx")
+  @@index([status], map: "content_status_idx")
+  @@index([type], map: "content_type_idx")
+  @@index([parent_id, sort_order], map: "content_sort_idx")
+  @@map("content")
+  @@schema("public")
+}
+
+// ============================================================
+// CONTENT TRANSLATIONS
+// ============================================================
+
+model ContentTranslation {
+  id         BigInt     @id @default(autoincrement())
+  content_id BigInt
+  locale     LocaleCode
+
+  title       String?
+  subtitle    String?
+  description String?
+  body        String?
+
+  data Json @default("{}")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  content Content @relation(fields: [content_id], references: [id], onDelete: Cascade)
+
+  @@unique([content_id, locale], map: "content_translation_unique")
+  @@index([locale], map: "content_translation_locale_idx")
+  @@map("content_translation")
+  @@schema("public")
+}
+
+// ============================================================
+// ORDER FORMS
+// ============================================================
+
+model OrderForm {
+  id       BigInt        @id @default(autoincrement())
+  form_key String        @unique @db.VarChar(100)
+  status   ContentStatus @default(published)
+
+  show_progress Boolean @default(true)
+  allow_back    Boolean @default(true)
+
+  submit_button_text Json @default("{\"fa\":\"ثبت سفارش\",\"en\":\"Submit Order\"}")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  translations OrderFormTranslation[]
+  steps        OrderFormStep[]
+
+  @@index([status], map: "order_forms_status_idx")
+  @@map("order_forms")
+  @@schema("public")
+}
+
+// ============================================================
+// ORDER FORM TRANSLATIONS
+// ============================================================
+
+model OrderFormTranslation {
+  id      BigInt     @id @default(autoincrement())
+  form_id BigInt
+  locale  LocaleCode
+
+  title       String
+  description String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  form OrderForm @relation(fields: [form_id], references: [id], onDelete: Cascade)
+
+  @@unique([form_id, locale], map: "order_form_translation_unique")
+  @@index([locale], map: "order_form_translation_locale_idx")
+  @@map("order_form_translations")
+  @@schema("public")
+}
+
+// ============================================================
+// FORM STEPS
+// ============================================================
+
+model OrderFormStep {
+  id      BigInt @id @default(autoincrement())
+  form_id BigInt
+
+  step_key   String @db.VarChar(100)
+  step_order Int
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  form         OrderForm                  @relation(fields: [form_id], references: [id], onDelete: Cascade)
+  translations OrderFormStepTranslation[]
+  fields       OrderFormField[]
+
+  @@unique([form_id, step_key], map: "order_form_step_key_unique")
+  @@unique([form_id, step_order], map: "order_form_step_order_unique")
+  @@index([form_id], map: "order_form_steps_form_idx")
+  @@index([form_id, step_order], map: "order_form_steps_order_idx")
+  @@map("order_form_steps")
+  @@schema("public")
+}
+
+// ============================================================
+// STEP TRANSLATIONS
+// ============================================================
+
+model OrderFormStepTranslation {
+  id      BigInt     @id @default(autoincrement())
+  step_id BigInt
+  locale  LocaleCode
+
+  title       String
+  description String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  step OrderFormStep @relation(fields: [step_id], references: [id], onDelete: Cascade)
+
+  @@unique([step_id, locale], map: "order_form_step_translation_unique")
+  @@map("order_form_step_translations")
+  @@schema("public")
+}
+
+// ============================================================
+// FORM FIELDS
+// ============================================================
+
+model OrderFormField {
+  id      BigInt @id @default(autoincrement())
+  step_id BigInt
+
+  field_key   String        @db.VarChar(100)
+  field_type  FormFieldType
+  field_order Int
+
+  required Boolean @default(false)
+
+  placeholder Json @default("{}")
+  validation  Json @default("{}")
+  visibility  Json @default("{}")
+
+  default_value Json?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  step         OrderFormStep               @relation(fields: [step_id], references: [id], onDelete: Cascade)
+  translations OrderFormFieldTranslation[]
+  options      OrderFormFieldOption[]
+
+  @@unique([step_id, field_key], map: "order_form_field_key_unique")
+  @@unique([step_id, field_order], map: "order_form_field_order_unique")
+  @@index([step_id], map: "order_form_fields_step_idx")
+  @@index([step_id, field_order], map: "order_form_fields_order_idx")
+  @@index([field_type], map: "order_form_fields_type_idx")
+  @@map("order_form_fields")
+  @@schema("public")
+}
+
+// ============================================================
+// FIELD TRANSLATIONS
+// ============================================================
+
+model OrderFormFieldTranslation {
+  id       BigInt     @id @default(autoincrement())
+  field_id BigInt
+  locale   LocaleCode
+
+  label       String
+  description String?
+  placeholder String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  field OrderFormField @relation(fields: [field_id], references: [id], onDelete: Cascade)
+
+  @@unique([field_id, locale], map: "order_form_field_translation_unique")
+  @@index([locale], map: "order_form_field_translation_locale_idx")
+  @@map("order_form_field_translations")
+  @@schema("public")
+}
+
+// ============================================================
+// FIELD OPTIONS
+// ============================================================
+
+model OrderFormFieldOption {
+  id       BigInt @id @default(autoincrement())
+  field_id BigInt
+
+  option_value String @db.VarChar(150)
+  option_order Int
+
+  metadata Json @default("{}")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  field        OrderFormField                    @relation(fields: [field_id], references: [id], onDelete: Cascade)
+  translations OrderFormFieldOptionTranslation[]
+
+  @@unique([field_id, option_value], map: "order_form_field_option_unique")
+  @@unique([field_id, option_order], map: "order_form_field_option_order_unique")
+  @@index([field_id], map: "order_form_field_options_field_idx")
+  @@index([field_id, option_order], map: "order_form_field_options_order_idx")
+  @@map("order_form_field_options")
+  @@schema("public")
+}
+
+// ============================================================
+// OPTION TRANSLATIONS
+// ============================================================
+
+model OrderFormFieldOptionTranslation {
+  id        BigInt     @id @default(autoincrement())
+  option_id BigInt
+  locale    LocaleCode
+
+  label       String
+  description String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  option OrderFormFieldOption @relation(fields: [option_id], references: [id], onDelete: Cascade)
+
+  @@unique([option_id, locale], map: "order_form_option_translation_unique")
+  @@index([locale], map: "order_form_option_translation_locale_idx")
+  @@map("order_form_field_option_translations")
+  @@schema("public")
 }
