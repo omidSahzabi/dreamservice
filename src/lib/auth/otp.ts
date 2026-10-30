@@ -11,6 +11,7 @@ import { digest, equalDigest, newSecret, protectedHash, validSecret } from "@/li
 import { otpOperation, readJson, SecurityError, securityEvent, validateMutation } from "@/lib/security/http";
 import { otpLimits, requestSource } from "@/lib/security/rate-limit";
 import type { ApiErrorCode } from "@/lib/api/errors";
+import { phoneAccount } from "@/lib/auth/phone-account";
 
 export const BINDING_COOKIE = "dream_auth_binding";
 export const CHALLENGE_COOKIE = "dream_otp_challenge";
@@ -36,6 +37,8 @@ export async function requestOtp(request: Request) {
   const consoleDelivery = process.env.OTP_DELIVERY_MODE === "console";
   if (consoleDelivery && process.env.NODE_ENV !== "development") throw new SecurityError(503, "SMS_FAILED");
   await otpOperation("rate_limit", () => otpLimits(phone, requestSource(request), false));
+  const account = await phoneAccount(prisma, phone);
+  if (account?.bannedAt) throw new SecurityError(403, "ACCOUNT_BANNED");
   const jar = await otpOperation("cookie_access", () => cookies());
   const oldBinding = jar.get(BINDING_COOKIE)?.value;
   const binding = validSecret(oldBinding) ? oldBinding : newSecret();
@@ -89,10 +92,10 @@ export async function verifyOtpRequest(request: Request) {
     if (!equalDigest(otp.codeHash, otpHash(otp.id, phone, purpose, code))) return { error: "OTP_INVALID" as const, status: 400 };
     const consumed = await tx.otpVerification.updateMany({ where: { id: otp.id, consumedAt: null, expiresAt: { gt: new Date() } }, data: { consumedAt: new Date() } });
     if (!consumed.count) return { error: "OTP_USED" as const, status: 400 };
-    const user = await tx.user.findUnique({ where: { contact: phone }, select: { id: true } });
+    const user = await phoneAccount(tx, phone);
     if (user) {
       if (purpose !== "LOGIN") return { error: "OTP_INVALID" as const, status: 400 };
-      await tx.user.updateMany({where: {id: user.id, contact: phone}, data: {contactVerifiedAt: new Date()}});
+      await tx.user.updateMany({where: {id: user.id}, data: {contactVerifiedAt: new Date()}});
       const token = await insertSession(tx, user.id, jar.get(SESSION_COOKIE_NAME)?.value);
       return { isNewUser: false as const, token };
     }

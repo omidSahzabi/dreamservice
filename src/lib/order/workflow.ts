@@ -5,6 +5,7 @@ import {requireAdmin, requireAuth, requireOwnership} from "@/lib/auth/authorizat
 import {readJson, SecurityError, securityEvent, validateMutation} from "@/lib/security/http";
 import {transitionSchema, allowedOrderActions} from "@/schemas/orderWorkflow";
 import {deliverOrderNotification} from "@/lib/order/notifications";
+import {authorizeMutation} from "@/lib/auth/mutation";
 
 async function workflowOperation<T>(operation: string, run: () => Promise<T>): Promise<T> {
   try { return await run(); }
@@ -30,10 +31,11 @@ export async function changeOrderStatus(request: Request, orderId: number) {
   const {expectedStatus, newStatus, message} = parsed.data;
   if (!allowedOrderActions(expectedStatus).some(status => status === newStatus)) throw new SecurityError(422, "ORDER_TRANSITION_INVALID");
   const history = await prisma.$transaction(async tx => {
+    await authorizeMutation(tx, admin, true);
     const changed = await tx.order.updateMany({where: {order_id: orderId, status: expectedStatus}, data: {status: newStatus}});
     if (changed.count !== 1) throw new SecurityError(409, "ORDER_STATUS_CONFLICT");
     return workflowOperation("history_create", async () => tx.orderStatusHistory.create({data: {orderId, previousStatus: expectedStatus, newStatus, adminUserId: admin.id, message}}));
-  });
+  }, {isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted});
   // Delivery is outside the transaction: no delivery error can undo a decision.
   await deliverOrderNotification(history.id).catch(() => {securityEvent("operation_failed");});
   return {success: true, historyId: history.id};

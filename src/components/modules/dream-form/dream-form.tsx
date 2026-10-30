@@ -5,6 +5,7 @@ import {useLocale, useTranslations} from 'next-intl';
 import {toast} from 'sonner';
 import { useForm, SubmitHandler, FieldErrors, RegisterOptions } from 'react-hook-form';
 import clsx from 'clsx';
+import { DreamServiceLoader } from '@/components/brand/DreamServiceLoader';
 
 // ============== Types ==============
 type InputType = 
@@ -551,6 +552,7 @@ const baseInputClasses = clsx(
         <button
           type="submit"
           disabled={isSubmitting}
+          aria-busy={isSubmitting || undefined}
           className={clsx(
             'flex-1 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg',
             'hover:bg-primary-hover focus:ring-4 focus:ring-blue-300',
@@ -560,10 +562,7 @@ const baseInputClasses = clsx(
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <DreamServiceLoader loading size="sm" decorative className="text-inherit" />
               {t("submitting")}
             </span>
           ) : (

@@ -13,6 +13,9 @@ test('development replaces a pre-migration cached Prisma client and reuses the c
   class PrismaClient {
     constructor(){created++;}
     orderStatusHistory={create(){}};
+    userManagementAudit={create(){}};
+    project={create(){}};
+    supportTicket={create(){}};
   }
   const overrides={'@prisma/client':{PrismaClient}};
   const first=load('src/lib/prisma.ts',overrides).prisma;
@@ -34,6 +37,7 @@ test('stale history delegate reproduces a safe history_create diagnostic and rol
   const route=load('src/app/api/order/[orderId]/status/route.ts',{
     '@/lib/prisma':{prisma},
     '@/lib/auth/authorization':{requireAdmin:async()=>({id:'fixture-admin',permission:'ADMIN'})},
+    '@/lib/auth/mutation':{authorizeMutation:async()=>{}},
     '@/lib/order/notifications':{deliverOrderNotification:async()=>{throw new Error('Must not run');}},
   });
   const response=await route.POST(new Request('http://localhost/api/order/1/status',{

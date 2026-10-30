@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Loader2,
   RefreshCw,
   ShieldCheck,
   Sparkles,
@@ -22,12 +21,14 @@ import { useOrderStore } from "@/store/orderStore";
 import type { OrderFormConfig, OrderFormData } from "@/types/order";
 
 import {localizeApiError} from "@/lib/api/errors";
-import type {ApiError} from "@/lib/api/errors";
+import {ApiError} from "@/lib/api/errors";
 
 import { StepRenderer } from "./StepRenderer";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "@/lib/i18n/navigation";
 import { AccessRequired } from "@/components/modules/auth/AccessRequired";
 import {OrderReceipt} from "./OrderReceipt";
+import {ContentSkeleton} from "@/components/ui/content-skeleton";
 
 export function OrderForm() {
   const {user, isLoading: authLoading, isError: authFailed} = useAuth();
@@ -52,14 +53,9 @@ export function OrderForm() {
     return (
       <main
         dir={isRtl ? "rtl" : "ltr"}
-        className="flex min-h-screen items-center justify-center bg-bg-primary p-4"
+        className="mx-auto min-h-[60vh] max-w-5xl bg-bg-primary p-4 sm:p-8"
       >
-        <div role="status" className="flex flex-col items-center gap-3 rounded-2xl border border-border-soft/60 bg-bg-secondary/40 p-8 text-center shadow-soft">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-text-secondary">
-            {t("loading")}
-          </p>
-        </div>
+        <ContentSkeleton layout="form" label={t("loading")} />
       </main>
     );
   }
@@ -213,7 +209,7 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
         noValidate
       >
         <fieldset disabled={submitMutation.isPending} className="min-w-0 border-0 p-0">
-        <main className="min-h-screen bg-background px-4 py-8 selection:bg-primary/20 selection:text-primary sm:py-12 lg:py-16">
+        <main className="ds-content-reveal min-h-screen bg-background px-4 py-8 selection:bg-primary/20 selection:text-primary sm:py-12 lg:py-16">
           <div className="mx-auto w-full max-w-2xl">
             <header className="mb-8 text-center sm:mb-10">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur-md">
@@ -314,8 +310,9 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
 
               <section className="p-6 sm:p-8">
                 {submitError && (
-                  <div role="alert" className="mb-6 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-medium text-destructive">
+                  <div role="alert" className="mb-6 space-y-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-medium text-destructive">
                     {localizeApiError(submitError, errors)}
+                    {submitError instanceof ApiError && submitError.code === "ORDER_OPEN_EXISTS" && Number.isSafeInteger(submitError.values.orderId) && submitError.values.orderId > 0 && <Link className="block underline" href={`/order?orderId=${submitError.values.orderId}`}>{t("viewExistingOrder")}</Link>}
                   </div>
                 )}
 
@@ -347,12 +344,12 @@ function OrderFormWizardContent({ config }: { config: OrderFormConfig }) {
                   {isLastStep ? (
                     <Button
                       type="submit"
-                      disabled={submitMutation.isPending}
+                      pending={submitMutation.isPending}
+                      pendingLabel={t("submitting")}
                       className="h-11 gap-2 rounded-xl bg-primary px-7 font-semibold text-primary-foreground shadow-xs hover:bg-primary-hover disabled:opacity-50"
                     >
                       {submitMutation.isPending ? (
                         <>
-                          <Loader2 className="size-4 animate-spin" />
                           <span>{t("submitting")}</span>
                         </>
                       ) : (

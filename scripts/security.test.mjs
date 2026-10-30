@@ -13,7 +13,7 @@ const otherPhone = '09000000001';
 
 // In-memory transactional substitute, not a claim about real PostgreSQL locking.
 function database() {
-  let state = Object.fromEntries(['user','personProfile','session','otpVerification','registrationGrant','securityRateLimit','order','orderForm','image'].map(name => [name, []]));
+  let state = Object.fromEntries(['user','personProfile','session','otpVerification','registrationGrant','securityRateLimit','order','orderForm','image','userManagementAudit'].map(name => [name, []]));
   const calls = [];
   function matches(row, where = {}) {
     return Object.entries(where).every(([key, expected]) => {
@@ -78,7 +78,12 @@ function database() {
       }
     };
   }
-  prisma.$queryRaw = async () => [{locked:1}];
+  prisma.$queryRaw = async (sql) => {
+    const text = Array.isArray(sql) ? sql.join('') : sql.strings.join('');
+    calls.push(['raw', text]);
+    if (text.includes('count(*)')) return [{total: BigInt(state.user.filter(user => !user.bannedAt && state.personProfile.some(profile => profile.user_id === user.id && profile.role === 'app-admin')).length)}];
+    return [{locked:1}];
+  };
   let pending = Promise.resolve();
   prisma.$transaction = operation => {
     if (Array.isArray(operation)) return Promise.all(operation);
@@ -194,7 +199,7 @@ for (const [name,change] of [
   ['existing customer claim',env => {env.db.state.user.push(user());}]
 ]) test('registration rejects '+name,async () => {
   const env = await registrationEnvironment(); const contact = change(env) ?? phone;
-  assert.equal((await env.load('src/app/api/auth/register/route.ts').POST(registration(contact))).status,403);
+  assert.equal((await env.load('src/app/api/auth/register/route.ts').POST(registration(contact))).status,name==='existing customer claim'?409:403);
   assert.equal(env.db.state.session.length,0);
 });
 
@@ -389,7 +394,7 @@ test('published team response excludes identifiers and authorization roles',asyn
   process.env.PUBLIC_TEAM_PROFILE_IDS = '1'; const env = environment(); const identity = user(); env.db.state.user.push(identity); env.db.state.personProfile.push({pr_id:1,user_id:identity.id,role:'app-admin'});
   try {
     const body = await (await env.load('src/app/api/team/route.ts').GET()).json();
-    assert.deepEqual(Object.keys(body[0]).sort(),['image','user']); assert.deepEqual(Object.keys(body[0].user).sort(),['fname','lname']);
+    assert.deepEqual(Object.keys(body[0]).sort(),['image','user','websiteUrl']); assert.deepEqual(Object.keys(body[0].user).sort(),['fname','lname']);
   } finally {delete process.env.PUBLIC_TEAM_PROFILE_IDS;}
 });
 
@@ -684,4 +689,211 @@ test('OTP operation diagnostics remain disabled in production',async t => {
   t.mock.method(console,'warn',line => diagnostics.push(line));
   await assert.rejects(env.load('src/lib/security/http.ts').otpOperation('rate_limit', () => {throw new Error('private');}));
   assert.equal(diagnostics.length,0);
+});
+
+function managementEnvironment() {
+  const env = environment();
+  const actor = {...user(), bannedAt:null};
+  const target = {...user(randomUUID(),otherPhone),contactVerifiedAt:new Date(),bannedAt:null};
+  session(env,actor,['app-admin']); env.db.state.user.push(target);
+  const body = (action, expectedAdmin = false, expectedBanned = false) => ({action,expectedAdmin,expectedBanned,reason:'Synthetic security review'});
+  return {...env,actor,target,body};
+}
+
+test('management promotion and demotion apply to an existing session and audit actual values',async () => {
+  const env = managementEnvironment();
+  env.db.state.personProfile.push({user_id:env.target.id,role:'developer'});
+  const service = env.load('src/lib/admin/users.ts');
+  await service.manageUser(request(env.body('promote')),env.target.id);
+  assert.equal(env.db.state.userManagementAudit.length,1);
+  assert.deepEqual(env.db.state.userManagementAudit[0].previousValue.roles,['developer']);
+  assert.deepEqual(env.db.state.userManagementAudit[0].newValue.roles,['developer','app-admin']);
+  const actorToken = env.values.get('dream_session');
+  const targetToken = secret();
+  env.db.state.session.push({token:'sha256:'+hash(targetToken),userId:env.target.id,expiresAt:new Date(Date.now()+60000)});
+  env.values.set('dream_session',targetToken);
+  assert.equal((await env.load('src/lib/auth/authorization.ts').requireAdmin()).id,env.target.id);
+  env.values.set('dream_session',actorToken);
+  await service.manageUser(request(env.body('demote',true)),env.target.id);
+  env.values.set('dream_session',targetToken);
+  await assert.rejects(env.load('src/lib/auth/authorization.ts').requireAdmin(),error=>error.status===403);
+  assert.equal(env.db.state.userManagementAudit.length,2);
+  assert.equal(env.db.state.personProfile.find(profile=>profile.user_id===env.target.id).role,'developer');
+  const audit = env.db.state.userManagementAudit[1];
+  assert.equal(audit.actorUserId,env.actor.id);assert.equal(audit.targetUserId,env.target.id);
+  assert.equal(audit.reason,'Synthetic security review');assert.ok(audit.createdAt instanceof Date);
+});
+
+test('ban revokes every target session; unban does not revive a cookie; login is rejected while banned',async () => {
+  const env = managementEnvironment();
+  const targetToken=secret();const actorToken=env.values.get('dream_session');
+  env.db.state.session.push({token:'sha256:'+hash(targetToken),userId:env.target.id,expiresAt:new Date(Date.now()+60000)});
+  const service=env.load('src/lib/admin/users.ts');
+  await service.manageUser(request(env.body('ban')),env.target.id);
+  assert.ok(env.db.state.user.find(row=>row.id===env.target.id).bannedAt);
+  assert.ok(!env.db.state.session.some(row=>row.userId===env.target.id));
+  await assert.rejects(env.load('src/lib/auth/session.ts').insertSession(env.db.prisma,env.target.id),error=>error.code==='ACCOUNT_BANNED');
+  env.values.set('dream_session',targetToken);
+  assert.equal(await env.load('src/lib/auth/session.ts').getCurrentUser(),null);
+  env.values.set('dream_session',actorToken);
+  await service.manageUser(request(env.body('unban',false,true)),env.target.id);
+  env.values.set('dream_session',targetToken);
+  assert.equal(await env.load('src/lib/auth/session.ts').getCurrentUser(),null);
+  assert.equal(env.db.state.userManagementAudit.length,2);
+});
+
+test('ban flag rejects a surviving legacy session across customer and admin authorization',async () => {
+  const env=environment();const identity={...user(),bannedAt:new Date()};session(env,identity,['app-admin']);
+  assert.equal(await env.load('src/lib/auth/session.ts').getCurrentUser(),null);
+  await assert.rejects(env.load('src/lib/auth/authorization.ts').requireAuth(),error=>error.status===401);
+  await assert.rejects(env.load('src/lib/auth/authorization.ts').requireAdmin(),error=>error.status===401);
+});
+
+test('a banned user cannot verify a valid OTP to establish a session',async () => {
+  const env=environment();env.db.state.user.push({...user(),bannedAt:new Date()});const {code}=challenge(env);
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code})),error=>error.code==='ACCOUNT_BANNED');
+  assert.equal(env.db.state.session.length,0);
+});
+
+for(const action of ['ban','demote'])test('management prevents self-'+action,async()=>{
+  const env=managementEnvironment();
+  await assert.rejects(env.load('src/lib/admin/users.ts').manageUser(request(env.body(action,true)),env.actor.id),error=>error.code==='USER_SELF_ACTION');
+  assert.equal(env.db.state.userManagementAudit.length,0);
+});
+
+test('concurrent opposing admin removals retain an active administrator',async()=>{
+  const env=managementEnvironment();env.db.state.personProfile.push({user_id:env.target.id,role:'app-admin'});
+  // Separate authenticated callers with one transactional database substitute.
+  const overrides={...env.overrides,'@/lib/auth/authorization':{ADMIN_ROLE:'app-admin',requireAdmin:async()=>({id:env.target.id,permission:'ADMIN'})}};
+  const first=env.load('src/lib/admin/users.ts');const second=load('src/lib/admin/users.ts',overrides);
+  const results=await Promise.allSettled([
+    first.manageUser(request(env.body('demote',true)),env.target.id),
+    second.manageUser(request(env.body('ban',true)),env.actor.id),
+  ]);
+  assert.equal(results.filter(result=>result.status==='fulfilled').length,1);
+  assert.equal(results.find(result=>result.status==='rejected').reason.code,'FORBIDDEN');
+  assert.equal(env.db.state.userManagementAudit.length,1);
+  assert.ok(env.db.calls.some(call=>call[0]==='raw'&&call[1].includes('pg_advisory_xact_lock')));
+});
+
+test('last-active-admin guard counts distinct active users and rejects removal',async()=>{
+  const env=managementEnvironment();env.db.state.personProfile.push({user_id:env.target.id,role:'app-admin'});
+  // Simulate an actor becoming banned after the transaction's actor check.
+  const original=env.db.prisma.$queryRaw;
+  env.db.prisma.$queryRaw=async sql=>sql.join('').includes('count(*)')?[{total:1n}]:original(sql);
+  await assert.rejects(env.load('src/lib/admin/users.ts').manageUser(request(env.body('demote',true)),env.target.id),error=>error.code==='USER_LAST_ADMIN');
+  assert.equal(env.db.state.userManagementAudit.length,0);
+});
+
+test('audit persistence failure rolls back role change and session revocation',async()=>{
+  const env=managementEnvironment();
+  env.db.prisma.userManagementAudit.create=async()=>{throw new Error('Synthetic audit failure');};
+  await assert.rejects(env.load('src/lib/admin/users.ts').manageUser(request(env.body('promote')),env.target.id));
+  assert.ok(!env.db.state.personProfile.some(row=>row.user_id===env.target.id&&row.role==='app-admin'));
+  assert.equal(env.db.state.userManagementAudit.length,0);
+});
+
+for(const change of [body=>({...body,reason:'  '}),body=>({...body,reason:'x'.repeat(1001)}),body=>({...body,userId:randomUUID()}),body=>({...body,role:'app-admin'}),body=>({...body,expectedAdmin:undefined})])test('management strictly validates input and blocks payload escalation',async()=>{
+  const env=managementEnvironment();
+  await assert.rejects(env.load('src/lib/admin/users.ts').manageUser(request(change(env.body('promote'))),env.target.id),error=>error.code==='INVALID_INPUT');
+  assert.equal(env.db.state.userManagementAudit.length,0);
+});
+
+test('management promotion rejects unverified, banned and stale accounts',async()=>{
+  for(const variant of ['unverified','banned','stale']){
+    const env=managementEnvironment();
+    if(variant==='unverified')env.target.contactVerifiedAt=null;
+    if(variant==='banned')env.target.bannedAt=new Date();
+    const body=env.body('promote',variant==='stale',variant==='banned');
+    await assert.rejects(env.load('src/lib/admin/users.ts').manageUser(request(body),env.target.id),error=>error.code===(variant==='stale'?'USER_STATE_CONFLICT':'USER_INELIGIBLE'));
+  }
+});
+
+test('management mutations use the shared database rate limiter and never mutate when denied',async()=>{
+  const env=managementEnvironment();const calls=[];
+  const service=load('src/lib/admin/users.ts',{...env.overrides,'@/lib/security/rate-limit':{enforceLimits:async(...args)=>{calls.push(args);throw Object.assign(new Error('Limit'),{code:'MANAGEMENT_RATE_LIMIT'});}}});
+  await assert.rejects(service.manageUser(request(env.body('promote')),env.target.id),error=>error.code==='MANAGEMENT_RATE_LIMIT');
+  assert.equal(calls[0][0][0].subject,env.actor.id);assert.equal(calls[0][1],'MANAGEMENT_RATE_LIMIT');
+  assert.equal(env.db.state.userManagementAudit.length,0);
+});
+
+test('every user-management endpoint denies customers and anonymous callers before reading data',async()=>{
+  for(const authenticated of [false,true]){
+    const env=environment();if(authenticated)session(env,user());
+    const service=env.load('src/lib/admin/users.ts');
+    for(const operation of [()=>service.listUsers(new Request('http://localhost/api/admin/users')),()=>service.userDetails(randomUUID()),()=>service.manageUser(request({}),randomUUID())]){
+      await assert.rejects(operation(),error=>error.status===(authenticated?403:401));
+    }
+    assert.ok(!env.db.calls.some(call=>call[0]==='userManagementAudit'||call[0]==='order'));
+  }
+});
+
+test('new management caches participate in logout and role-change cleanup',async()=>{
+  const predicates=[];
+  const clientState=load('src/lib/auth/client-state.ts',{
+    '@/store/orderStore':{useOrderStore:{getState:()=>({resetForm(){}})}},
+    '@/store/userStore':{useUserStore:{getState:()=>({setActiveRole(){}})}},
+  });
+  await clientState.clearSensitiveState({cancelQueries:async({predicate})=>predicates.push(predicate),removeQueries:({predicate})=>predicates.push(predicate)});
+  for(const predicate of predicates){
+    for(const key of ['admin-users','admin-user'])assert.equal(predicate({queryKey:[key,'en',randomUUID()]}),true);
+    assert.equal(predicate({queryKey:['order-form-config','fa']}),false);
+  }
+});
+
+test('simultaneous promotions produce one change and one audit record',async()=>{
+  const env=managementEnvironment();const service=env.load('src/lib/admin/users.ts');
+  const results=await Promise.allSettled([service.manageUser(request(env.body('promote')),env.target.id),service.manageUser(request(env.body('promote')),env.target.id)]);
+  assert.equal(results.filter(result=>result.status==='fulfilled').length,1);
+  assert.equal(results.find(result=>result.status==='rejected').reason.code,'USER_STATE_CONFLICT');
+  assert.equal(env.db.state.userManagementAudit.length,1);
+  assert.equal(env.db.state.personProfile.filter(row=>row.user_id===env.target.id&&row.role==='app-admin').length,1);
+});
+
+test('management details return a safe profile and scoped recent order summaries',async()=>{
+  const env=managementEnvironment();Object.assign(env.target,{natcode:'private-national-id'});
+  env.db.state.order.push({order_id:42,client_id:env.target.id,type:'web',status:'PENDING',cr:'2026-10-23',meta:{private:'hidden'},description:'private description'});
+  env.db.state.order.push({order_id:43,client_id:env.actor.id,type:'web',status:'PENDING'});
+  const result=await env.load('src/lib/admin/users.ts').userDetails(env.target.id);
+  assert.equal(result.orderCount,1);assert.equal(result.orders.length,1);assert.equal(result.orders[0].order_id,42);
+  for(const forbidden of ['natcode','token','codeHash','contactVerifiedAt','meta','description'])assert.ok(!JSON.stringify(result).includes(forbidden));
+  const orderQuery=env.db.calls.find(call=>call[0]==='order'&&call[1]==='findMany')[2];
+  assert.equal(orderQuery.take,10);assert.deepEqual(orderQuery.where,{client_id:env.target.id});
+});
+
+test('user list pagination, search and role/status filters use bounded SQL parameters',async()=>{
+  const env=managementEnvironment();const queries=[];
+  env.db.prisma.$queryRaw=async sql=>{
+    queries.push(sql);
+    return sql.strings.join('').includes('count(*)')?[{total:11n}]:[{id:env.target.id}];
+  };
+  const search="%_' OR 1=1 --";
+  const result=await env.load('src/lib/admin/users.ts').listUsers(new Request('http://localhost/api/admin/users?'+new URLSearchParams({page:'2',limit:'10',search,role:'customer',status:'active'})));
+  assert.equal(result.total,11);assert.equal(result.data[0].id,env.target.id);
+  for(const sql of queries){assert.ok(!sql.strings.join('').includes(search));assert.ok(sql.values.includes(search));assert.ok(sql.values.includes('app-admin'));}
+  assert.deepEqual(queries[1].values.slice(-2),[10,10]);
+});
+
+for(const query of ['page=0','limit=101','role=ADMIN','status=deleted','page=1&page=2','includeSecrets=true'])test('user list rejects invalid query '+query,async()=>{
+  const env=managementEnvironment();
+  await assert.rejects(env.load('src/lib/admin/users.ts').listUsers(new Request('http://localhost/api/admin/users?'+query)),error=>error.code==='INVALID_INPUT');
+});
+
+test('banned sessions cannot list or submit customer orders or reach management endpoints',async()=>{
+  const env=environment();session(env,{...user(),bannedAt:new Date()},['app-admin']);
+  const list=await env.load('src/app/api/order/load-orders/route.ts').GET(new NextRequest('http://localhost/api/order/load-orders'));
+  const submit=await env.load('src/app/api/order/submit-order/route.ts').POST(request({}));
+  const management=env.load('src/app/api/admin/users/[userId]/route.ts');
+  const context={params:Promise.resolve({userId:randomUUID()})};
+  assert.equal(list.status,401);assert.equal(submit.status,401);
+  assert.equal((await management.GET(request({}),context)).status,401);
+  assert.equal((await management.PATCH(request({}),context)).status,401);
+  assert.ok(!env.db.calls.some(call=>call[0]==='order'));
+});
+
+test('banned account cannot request OTP delivery',async()=>{
+  const env=environment();env.db.state.user.push({...user(),bannedAt:new Date()});let sent=false;
+  const otp=load('src/lib/auth/otp.ts',{...env.overrides,'@/lib/auth/sms':{sendOtpSms:async()=>{sent=true;throw new Error('Must not send');}}});
+  await assert.rejects(otp.requestOtp(request({target:phone})),error=>error.code==='ACCOUNT_BANNED');
+  assert.equal(sent,false);assert.equal(env.db.state.otpVerification.length,0);
 });

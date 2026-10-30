@@ -1,4 +1,5 @@
 export interface TeamMember {
+  websiteUrl?: string | null;
   pr_id?: number;
   user_id?: string;
   role?: string | null;

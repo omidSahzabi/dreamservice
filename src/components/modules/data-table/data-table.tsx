@@ -46,6 +46,7 @@ export interface DataTableProps<TData, TValue = unknown> {
   enableDensityToggle?: boolean;
   enableExport?: boolean;
   enablePagination?: boolean;
+  pageSizeOptions?: number[];
   manualPagination?: boolean;
   pageCount?: number;
   rowCount?: number;
@@ -77,6 +78,7 @@ export function DataTable<TData, TValue>({
   enableDensityToggle = true,
   enableExport = false,
   enablePagination = true,
+  pageSizeOptions,
   manualPagination = false,
   pageCount,
   rowCount,
@@ -135,6 +137,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full space-y-4" aria-busy={isLoading}>
+      {isLoading && !errorMessage && <span role="status" className="sr-only">{t("loading")}</span>}
       {errorMessage && <div role="alert" className="rounded-lg border border-destructive p-4 text-destructive">
         <p>{errorMessage}</p>
         {onRetry && <button type="button" onClick={onRetry} className="mt-2 underline">{t("retry")}</button>}
@@ -175,13 +178,13 @@ export function DataTable<TData, TValue>({
           </TableHeader>
           <TableBody>
             {errorMessage ? null : isLoading ? (
-              <DataTableSkeleton columns={columns.length} rows={5} />
+              <DataTableSkeleton columns={table.getVisibleLeafColumns().length} rows={currentPagination.pageSize} density={density} />
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className={densityRowClasses[density]}
+                  className={`${densityRowClasses[density]} ds-content-reveal`}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className={densityCellClasses[density]}>
@@ -201,7 +204,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {enablePagination && !errorMessage && <DataTablePagination table={table} rowCount={manualPagination ? rowCount : undefined} />}
+      {enablePagination && <DataTablePagination table={table} rowCount={manualPagination ? rowCount : undefined} pageSizeOptions={pageSizeOptions} />}
     </div>
   );
 }

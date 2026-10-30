@@ -3,6 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { DreamServiceLoader } from "@/components/brand/DreamServiceLoader"
   
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/30 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
@@ -43,10 +44,18 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  pending,
+  pendingLabel,
+  completed = false,
+  children,
+  disabled,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    pending?: boolean
+    pendingLabel?: string
+    completed?: boolean
   }) {
   const Comp = asChild ? Slot.Root : "button"
 
@@ -56,8 +65,15 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
       {...props}
-    />
+    >
+      {asChild ? children : <>
+        {pending !== undefined && <DreamServiceLoader loading={pending} success={completed} size="sm" decorative className="text-inherit" />}
+        {pending && pendingLabel ? pendingLabel : children}
+      </>}
+    </Comp>
   )
 }
 

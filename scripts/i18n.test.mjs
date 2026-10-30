@@ -17,7 +17,9 @@ test('order submission accepts legacy flat JSON and preserves wrapped form keys'
   const created = [];
   const {POST} = load('src/app/api/order/submit-order/route.ts', {
     '@/lib/auth/authorization': {requireAuth: async () => ({id: 'fixture-customer', permission: 'CUSTOMER'})},
-    '@/lib/prisma': {prisma: {order: {findUnique: async () => null, create: async ({data}) => {
+    '@/lib/auth/mutation': {authorizeMutation: async () => {}},
+    '@/lib/security/rate-limit': {enforceLimits: async () => {}},
+    '@/lib/prisma': {prisma: {$transaction: async run => run({order:{findUnique:async()=>null,findFirst:async()=>null,create:async({data})=>{created.push(data);return {order_id:1};}}}),order: {findUnique: async () => null, create: async ({data}) => {
       created.push(data);
       return {order_id: 1};
     }}, orderForm: {findFirst: async () => ({id: 1, form_key: 'order', show_progress: true, allow_back: true,

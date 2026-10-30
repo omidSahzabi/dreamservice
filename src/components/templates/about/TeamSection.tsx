@@ -4,23 +4,23 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { RefreshCw } from "lucide-react";
 
-import { fetchplus } from "@/lib/api/team";
+import { fetchplus, type TeamMember } from "@/lib/api/team";
 import { TeamCard } from "./TeamCard";
+import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
-function TeamSkeleton() {
+function TeamSkeleton({label}: {label: string}) {
   return (
-    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <SkeletonRegion label={label}><div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
       {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="h-[26rem] animate-pulse rounded-2xl border border-border bg-card"
-        />
+        <div key={i} className="h-[26rem] space-y-5 rounded-2xl border border-border bg-card p-6">
+          <Skeleton shape="block" className="h-48" /><Skeleton className="h-5 w-2/3" /><Skeleton className="w-1/2" /><Skeleton /><Skeleton className="w-4/5" />
+        </div>
       ))}
-    </div>
+    </div></SkeletonRegion>
   );
 }
 
-export default function TeamSection() {
+export default function TeamSection({initialTeam}: {initialTeam?: TeamMember[]}) {
   const t = useTranslations("About.Team");
 
   const {
@@ -32,6 +32,7 @@ export default function TeamSection() {
     queryKey: ["team-members"],
     queryFn: fetchplus,
     staleTime: 1000 * 60 * 5,
+    initialData: initialTeam,
   });
 
   return (
@@ -41,7 +42,7 @@ export default function TeamSection() {
 
       <div className="mt-12">
         {isLoading ? (
-          <TeamSkeleton />
+          <TeamSkeleton label={t("loading")} />
         ) : isError ? (
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-destructive/20 bg-destructive/10 py-16">
             <p className="text-sm text-destructive">{t("error")}</p>
@@ -60,7 +61,7 @@ export default function TeamSection() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {team.map((member, index) => (
-              <TeamCard key={member.pr_id ?? member.user_id ?? index} member={member} index={index} />
+              <TeamCard key={member.websiteUrl ?? member.pr_id ?? member.user_id ?? index} member={member} index={index} />
             ))}
           </div>
         )}

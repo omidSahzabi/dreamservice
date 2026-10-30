@@ -1,5 +1,21 @@
 {
+  "Account": {
+    "title": "Account profile",
+    "username": "Username (optional)",
+    "usernameHint": "Use 3–30 letters a–z, digits or underscores. Stored in lowercase; leave blank to remove. Your name and phone number remain unchanged.",
+    "checkAvailability": "Check availability",
+    "checking": "Checking…",
+    "available": "This username is available.",
+    "taken": "This username is unavailable.",
+    "loading": "Loading profile…",
+    "retry": "Try again",
+    "save": "Save username",
+    "saving": "Saving…",
+    "saved": "Username saved."
+  },
   "Navbar": {
+    "myOrders": "My Orders",
+    "profile": "Account profile",
     "home": "Home",
     "dashboard": "Dashboard",
     "login": "Login",
@@ -37,7 +53,11 @@
       "other": "Account role",
       "app-admin": "Administrator"
     },
-    "logoAlt": "DreamService logo"
+    "logoAlt": "DreamService logo",
+    "manageUsers": "User management",
+    "manageProjects": "Manage projects",
+    "support": "Support",
+    "manageTickets": "Manage tickets"
   },
   "Hero": {
     "title": "Your dream services start here",
@@ -46,6 +66,7 @@
     "headline": "We improve <highlight>user experience</highlight>",
     "support": "Support",
     "about": "About us",
+    "telegramSupport": "Telegram Support",
     "order": "Place an order"
   },
   "Packages": {
@@ -83,10 +104,6 @@
         "title": "Frontend",
         "description": "Typed JavaScript"
       },
-      "placeholder": {
-        "title": "Package {number, number}",
-        "description": "Frontend testing"
-      },
       "app": {
         "title": "Application",
         "description": "Programming interface"
@@ -107,6 +124,7 @@
     "connect": "Connect",
     "email": "Email",
     "instagram": "Instagram",
+    "telegramSupport": "Telegram Support",
     "twitter": "Twitter",
     "linkedin": "LinkedIn",
     "github": "GitHub",
@@ -163,6 +181,8 @@
       "fallbackRole": "Creative specialist",
       "memberBadge": "Team member",
       "viewProfile": "View profile",
+      "viewWebsite": "Visit website",
+      "visitWebsiteFor": "Visit {name}'s personal website",
       "noProfile": "Profile unavailable"
     }
   },
@@ -189,6 +209,22 @@
       "reviewOrders": {
         "title": "Review orders | DreamService",
         "description": "View and manage submitted orders across the platform"
+      },
+      "adminUsers": {
+        "title": "User management",
+        "description": "Review accounts and manage access securely."
+      },
+      "adminProjects": {
+        "title": "Project management",
+        "description": "Manage projects and the public homepage countdown."
+      },
+      "support": {
+        "title": "Support | DreamService",
+        "description": "Secure conversations with the support team"
+      },
+      "adminTickets": {
+        "title": "Ticket management | DreamService",
+        "description": "Manage support conversations"
       }
     }
   },
@@ -200,6 +236,7 @@
     "orderSubmitted": "Your order was submitted successfully"
   },
   "AuthModal": {
+    "usernameHint": "Optional: 3?30 letters a?z, digits or underscores. Usernames are stored in lowercase.",
     "title": {
       "phone": "Sign In or Sign Up",
       "otp": "Verify Phone Number",
@@ -215,7 +252,8 @@
       "otp": "5-Digit Verification Code",
       "firstName": "First Name",
       "lastName": "Last Name",
-      "email": "Email (Optional)"
+      "email": "Email (Optional)",
+      "username": "Username (optional)"
     },
     "placeholder": {
       "phone": "09123456789",
@@ -257,6 +295,7 @@
     }
   },
   "DataTable": {
+    "loading": "Loading table…",
     "empty": "No items found to display.",
     "showing": "Showing {from, number} to {to, number} of {total, number} items",
     "perPage": "Items per page:",
@@ -348,6 +387,7 @@
     }
   },
   "OrderForm": {
+    "viewExistingOrder": "View your existing open order",
     "loading": "Loading order form...",
     "loadError": "Failed to connect to the server and load the order form.",
     "retry": "Try Again",
@@ -382,7 +422,17 @@
       "unsupported": "This field is not supported."
     }
   },
+  "PreviewLogin": {
+    "title": "Temporary preview password sign-in",
+    "description": "Preview access for approved existing accounts only. This does not verify phone ownership or register an account. SMS sign-in remains available above.",
+    "phone": "Phone number",
+    "password": "Preview password",
+    "submit": "Sign in to preview",
+    "pending": "Signing in…",
+    "failed": "Unable to sign in. Check your details or try again later."
+  },
   "Common": {
+    "skipToContent": "Skip to main content",
     "close": "Close",
     "loading": "Loading…",
     "retry": "Try again",
@@ -452,6 +502,8 @@
     }
   },
   "Projects": {
+    "pause": "Pause slideshow",
+    "resume": "Resume slideshow",
     "items": {
       "store": {
         "title": "Online store",
@@ -501,10 +553,28 @@
     "signup": "Notify me",
     "signupDescription": "Enter your email to hear when the project launches.",
     "free": "Free",
-    "submit": "Submit ticket",
-    "unavailable": "Signup is currently unavailable. Please try again later."
+    "submit": "Notify me",
+    "unavailable": "Signup is currently unavailable. Please try again later.",
+    "upcoming": "Project in progress",
+    "utc": "(UTC)",
+    "countdownLabel": "Time until the project deadline",
+    "deadlineReached": "The planned deadline has been reached. This does not confirm that the project has launched or been completed.",
+    "emptyTitle": "What’s next at DreamService",
+    "emptyDescription": "There’s no public project countdown right now. Explore our work and services while we prepare the next update.",
+    "unavailableTitle": "Project updates",
+    "unavailableDescription": "Project updates are temporarily unavailable. Please check back later.",
+    "subscriptionLimitation": "Notifications are currently unavailable. This form does not save subscriptions or send messages; existing subscribers are not associated with this project."
   },
   "Errors": {
+    "PREVIEW_LOGIN_FAILED": "Unable to sign in. Check your details or try again later.",
+    "ORDER_OPEN_EXISTS": "You already have an open order. Please use its details page to track progress.",
+    "ORDER_RATE_LIMIT": "Too many order requests. Please try again in {seconds, number} seconds.",
+    "REGISTRATION_CONFLICT": "These registration details could not be used. Check your details or sign in to your existing account.",
+    "USERNAME_INVALID": "Use 3?30 letters a?z, digits or underscores for your username.",
+    "USERNAME_RESERVED": "This username is reserved. Please choose another.",
+    "USERNAME_TAKEN": "This username is unavailable. Please choose another.",
+    "NAME_PROHIBITED": "Please choose a respectful name or username without prohibited language.",
+    "ACCOUNT_PROFILE_UNAVAILABLE": "Username setup is temporarily unavailable. You can leave it blank and continue using your account.",
     "UNKNOWN": "Something went wrong. Please try again.",
     "NETWORK_ERROR": "Could not connect to the server. Check your connection and try again.",
     "INVALID_INPUT": "Check your information and try again.",
@@ -533,7 +603,22 @@
     "IDEMPOTENCY_CONFLICT": "This submission changed. Please review the form and try again.",
     "ORDER_STATUS_CONFLICT": "This order changed. Refresh and review its current status.",
     "ORDER_TRANSITION_INVALID": "This status transition is not allowed.",
-    "NOTIFICATION_RETRY_UNAVAILABLE": "Notification retry is unavailable or the retry delay has not elapsed."
+    "NOTIFICATION_RETRY_UNAVAILABLE": "Notification retry is unavailable or the retry delay has not elapsed.",
+    "ACCOUNT_BANNED": "This account is banned. Access is unavailable.",
+    "USER_SELF_ACTION": "You cannot ban yourself or revoke your own admin access.",
+    "USER_LAST_ADMIN": "The last active administrator must retain access.",
+    "USER_INELIGIBLE": "Promotion requires an active account with a verified phone number.",
+    "USER_STATE_CONFLICT": "This account changed. Review the latest details and try again.",
+    "MANAGEMENT_RATE_LIMIT": "Too many management actions. Please wait and try again.",
+    "PROJECT_CONFLICT": "The project changed or this order is already linked. Refresh the list and reopen the project.",
+    "PROJECT_TRANSITION_INVALID": "This project status change is not allowed.",
+    "PROJECT_DEADLINE_INVALID": "Choose a future deadline before selecting a homepage project.",
+    "PROJECT_ORDER_NOT_FOUND": "The linked order could not be found.",
+    "TICKET_CONFLICT": "This ticket changed. Refresh the conversation and try again.",
+    "TICKET_CLOSED": "This ticket is closed. Reopen it before replying.",
+    "TICKET_ORDER_INVALID": "Choose one of your own existing orders or leave the order empty.",
+    "TICKET_TRANSITION_INVALID": "That status change is not available. Refresh the conversation.",
+    "TICKET_RATE_LIMIT": "Too many support requests. Try again in {seconds} seconds."
   },
   "Security": {
     "signInRequired": "Sign in to continue.",
@@ -615,6 +700,154 @@
       "title": "Let's reconnect.",
       "description": "Something interrupted this page. Try loading it again, or return home and continue from there.",
       "documentTitle": "Something went wrong | DreamService"
+    }
+  },
+  "AdminUsers": {
+    "title": "User management",
+    "subtitle": "Review accounts and manage access securely.",
+    "refresh": "Refresh",
+    "id": "User ID",
+    "name": "Name",
+    "phone": "Phone number",
+    "email": "Email",
+    "role": "Access role",
+    "status": "Account status",
+    "registered": "Registered",
+    "actions": "Actions",
+    "details": "User details",
+    "unavailable": "Not available",
+    "admin": "Administrator",
+    "customer": "Customer",
+    "banned": "Banned",
+    "active": "Active",
+    "search": "Search",
+    "searchPlaceholder": "Name, phone, email or user ID",
+    "empty": "No users match these filters.",
+    "detailsDescription": "Profile information and recent order summaries.",
+    "loading": "Loading user details?",
+    "profiles": "Profiles",
+    "noProfiles": "No profiles available.",
+    "orders": "Orders ({count})",
+    "recentOrders": "Up to 10 most recent orders are shown.",
+    "noOrders": "No orders yet.",
+    "promote": "Promote to admin",
+    "demote": "Revoke admin access",
+    "ban": "Ban user",
+    "unban": "Unban user",
+    "confirmation": "Confirm {action} for {name}. This changes their access to the application.",
+    "reason": "Reason (required, up to 1,000 characters)",
+    "confirm": "Confirm action",
+    "cancel": "Cancel",
+    "saving": "Saving?",
+    "success": "User access updated and audit recorded."
+  },
+  "AdminProjects": {
+    "title": "Projects",
+    "subtitle": "Manage independent projects, order links and the public homepage countdown.",
+    "project": "Project",
+    "create": "Create project",
+    "edit": "Edit project",
+    "editDescription": "Save project details without changing the linked order. Both titles are required.",
+    "titleFa": "Title — Persian",
+    "description": "Description — English",
+    "descriptionFa": "Description — Persian",
+    "orderId": "Order number (optional)",
+    "orderHint": "Leave blank for an independent project. Enter an existing order number to link it; each order supports one project.",
+    "linkedOrder": "Linked order #{id}",
+    "status": "Status",
+    "statusHint": "Planned projects can start or be cancelled. Active projects can complete or be cancelled. Completed and cancelled statuses are final.",
+    "startAt": "Start date",
+    "deadlineAt": "Deadline",
+    "dateHint": "Dates use your device’s local time and are stored as absolute timestamps.",
+    "visibility": "Visibility",
+    "public": "Public",
+    "private": "Private",
+    "homepage": "Homepage",
+    "selected": "Selected",
+    "none": "—",
+    "standalone": "Independent",
+    "isPublic": "Allow public display",
+    "showOnHomepage": "Select for homepage countdown",
+    "homepageHint": "The homepage automatically shows the public planned or active project with the nearest future deadline. No manual selection is needed.",
+    "actions": "Actions",
+    "search": "Search",
+    "searchPlaceholder": "Search project titles",
+    "refresh": "Refresh",
+    "loading": "Loading projects…",
+    "empty": "No projects match these filters.",
+    "review": "Review changes",
+    "confirm": "Confirm and save",
+    "back": "Back",
+    "confirmSave": "Save these project changes? Order status will remain unchanged.",
+    "confirmHomepage": "Save and select this project for the homepage? This replaces any previous homepage selection.",
+    "saving": "Saving project…",
+    "success": "Project saved.",
+    "validation": "Check both titles, the order number and the dates. The deadline must be after the start date.",
+    "statuses": {
+      "PLANNED": "Planned",
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "titleEn": "Title — English"
+  },
+  "Support": {
+    "title": "My support tickets",
+    "adminTitle": "Support ticket management",
+    "subtitle": "Follow conversations, track progress and get help with your orders.",
+    "create": "Create ticket",
+    "subject": "Subject",
+    "initialMessage": "Initial message",
+    "order": "Related order",
+    "orderOptional": "Related order (optional)",
+    "viewOrder": "View order details",
+    "independent": "No linked order",
+    "orderNumber": "Order #{number}",
+    "orderHint": "Only your own orders can be linked. Linking a ticket never changes the order.",
+    "contactOrder": "Contact support about this order",
+    "submit": "Submit ticket",
+    "created": "Your ticket was created.",
+    "saved": "Conversation updated.",
+    "saving": "Saving…",
+    "back": "Back to tickets",
+    "loading": "Loading tickets…",
+    "refresh": "Refresh",
+    "empty": "No tickets match these filters. Create a ticket whenever you need help.",
+    "search": "Search",
+    "searchHint": "Subject, ticket number or full ticket ID",
+    "adminSearch": "Subject, number, full ID or customer",
+    "number": "Ticket #{number}",
+    "status": "Status",
+    "priority": "Priority",
+    "activity": "Latest activity",
+    "createdAt": "Created",
+    "customer": "Customer",
+    "admin": "Support team",
+    "notifications": "Recent support updates",
+    "notificationHint": "Updates are saved in your in-app inbox. SMS and email are not sent.",
+    "noNotifications": "No new conversation updates yet.",
+    "newer": "Newer",
+    "older": "Older",
+    "previousOrders": "Previous orders",
+    "nextOrders": "Next orders",
+    "retry": "Try again",
+    "reply": "Your reply",
+    "send": "Send reply",
+    "conversation": "Ticket conversation",
+    "messagePagination": "Conversation pages",
+    "messagePage": "Page {page} of {total}",
+    "closedHint": "This ticket is closed. Reopen it before sending another message.",
+    "reopen": "Reopen ticket",
+    "statuses": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In progress",
+      "WAITING_FOR_CUSTOMER": "Waiting for customer",
+      "CLOSED": "Closed"
+    },
+    "priorities": {
+      "LOW": "Low",
+      "NORMAL": "Normal",
+      "HIGH": "High"
     }
   }
 }

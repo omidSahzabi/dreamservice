@@ -33,7 +33,7 @@ export async function verifyOtp(target: string, code: string) {
   return data.data;
 }
 
-export async function registerUser(payload: {contact: string; fname: string; lname: string; email?: string}) {
+export async function registerUser(payload: {contact: string; fname: string; lname: string; email?: string; username?: string}) {
   const data = z.object({success: z.literal(true)})
     .safeParse(await fetchJson('/api/auth/register', 'REGISTER_FAILED', post(payload)));
   if (!data.success) throw new ApiError('REGISTER_FAILED');

@@ -29,17 +29,19 @@ export default function ProjectsCarousel() {
   const keys = ["store", "dashboard", "mobile", "personal", "crm", "education", "game"] as const;
   const localizedProjects = projects.map((p, i) => ({...p, title: t(`items.${keys[i]}.title`), desc: t(`items.${keys[i]}.description`)}));
   const [swiperInstance, setSwiperInstance] = useState<SwiperInstance | null>(null);
-  const resetAutoplay = useRandomAutoplay(swiperInstance);
+  const autoplay = useRandomAutoplay(swiperInstance);
 
   // Handlers called on user interactions to reset autoplay timer
   const handleUserInteraction = () => {
-    resetAutoplay();
+    autoplay.reset();
   };
 
   return (
-    <section onClickCapture={handleUserInteraction} id="projects" className="py-24 w-full flex justify-center">
+    <section onClickCapture={handleUserInteraction} onFocusCapture={() => autoplay.setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) autoplay.setFocused(false); }} onMouseEnter={() => autoplay.setHovered(true)} onMouseLeave={() => autoplay.setHovered(false)} id="projects" className="py-24 w-full flex justify-center">
       <div className="w-full max-w-7xl mx-auto px-4">
+        <div className="mb-4 flex justify-end"><button type="button" aria-controls="portfolio-carousel" aria-pressed={autoplay.paused} onClick={() => autoplay.setPaused(value => !value)} className="rounded-lg border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-secondary">{t(autoplay.paused ? "resume" : "pause")}</button></div>
         <Swiper
+          id="portfolio-carousel"
           key={locale}
           dir={locale === "fa" ? "rtl" : "ltr"}
           loop={true}

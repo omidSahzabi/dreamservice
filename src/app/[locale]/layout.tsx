@@ -3,12 +3,14 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import {notFound} from "next/navigation";
 import {routing} from "../../../i18n/routing";
+import {publicSite} from "@/lib/site";
+import {previewLoginConfig} from "@/lib/auth/preview-config";
 
 import QueryProvider from "@/providers/QueryProvider";
 import ThemeProvider from "@/components/providers/ThemeProvider";
 import Navbar from "@/components/modules/navbar/Navbar";
 import Footer from "@/components/modules/footer/footer";
-import { AuthModal } from "@/components/modules/auth/AuthModal";
+import { AuthModalHost } from "@/components/modules/auth/AuthModalHost";
 
 import { ThemedToaster } from "@/components/providers/ThemedToaster";
 
@@ -32,6 +34,7 @@ export async function generateMetadata({
   });
 
   return {
+    metadataBase: new URL(publicSite.url),
     title: t("title"),
     description: t("description"),
   };
@@ -60,6 +63,9 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body id="top">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-background focus:px-5 focus:py-3 focus:text-foreground">
+          {common("skipToContent")}
+        </a>
         <NextIntlClientProvider
           locale={locale}
           messages={messages}
@@ -68,9 +74,9 @@ export default async function RootLayout({
             <QueryProvider>
               <Navbar />
 
-              {children}
+              <div id="main-content" tabIndex={-1}>{children}</div>
 
-              <AuthModal />
+              <AuthModalHost previewLoginEnabled={Boolean(previewLoginConfig())} />
 
               <ThemedToaster
                 dir={locale === "fa" ? "rtl" : "ltr"}

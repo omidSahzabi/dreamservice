@@ -16,16 +16,23 @@ datasource db {
 model User {
   id      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email   String?   @unique
+  username String? @unique @db.VarChar(30)
   contact String?   @unique
   cr      DateTime? @default(now())
   fname   String?
   lname   String?
   natcode String?
   contactVerifiedAt DateTime?
+  bannedAt DateTime?
 
   orders   Order[]   @relation("ClientOrders")
   sessions Session[]
   orderDecisions OrderStatusHistory[]
+  managementActions UserManagementAudit[] @relation("ManagementActor")
+  managementHistory UserManagementAudit[] @relation("ManagementTarget")
+  supportTickets SupportTicket[]
+  supportMessages SupportTicketMessage[]
+  supportNotifications SupportTicketNotification[]
 
   @@map("users")
   @@schema("entity")
@@ -115,10 +122,124 @@ model Order {
 
   client User @relation("ClientOrders", fields: [client_id], references: [id])
   statusHistory OrderStatusHistory[]
+  project Project?
+  supportTickets SupportTicket[]
 
   @@unique([client_id, idempotency_key])
 
   @@map("orders")
+  @@schema("entity")
+}
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+
+  @@schema("entity")
+}
+
+model Project {
+  id String @id @default(uuid()) @db.Uuid
+  orderId Int? @unique
+  title String @db.VarChar(200)
+  titleFa String @db.VarChar(200)
+  description String? @db.VarChar(5000)
+  descriptionFa String? @db.VarChar(5000)
+  status ProjectStatus @default(PLANNED)
+  startAt DateTime? @db.Timestamptz(3)
+  deadlineAt DateTime? @db.Timestamptz(3)
+  isPublic Boolean @default(false)
+  showOnHomepage Boolean @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  order Order? @relation(fields: [orderId], references: [order_id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@map("projects")
+  @@schema("entity")
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_CUSTOMER
+  CLOSED
+
+  @@schema("entity")
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+
+  @@schema("entity")
+}
+
+model SupportTicket {
+  id String @id @default(uuid()) @db.Uuid
+  number Int @unique @default(autoincrement())
+  customerId String @db.Uuid
+  orderId Int?
+  subject String @db.VarChar(200)
+  status SupportTicketStatus @default(OPEN)
+  priority SupportTicketPriority @default(NORMAL)
+  requestKey String @db.Uuid
+  requestHash String @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  lastMessageAt DateTime @default(now()) @db.Timestamptz(3)
+  closedAt DateTime? @db.Timestamptz(3)
+  customer User @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  order Order? @relation(fields: [orderId], references: [order_id], onDelete: Restrict)
+  messages SupportTicketMessage[]
+  notifications SupportTicketNotification[]
+
+  @@unique([customerId, requestKey])
+  @@index([customerId, lastMessageAt, id])
+  @@index([status, priority, lastMessageAt, id])
+  @@index([priority, lastMessageAt, id])
+  @@index([lastMessageAt, id])
+  @@index([orderId])
+  @@map("support_tickets")
+  @@schema("entity")
+}
+
+model SupportTicketMessage {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  senderId String @db.Uuid
+  isAdmin Boolean
+  body String @db.VarChar(8000)
+  requestKey String @db.Uuid
+  requestHash String @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  notification SupportTicketNotification?
+
+  @@unique([senderId, requestKey])
+  @@index([ticketId, createdAt, id])
+  @@map("support_ticket_messages")
+  @@schema("entity")
+}
+
+// A null recipient is the shared admin inbox. Reads exclude the message sender.
+model SupportTicketNotification {
+  id String @id @default(uuid()) @db.Uuid
+  ticketId String @db.Uuid
+  messageId String @unique @db.Uuid
+  recipientId String? @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  message SupportTicketMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  recipient User? @relation(fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@index([recipientId, createdAt, id])
+  @@index([ticketId])
+  @@map("support_ticket_notifications")
   @@schema("entity")
 }
 
@@ -178,11 +299,30 @@ model BlogPost {
   @@schema("entity")
 }
 
+model UserManagementAudit {
+  id String @id @default(uuid()) @db.Uuid
+  targetUserId String @db.Uuid
+  actorUserId String @db.Uuid
+  action String @db.VarChar(20)
+  previousValue Json
+  newValue Json
+  reason String @db.VarChar(1000)
+  createdAt DateTime @default(now())
+  target User @relation("ManagementTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
+  actor User @relation("ManagementActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([targetUserId, createdAt])
+  @@map("user_management_audit")
+  @@schema("entity")
+}
+
 model PersonProfile {
   pr_id      Int     @id @default(autoincrement())
   user_id    String  @db.Uuid
   pr_company String?
   role       String?
+
+  @@index([user_id, role], map: "person_profile_user_id_role_idx")
 
   @@map("person_profile")
   @@schema("upro")

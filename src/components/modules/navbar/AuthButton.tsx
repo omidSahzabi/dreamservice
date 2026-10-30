@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Check, ShoppingBag } from "lucide-react";
+import { DreamServiceLoader } from "@/components/brand/DreamServiceLoader";
 
 export function AuthButton() {
   const t = useTranslations("Navbar");
@@ -31,9 +32,10 @@ export function AuthButton() {
       <Button
         variant="ghost"
         disabled
+        aria-busy="true"
         className="text-muted-foreground border border-border rounded-xl px-4 py-2 text-sm"
       >
-        <span className="w-3 h-3 rounded-full border-2 border-text-muted border-t-transparent animate-spin me-2" />
+        <DreamServiceLoader loading size="sm" decorative className="text-inherit" />
         {t("loading")}
       </Button>
     );
@@ -108,6 +110,13 @@ export function AuthButton() {
 
         <DropdownMenuSeparator className="bg-secondary" />
 
+        <DropdownMenuItem asChild className="rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary">
+          <Link href="/order" className="flex items-center gap-2 px-2 py-1.5 text-xs"><ShoppingBag className="w-4 h-4 text-primary" /><span>{t("myOrders")}</span></Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary">
+          <Link href="/account" className="flex items-center gap-2 px-2 py-1.5 text-xs"><User className="w-4 h-4 text-primary" /><span>{t("profile")}</span></Link>
+        </DropdownMenuItem>
+
         {user.permission === "ADMIN" && <DropdownMenuItem asChild className="rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary">
           <Link href="/order/review-orders" className="flex items-center gap-2 px-2 py-1.5 text-xs">
             <ShoppingBag className="w-4 h-4 text-primary" />
@@ -115,14 +124,29 @@ export function AuthButton() {
           </Link>
         </DropdownMenuItem>}
 
+        {user.permission === "ADMIN" && <DropdownMenuItem asChild className="rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary">
+          <Link href="/admin/users" className="flex items-center gap-2 px-2 py-1.5 text-xs"><User className="w-4 h-4 text-primary" /><span>{t("manageUsers")}</span></Link>
+        </DropdownMenuItem>}
+
+        {user.permission === "ADMIN" && <DropdownMenuItem asChild className="rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary">
+          <Link href="/admin/projects" className="flex items-center gap-2 px-2 py-1.5 text-xs"><ShoppingBag className="w-4 h-4 text-primary" /><span>{t("manageProjects")}</span></Link>
+        </DropdownMenuItem>}
+
+        <DropdownMenuItem asChild className="rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary">
+          <Link href="/support" className="flex items-center gap-2 px-2 py-1.5 text-xs"><ShoppingBag className="w-4 h-4 text-primary" /><span>{t("support")}</span></Link>
+        </DropdownMenuItem>
+        {user.permission === "ADMIN" && <DropdownMenuItem asChild className="rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary">
+          <Link href="/admin/tickets" className="flex items-center gap-2 px-2 py-1.5 text-xs"><ShoppingBag className="w-4 h-4 text-primary" /><span>{t("manageTickets")}</span></Link>
+        </DropdownMenuItem>}
         <DropdownMenuSeparator className="bg-secondary" />
 
         <DropdownMenuItem
           disabled={isLoggingOut}
+          aria-busy={isLoggingOut || undefined}
           onClick={() => logout()}
           className="flex items-center gap-2 px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive rounded-lg cursor-pointer"
         >
-          <LogOut className="w-4 h-4" />
+          {isLoggingOut ? <DreamServiceLoader loading size="sm" decorative className="text-inherit" /> : <LogOut className="w-4 h-4" />}
           <span>{t("logout")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

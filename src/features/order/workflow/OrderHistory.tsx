@@ -3,6 +3,7 @@ import {useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
 import {useTranslations, useFormatter} from "next-intl";
 import {z} from "zod";
 import {useAuth} from "@/hooks/useAuth";
+import {ContentSkeleton} from "@/components/ui/content-skeleton";
 import {ApiError, fetchJson, localizeApiError} from "@/lib/api/errors";
 import {historyResponseSchema} from "@/schemas/orderWorkflow";
 import {Button} from "@/components/ui/button";
@@ -37,7 +38,7 @@ export function OrderHistory({orderId, showDetails = false}: {orderId: number; s
       <h3 id={`order-history-${orderId}`} className="font-semibold">{showDetails ? panel("details") : t("history")}</h3>
       {query.data && !query.isError && <OrderStatusBadge status={query.data.order.status} />}
     </div>
-    {query.isPending && <p role="status">{t("loading")}</p>}
+    {query.isPending && <ContentSkeleton label={t("loading")} />}
     {query.isError && <div role="alert" className="space-y-3"><p>{localizeApiError(query.error, errors)}</p><Button variant="outline" onClick={() => void query.refetch()}>{t("retry")}</Button></div>}
     {retry.isError && <p role="alert">{localizeApiError(retry.error, errors)}</p>}
     {!query.isError && query.data && <>
@@ -54,7 +55,7 @@ export function OrderHistory({orderId, showDetails = false}: {orderId: number; s
         <p className="whitespace-pre-wrap break-words"><bdi>{entry.message}</bdi></p>
         <time dateTime={entry.createdAt}>{format.dateTime(new Date(entry.createdAt), {dateStyle: "medium", timeStyle: "short"})}</time>
         {entry.notificationState && <p className="text-sm">{t("delivery", {state: t(`notification.${entry.notificationState}`)})}</p>}
-        {(entry.notificationState === "FAILED" || entry.notificationState === "PENDING") && (entry.notificationAttempts ?? 3) < 3 && <Button disabled={retry.isPending || Date.parse(entry.notificationNextAttemptAt ?? "") > query.dataUpdatedAt} onClick={() => retry.mutate(entry.id)}>{t("retryNotification")}</Button>}
+        {(entry.notificationState === "FAILED" || entry.notificationState === "PENDING") && (entry.notificationAttempts ?? 3) < 3 && <Button pending={retry.isPending} pendingLabel={t("saving")} disabled={Date.parse(entry.notificationNextAttemptAt ?? "") > query.dataUpdatedAt} onClick={() => retry.mutate(entry.id)}>{t("retryNotification")}</Button>}
       </li>)}
     </ol></details>}
     </>}

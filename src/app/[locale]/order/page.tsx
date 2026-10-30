@@ -24,7 +24,7 @@ export default async function OrderPage({searchParams}: {searchParams: Promise<{
           {principal?.permission === 'ADMIN' && <Button asChild variant="outline"><Link href="/order/review-orders">{t('review')}</Link></Button>}
         </div>
       </div>
-      {principal ? <CustomerOrders key={principal.id} orderId={parsed.success ? parsed.data : undefined} invalidOrderId={orderId !== undefined && !parsed.success} /> : <AccessRequired />}
+      {principal ? <CustomerOrders key={principal.id} orderId={parsed.success ? parsed.data : undefined} invalidOrderId={orderId !== undefined && !parsed.success} /> : <AccessRequired embedded />}
     </main>
   );
 }

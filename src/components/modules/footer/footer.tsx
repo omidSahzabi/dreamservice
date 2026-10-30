@@ -3,10 +3,10 @@ import React from 'react';
 import {useTranslations} from 'next-intl';
 import {Link} from '@/lib/i18n/navigation';
 import Logo from '@/components/modules/navbar/Logo';
+import {publicSite} from '@/lib/site';
 import type {LucideIcon} from 'lucide-react';
 import { 
-  Instagram, 
-  Twitter, 
+  Send,
   Linkedin, 
   Github, 
   Mail, 
@@ -18,7 +18,13 @@ import {
 export default function Footer({year}: {year: number}) {
   const t = useTranslations("Footer");
 
-  const footerLinks: {title: string; links: {label: string; href: string; icon?: LucideIcon}[]}[] = [
+  const socialLinks = [
+    { name: t('telegramSupport'), href: publicSite.social.telegram, icon: Send },
+    { name: t('linkedin'), href: publicSite.social.linkedin, icon: Linkedin },
+    { name: t('github'), href: publicSite.social.github, icon: Github },
+  ];
+
+  const footerLinks: {title: string; links: {label: string; href: string; icon?: LucideIcon; external?: boolean}[]}[] = [
     {
       title: t('quickLinks'),
       links: [
@@ -40,19 +46,10 @@ export default function Footer({year}: {year: number}) {
     {
       title: t('connect'),
       links: [
-        { label: t('email'), href: 'mailto:example@email.com', icon: Mail },
-        { label: t('linkedin'), href: '#', icon: Linkedin },
-        { label: t('github'), href: '#', icon: Github },
-        { label: t('twitter'), href: '#', icon: Twitter },
+        { label: t('email'), href: `mailto:${publicSite.email}`, icon: Mail },
+        ...socialLinks.map(social => ({label: social.name, href: social.href, icon: social.icon, external: true})),
       ],
     },
-  ];
-
-  const socialLinks = [
-    { name: t('instagram'), href: '#', icon: Instagram },
-    { name: t('twitter'), href: '#', icon: Twitter },
-    { name: t('linkedin'), href: '#', icon: Linkedin },
-    { name: t('github'), href: '#', icon: Github },
   ];
 
   return (
@@ -69,10 +66,10 @@ export default function Footer({year}: {year: number}) {
             
             {/* اطلاعات تماس */}
             <div className="space-y-3">
-              <div className="flex items-center gap-3 text-muted-foreground text-sm">
-                <Mail className="w-4 h-4 text-primary" />
-                <bdi>example@email.com</bdi>
-              </div>
+              <a href={`mailto:${publicSite.email}`} className="flex items-center gap-3 text-muted-foreground text-sm hover:text-primary transition-colors">
+                <Mail aria-hidden="true" className="w-4 h-4 shrink-0 text-primary" />
+                <bdi className="min-w-0 break-all">{publicSite.email}</bdi>
+              </a>
               <div className="flex items-center gap-3 text-muted-foreground text-sm">
                 <MapPin className="w-4 h-4 text-primary" />
                 <span>{t("location")}</span>
@@ -87,22 +84,21 @@ export default function Footer({year}: {year: number}) {
               <ul className="space-y-3">
                 {section.links.map((link, linkIdx) => {
                   const Icon = link.icon;
+                  const content = <>
+                    {Icon && <Icon aria-hidden="true" className="w-4 h-4 shrink-0" />}
+                    <span className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
+                      {link.label}
+                    </span>
+                  </>;
+                  const linkClass = "text-muted-foreground hover:text-primary text-sm transition-colors flex items-center gap-2 group";
                   return (
                     <li key={linkIdx}>
-                      {link.href === "#" ? (
-                        <span aria-disabled="true" className="text-muted-foreground text-sm flex items-center gap-2">
-                          {Icon && <Icon className="w-4 h-4" />}{link.label}
-                        </span>
+                      {link.href.startsWith('/') ? (
+                        <Link href={link.href} className={linkClass}>{content}</Link>
                       ) : (
-                      <Link
-                        href={link.href}
-                        className="text-muted-foreground hover:text-primary text-sm transition-colors flex items-center gap-2 group"
-                      >
-                        {Icon && <Icon className="w-4 h-4" />}
-                        <span className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
-                          {link.label}
-                        </span>
-                      </Link>
+                        <a href={link.href} target={link.external ? '_blank' : undefined} rel={link.external ? 'noopener noreferrer' : undefined} className={linkClass}>
+                          {content}
+                        </a>
                       )}
                     </li>
                   );
@@ -125,14 +121,16 @@ export default function Footer({year}: {year: number}) {
               {socialLinks.map((social, idx) => {
                 const Icon = social.icon;
                 return (
-                  <span
+                  <a
                     key={idx}
-                    aria-disabled="true"
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     aria-label={social.name}
                     className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary hover:border-primary/40 transition-all group"
                   >
-                    <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  </span>
+                    <Icon aria-hidden="true" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  </a>
                 );
               })}
             </div>

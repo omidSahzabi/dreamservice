@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# Private local database recovery artifacts
+/.backups/
+
 # next.js
 /.next/
 /out/

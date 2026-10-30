@@ -41,6 +41,9 @@ for(const locale of ['en','fa'])test('hero retains its localized heading and cus
   assert.equal((html.match(/data-digital-structure=/g)??[]).length,2);
   assert.ok(html.includes(messages.Hero.subtitle));
   assert.ok(html.includes(messages.Hero.about)&&html.includes(messages.Hero.order));
-  assert.ok(html.includes('href="tel:021-12345678"'));
+  assert.ok(html.includes('href="https://t.me/DreamServiceSupport"'));
+  assert.ok(html.includes(messages.Hero.telegramSupport));
+  assert.ok(html.includes('target="_blank" rel="noopener noreferrer"'));
+  assert.ok(!html.includes('tel:'));
   assert.ok(!html.includes('M12 19V5M5 12l7-7 7 7'));
 });

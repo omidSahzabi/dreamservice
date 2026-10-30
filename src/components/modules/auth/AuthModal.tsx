@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,12 +22,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-import { localizeApiError } from "@/lib/api/errors";
+import { localizeApiError, readApiError } from "@/lib/api/errors";
 import { normalizeDigits } from "@/lib/i18n/digits";
 import { clearSensitiveState } from "@/lib/auth/client-state";
 import { useRouter } from "@/lib/i18n/navigation";
+import { prohibitedIdentity, usernameSchema } from "@/lib/account/identity";
+import { UsernameAvailability } from "./UsernameAvailability";
+import {PreviewPasswordLogin} from "./PreviewPasswordLogin";
 
-export function AuthModal() {
+export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: boolean}) {
   const locale = useLocale();
   const errors = useTranslations("Errors");
   const t = useTranslations("AuthModal");
@@ -55,11 +58,16 @@ export function AuthModal() {
   const registerSchema = useMemo(
     () =>
       z.object({
-        fname: z.string().min(2, t("validation.firstNameMin")),
-        lname: z.string().min(2, t("validation.lastNameMin")),
+        fname: z.string().min(2, t("validation.firstNameMin")).refine(value => !prohibitedIdentity(value), errors("NAME_PROHIBITED")),
+        lname: z.string().min(2, t("validation.lastNameMin")).refine(value => !prohibitedIdentity(value), errors("NAME_PROHIBITED")),
+        username: z.string().superRefine((value, context) => {
+          if (!value) return;
+          const result = usernameSchema.safeParse(value);
+          if (!result.success) context.addIssue({ code: "custom", message: errors(readApiError({ code: result.error.issues[0]?.message }, "USERNAME_INVALID").code) });
+        }),
         email: z.string().email(t("validation.emailInvalid")).optional().or(z.literal("")),
       }),
-    [t]
+    [t, errors]
   );
 
   type PhoneFormValues = z.infer<typeof phoneSchema>;
@@ -72,6 +80,7 @@ export function AuthModal() {
     phone,
     resendCooldown,
     onSuccessCallback,
+    returnFocusTo,
     closeAuthModal,
     setStep,
     setPhone,
@@ -102,8 +111,9 @@ export function AuthModal() {
 
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { fname: "", lname: "", email: "" },
+    defaultValues: { fname: "", lname: "", email: "", username: "" },
   });
+  const chosenUsername = useWatch({ control: registerForm.control, name: "username" });
   const resetPhone = phoneForm.reset;
   const resetOtp = otpForm.reset;
   const resetRegistration = registerForm.reset;
@@ -111,7 +121,7 @@ export function AuthModal() {
     if (!isOpen) {
       resetPhone({phone: ""});
       resetOtp({code: ""});
-      resetRegistration({fname: "", lname: "", email: ""});
+      resetRegistration({fname: "", lname: "", email: "", username: ""});
     }
   }, [isOpen, resetPhone, resetOtp, resetRegistration]);
 
@@ -161,6 +171,7 @@ export function AuthModal() {
         fname: data.fname,
         lname: data.lname,
         email: data.email || undefined,
+        username: data.username || undefined,
       });
       await clearSensitiveState(queryClient);
       await queryClient.invalidateQueries({ queryKey: ["authUser"] });
@@ -177,7 +188,10 @@ export function AuthModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeAuthModal()}>
-      <DialogContent dir={locale === "fa" ? "rtl" : "ltr"} className="sm:max-w-[420px] rounded-2xl bg-background border shadow-xl">
+      <DialogContent onCloseAutoFocus={event => {
+        event.preventDefault();
+        if (returnFocusTo?.isConnected) returnFocusTo.focus();
+      }} dir={locale === "fa" ? "rtl" : "ltr"} className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[420px] rounded-2xl bg-background border shadow-xl">
         <DialogHeader className="text-start">
           <DialogTitle className="text-xl font-bold">
             {step === "PHONE" && t("title.phone")}
@@ -219,10 +233,18 @@ export function AuthModal() {
                     </p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? t("button.sending") : t("button.sendOtp")}
+                <Button type="submit" className="w-full" pending={isSubmitting} pendingLabel={t("button.sending")}>
+                  {t("button.sendOtp")}
                 </Button>
               </form>
+              {previewLoginEnabled && <PreviewPasswordLogin onSuccess={async () => {
+                await clearSensitiveState(queryClient);
+                await queryClient.invalidateQueries({queryKey: ["authUser"]});
+                router.refresh();
+                if (onSuccessCallback) onSuccessCallback();
+                closeAuthModal();
+                toast.success(t("toast.authSuccess"));
+              }} />}
             </motion.div>
           )}
 
@@ -269,6 +291,8 @@ export function AuthModal() {
                     <button
                       type="button"
                       onClick={() => handleSendOtp({ phone })}
+                      disabled={isSubmitting}
+                      aria-busy={isSubmitting || undefined}
                       className="text-primary underline cursor-pointer"
                     >
                       {t("action.resendOtp")}
@@ -276,8 +300,8 @@ export function AuthModal() {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? t("button.verifying") : t("button.verify")}
+                <Button type="submit" className="w-full" pending={isSubmitting} pendingLabel={t("button.verifying")}>
+                  {t("button.verify")}
                 </Button>
               </form>
             </motion.div>
@@ -334,8 +358,13 @@ export function AuthModal() {
                     </p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? t("button.registering") : t("button.register")}
+                <div className="space-y-2"><Label htmlFor="registration-username">{t("label.username")}</Label><Input id="registration-username" dir="ltr" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={30} {...registerForm.register("username")} />
+                  <p className="text-xs text-muted-foreground">{t("usernameHint")}</p>
+                  {registerForm.formState.errors.username && <p role="alert" className="text-xs text-destructive">{registerForm.formState.errors.username.message}</p>}
+                  <UsernameAvailability username={chosenUsername} disabled={isSubmitting} />
+                </div>
+                <Button type="submit" className="w-full" pending={isSubmitting} pendingLabel={t("button.registering")}>
+                  {t("button.register")}
                 </Button>
               </form>
             </motion.div>

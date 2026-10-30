@@ -9,7 +9,7 @@ export default function Packages() {
   const [searchQuery, setSearchQuery] = useState('');
   const t = useTranslations('Packages');
   const router = useRouter();
-  const packages = ['support', 'mentorship', 'store', 'seo', 'web', 'backend', 'frontend', 'placeholder', 'app'].map((key, index) => ({id: index + 1, title: t(`items.${key}.title`, {number: index + 1}), description: t(`items.${key}.description`)}));
+  const packages = ['support', 'mentorship', 'store', 'seo', 'web', 'backend', 'frontend', 'app'].map((key, index) => ({id: index + 1, title: t(`items.${key}.title`), description: t(`items.${key}.description`)}));
   
   const filteredPackages = packages.filter(pkg =>
     pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

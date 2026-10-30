@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {load} from './test-loader.mjs';
+
+test('credential generator creates fresh compatible credentials privately, without printing them or overwriting files', async t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dreamservice-preview-secret-test-'));
+  const first = path.join(directory, 'first.json'), second = path.join(directory, 'second.json');
+  t.after(() => {for (const file of [first, second]) if (fs.existsSync(file)) fs.unlinkSync(file);fs.rmdirSync(directory);});
+  const generate = file => spawnSync(process.execPath, ['scripts/create-preview-login-secret.mjs', file], {encoding: 'utf8', windowsHide: true});
+  const one = generate(first), two = generate(second);
+  assert.equal(one.status, 0);assert.equal(two.status, 0);
+  const a = JSON.parse(fs.readFileSync(first, 'utf8')), b = JSON.parse(fs.readFileSync(second, 'utf8'));
+  assert.ok(/^[A-Za-z0-9_-]{43}$/.test(a.password));
+  assert.ok(a.password !== b.password);
+  assert.ok(a.PREVIEW_PASSWORD_LOGIN_HASH !== b.PREVIEW_PASSWORD_LOGIN_HASH);
+  assert.ok(!one.stdout.includes(a.password) && !one.stdout.includes(a.PREVIEW_PASSWORD_LOGIN_HASH));
+  assert.ok(!one.stderr.includes(a.password));
+  const {verifyPreviewPassword} = load('src/lib/auth/preview-password.ts');
+  assert.equal(await verifyPreviewPassword(a.password, a.PREVIEW_PASSWORD_LOGIN_HASH), true);
+  assert.equal(await verifyPreviewPassword(b.password, a.PREVIEW_PASSWORD_LOGIN_HASH), false);
+  assert.ok(Date.parse(a.PREVIEW_PASSWORD_LOGIN_EXPIRES_AT) > Date.now());
+  const existing = fs.readFileSync(first);
+  assert.ok(generate(first).status !== 0);
+  assert.ok(existing.equals(fs.readFileSync(first)));
+  const refused = spawnSync(process.execPath, ['scripts/create-preview-login-secret.mjs', path.resolve('package.json')], {encoding: 'utf8', windowsHide: true});
+  assert.ok(refused.status !== 0);
+});

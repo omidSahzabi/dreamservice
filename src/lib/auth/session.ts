@@ -4,6 +4,8 @@ import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { digest, newSecret, validSecret } from "@/lib/security/crypto";
+import { SecurityError } from "@/lib/security/http";
+import {previewLoginConfig, previewStoredToken, PREVIEW_SESSION_SECONDS} from "@/lib/auth/preview-config";
 
 export const SESSION_COOKIE_NAME = "dream_session";
 export const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -14,15 +16,28 @@ export const cookieOptions = (seconds: number) => ({
 export const generateSessionToken = newSecret;
 export const storedToken = (token: string) => "sha256:" + digest(token);
 
-export async function insertSession(tx: Prisma.TransactionClient, userId: string, previous?: string) {
+function acceptedTokens(token: string) {
+  const preview = previewLoginConfig();
+  return [storedToken(token), token, ...(preview ? [previewStoredToken(token, preview)] : [])];
+}
+
+export async function insertSession(tx: Prisma.TransactionClient, userId: string, previous?: string, preview?: {scope: string}) {
+  // Serialize session establishment with bans; read after acquiring the lock.
+  await tx.$queryRaw`SELECT "id" FROM "entity"."users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { bannedAt: true } });
+  if (!user || user.bannedAt) throw new SecurityError(403, "ACCOUNT_BANNED");
+  const config = preview ? previewLoginConfig() : null;
+  if (preview && (!config || config.scope !== preview.scope)) throw new SecurityError(401, "PREVIEW_LOGIN_FAILED");
+  const seconds = config ? Math.min(PREVIEW_SESSION_SECONDS, Math.floor((config.expiresAt - Date.now()) / 1000)) : SESSION_SECONDS;
+  if (seconds < 1) throw new SecurityError(401, "PREVIEW_LOGIN_FAILED");
   const token = newSecret();
-  await tx.session.create({ data: { userId, token: storedToken(token), expiresAt: new Date(Date.now() + SESSION_SECONDS * 1000) } });
-  if (validSecret(previous)) await tx.session.deleteMany({ where: { token: { in: [storedToken(previous), previous] } } });
+  await tx.session.create({ data: { userId, token: config ? previewStoredToken(token, config) : storedToken(token), expiresAt: new Date(Date.now() + seconds * 1000) } });
+  if (validSecret(previous)) await tx.session.deleteMany({ where: { token: { in: acceptedTokens(previous) } } });
   return token;
 }
 
-export async function setSessionCookie(token: string) {
-  (await cookies()).set(SESSION_COOKIE_NAME, token, { ...cookieOptions(SESSION_SECONDS), expires: new Date(Date.now() + SESSION_SECONDS * 1000) });
+export async function setSessionCookie(token: string, seconds = SESSION_SECONDS) {
+  (await cookies()).set(SESSION_COOKIE_NAME, token, { ...cookieOptions(seconds), expires: new Date(Date.now() + seconds * 1000) });
 }
 
 export async function createSession(userId: string) {
@@ -36,10 +51,10 @@ export async function getCurrentUser() {
   if (!validSecret(token)) return null;
   // Legacy raw tokens remain valid until their original expiry; no data rewrite.
   const session = await prisma.session.findFirst({
-    where: { token: { in: [storedToken(token), token] }, expiresAt: { gt: new Date() } },
-    include: { user: { select: { id: true, fname: true, lname: true, contact: true, email: true } } },
+    where: { token: { in: acceptedTokens(token) }, expiresAt: { gt: new Date() } },
+    include: { user: { select: { id: true, fname: true, lname: true, contact: true, email: true, bannedAt: true } } },
   });
-  if (!session) return null;
+  if (!session || session.user.bannedAt) return null;
   const profiles = await prisma.personProfile.findMany({ where: { user_id: session.user.id }, select: { user_id: true, role: true } });
   const roles = [...new Set(profiles.flatMap(profile => profile.user_id === session.user.id && profile.role ? [profile.role] : []))];
   return { ...session.user, roles };
@@ -54,7 +69,7 @@ export async function invalidateSession() {
   try {
     if (validSecret(token) || (validSecret(binding) && (validSecret(proof) || challenge.success))) {
       await prisma.$transaction(async tx => {
-        if (validSecret(token)) await tx.session.deleteMany({ where: { token: { in: [storedToken(token), token] } } });
+        if (validSecret(token)) await tx.session.deleteMany({ where: { token: { in: acceptedTokens(token) } } });
         if (validSecret(proof) && validSecret(binding)) await tx.registrationGrant.updateMany({ where: { tokenHash: digest(proof), browserBindingHash: digest(binding), consumedAt: null }, data: { consumedAt: new Date() } });
         if (challenge.success && validSecret(binding)) await tx.otpVerification.updateMany({ where: { id: challenge.data, browserBindingHash: digest(binding), consumedAt: null }, data: { consumedAt: new Date() } });
       });

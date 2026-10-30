@@ -6,7 +6,8 @@ import {useRef} from "react";
 import {useScroll, useSpring} from "framer-motion";
 import ContactCard from "@/components/modules/dream-form/ContactCard";
 import {IsometricDigitalStructure} from "@/components/modules/hero/IsometricDigitalStructure";
-import { Phone, MessageCircle , Users, FileText } from "lucide-react"; 
+import {publicSite} from "@/lib/site";
+import {Send, MessageCircle, Users, FileText} from "lucide-react";
 
 export default function Hero() {
   const t = useTranslations("Hero");
@@ -31,9 +32,9 @@ export default function Hero() {
       </p>
 
       <ContactCard
-        phoneNumber="021-12345678"
-        phoneLabel={t("support")}
-        mainIcon={Phone}
+        contactHref={publicSite.social.telegram}
+        contactText={t("telegramSupport")}
+        mainIcon={Send}
         badgeIcon={MessageCircle}
         buttons={[
           { 

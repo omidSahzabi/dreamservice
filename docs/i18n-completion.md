@@ -74,7 +74,7 @@ Browser API traffic was intercepted with synthetic fixtures for **all `/api/` re
 Additional read-only local HTTP checks verified localized page rendering and metadata, API invalid-locale rejection before database access, public PDF access, and locale negotiation. With Persian Accept-Language, `/` redirects to `/fa` and `/about` to `/fa/about`. Unsupported locale-looking paths become unknown routes beneath a supported negotiated locale. Tested unknown routes render localized not-found content with `noindex`; streamed Next responses returned HTTP 200, so hosting/indexing behavior must be checked before release.
 
 Latest browser screenshots are outside the repository at:
-`C:\Users\P.S\AppData\Local\Temp\dreamservice-i18n-iex9TX`.
+`<user-temporary-directory>/dreamservice-i18n-iex9TX`.
 
 ### Legacy compiler diagnostics resolved
 

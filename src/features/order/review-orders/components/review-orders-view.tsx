@@ -5,7 +5,6 @@ import {localizeApiError} from "@/lib/api/errors"
 import {DataTableFilterForm} from "@/components/modules/data-table/data-table-filter-form"
 import {
   ClipboardList,
-  RefreshCw,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -45,6 +44,7 @@ export function ReviewOrdersView() {
         totalOrders={totalOrders}
         hasPagination={Boolean(data?.pagination)}
         isFetching={isFetching}
+        completed={!isError && Boolean(data)}
         onRefresh={() => refetch()}
       />
 
@@ -91,6 +91,7 @@ type HeaderProps = {
   totalOrders: number
   hasPagination: boolean
   isFetching: boolean
+  completed: boolean
   onRefresh: () => void
 }
 
@@ -98,6 +99,7 @@ function ReviewOrdersHeader({
   totalOrders,
   hasPagination,
   isFetching,
+  completed,
   onRefresh,
 }: HeaderProps) {
   const t = useTranslations("ReviewOrders")
@@ -128,15 +130,11 @@ function ReviewOrdersHeader({
         <Button
           variant="outline"
           size="sm"
-          disabled={isFetching}
+          pending={isFetching}
+          completed={completed}
           onClick={onRefresh}
           className="h-9 gap-1.5 rounded-lg border-border bg-card px-3 text-xs text-text-secondary hover:bg-secondary hover:text-foreground"
         >
-          <RefreshCw
-            className={`size-3.5 ${
-              isFetching ? "animate-spin text-primary" : ""
-            }`}
-          />
           <span>{t("refresh")}</span>
         </Button>
       </div>

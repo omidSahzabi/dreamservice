@@ -3,6 +3,7 @@ import { isIP } from "net";
 import { prisma } from "@/lib/prisma";
 import { protectedHash } from "@/lib/security/crypto";
 import { SecurityError, securityEvent } from "@/lib/security/http";
+import type { ApiErrorCode } from "@/lib/api/errors";
 
 type Limit = { scope: string; subject: string; seconds: number; maximum: number };
 
@@ -13,7 +14,7 @@ export function requestSource(request: Request) {
   return value && isIP(value) ? value : "unknown";
 }
 
-export async function enforceLimits(limits: Limit[]) {
+export async function enforceLimits(limits: Limit[], code: ApiErrorCode = "OTP_RATE_LIMIT") {
   const now = Date.now();
   const denied = await prisma.$transaction(async tx => {
     for (const limit of limits) {
@@ -29,7 +30,7 @@ export async function enforceLimits(limits: Limit[]) {
   });
   if (denied) {
     securityEvent("rate_limited");
-    throw new SecurityError(429, "OTP_RATE_LIMIT", denied);
+    throw new SecurityError(429, code, denied);
   }
 }
 

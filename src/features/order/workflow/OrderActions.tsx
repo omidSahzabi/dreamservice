@@ -62,7 +62,7 @@ export function OrderActions({order}: {order: OrderItem}) {
         <textarea id={messageId} required maxLength={2000} disabled={mutation.isPending} value={message} onChange={event => {setMessage(event.target.value);setInvalid(false);}} aria-invalid={invalid} aria-describedby={invalid ? `${messageId}-error` : undefined} className="min-h-28 w-full rounded border border-border-soft bg-surface-1 p-3" />
         {invalid && <p id={`${messageId}-error`} role="alert">{t("messageRequired")}</p>}
         {mutation.isError && <p role="alert">{localizeApiError(mutation.error, errors)}</p>}
-        <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? t("saving") : t("confirm")}</Button>
+        <Button type="submit" pending={mutation.isPending} pendingLabel={t("saving")}>{t("confirm")}</Button>
       </form>}
       <Button variant="outline" disabled={mutation.isPending} onClick={() => setAction(null)}>{mutation.isSuccess ? t("close") : t("cancel")}</Button>
     </DialogContent></Dialog>

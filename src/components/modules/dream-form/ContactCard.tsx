@@ -2,7 +2,7 @@
 
 import React from 'react';
 import {useTranslations} from 'next-intl';
-import { Phone, MessageCircle, LucideIcon } from 'lucide-react';
+import { MessageCircle, LucideIcon } from 'lucide-react';
 
 interface ButtonConfig {
   text: string;
@@ -13,8 +13,9 @@ interface ButtonConfig {
 
 interface ContactCardProps {
   // اطلاعات تماس
-  phoneNumber: string;
-  phoneLabel?: string;
+  contactHref: string;
+  contactText: string;
+  contactLabel?: string;
   
   // آیکون‌ها
   mainIcon?: LucideIcon;
@@ -31,9 +32,10 @@ interface ContactCardProps {
 }
 
 export const ContactCard: React.FC<ContactCardProps> = ({
-  phoneNumber,
-  phoneLabel,
-  mainIcon: MainIcon = Phone,
+  contactHref,
+  contactText,
+  contactLabel,
+  mainIcon: MainIcon = MessageCircle,
   badgeIcon: BadgeIcon = MessageCircle,
   buttons = [],
   className = '',
@@ -62,11 +64,16 @@ export const ContactCard: React.FC<ContactCardProps> = ({
 
       <div className="relative flex items-center justify-between flex-wrap gap-4">
         {/* سمت چپ - اطلاعات تماس */}
-        <div className="flex items-center gap-4">
+        <a
+          href={contactHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-4 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+        >
           {/* آیکون اصلی */}
           <div className="relative">
             <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <MainIcon className="w-6 h-6" />
+              <MainIcon aria-hidden="true" className="w-6 h-6" />
             </div>
             {/* آیکون badge */}
             {BadgeIcon && (
@@ -79,17 +86,15 @@ export const ContactCard: React.FC<ContactCardProps> = ({
           {/* متن */}
           <div className="flex flex-col">
             <span className="text-text-secondary text-sm font-medium">
-              {phoneLabel ?? t("contact")}
+              {contactLabel ?? t("contact")}
             </span>
-            <a
-              href={`tel:${phoneNumber}`}
-              dir="ltr"
-              className="text-foreground text-xl font-bold hover:text-primary transition-colors"
+            <span
+              className="text-foreground text-xl font-bold group-hover:text-primary transition-colors"
             >
-              {phoneNumber}
-            </a>
+              {contactText}
+            </span>
           </div>
-        </div>
+        </a>
 
         {/* سمت راست - دکمه‌های داینامیک */}
         <div className="flex gap-3 flex-wrap">

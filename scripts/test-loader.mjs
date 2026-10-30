@@ -26,6 +26,7 @@ export function load(relative, overrides = {}) {
       if (name === '@/lib/prisma') throw new Error('Tests must provide an in-memory Prisma substitute');
       if (name.startsWith('@/') || name.startsWith('.')) {
         const target = name.startsWith('@/') ? path.join(root, 'src', name.slice(2)) : path.resolve(path.dirname(filename), name);
+        if (target.endsWith('.json')) return JSON.parse(fs.readFileSync(target, 'utf8'));
         const resolved = ['.ts', '.tsx', '/index.ts', '/index.tsx'].map(extension => target + extension).find(candidate => fs.existsSync(candidate));
         if (!resolved) throw new Error('Missing test module: ' + name);
         return read(resolved);

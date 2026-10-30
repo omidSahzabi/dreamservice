@@ -71,14 +71,14 @@ for(const locale of ['en','fa'])test('brand links have one localized name and in
 for(const initiallyReduced of [true,false])test('carousel autoplay respects reduced motion '+(initiallyReduced?'at startup':'before a scheduled slide'),t=>{
   const previous=Object.getOwnPropertyDescriptor(globalThis,'window');
   let reduced=initiallyReduced,callback,slides=0;
-  Object.defineProperty(globalThis,'window',{configurable:true,value:{matchMedia:()=>({matches:reduced})}});
+  Object.defineProperty(globalThis,'window',{configurable:true,value:{matchMedia:()=>({matches:reduced,addEventListener(){},removeEventListener(){}})}});
   t.after(()=>{if(previous)Object.defineProperty(globalThis,'window',previous);else delete globalThis.window;});
   t.mock.method(globalThis,'setTimeout',fn=>{callback=fn;return 1;});
   t.mock.method(globalThis,'clearTimeout',()=>{});
   const {useRandomAutoplay}=load('src/hooks/useRandomAutoplay.ts',{
-    react:{useRef:()=>({current:null}),useEffect:fn=>{fn();}},
+    react:{useRef:()=>({current:null}),useEffect:fn=>{fn();},useState:()=>[false,()=>{}],useCallback:fn=>fn},
   });
-  const reset=useRandomAutoplay({slideNext(){slides++;}});
+  const {reset}=useRandomAutoplay({slideNext(){slides++;}});
   if(initiallyReduced)assert.equal(callback,undefined);
   else {assert.equal(typeof callback,'function');reduced=true;callback();}
   reset();assert.equal(slides,0);

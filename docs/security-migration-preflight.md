@@ -60,7 +60,7 @@ inspection used read-only connections with bounded statement/lock timeouts.
 A full custom-format `pg_dump` backup was created in the current user's temporary
 directory, outside the repository:
 
-`C:\Users\P.S\AppData\Local\Temp\dreamservice-security-preflight-XVoLIB\before-security.dump`
+`<user-temporary-directory>/dreamservice-security-preflight-XVoLIB/before-security.dump`
 
 - Size: 76,145 bytes.
 - SHA-256: `21D451BB74C7C9284A30DBBC60866BD920133337AAD153FF0CB44614CBBB5110`.
