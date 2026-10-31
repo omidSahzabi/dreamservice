@@ -442,28 +442,81 @@ test('identity cleanup cancels/removes sensitive caches, clears drafts and displ
 });
 
 for (const [name,response,expected] of [
-  ['documented acceptance',{status:200,body:{meta:{status:true,message_code:'200-1'},data:{message_outbox_ids:[1]}}},true],
-  ['application rejection',{status:200,body:{meta:{status:false,message_code:'400-1'},data:null}},false],
-  ['HTTP rejection',{status:401,body:{meta:{status:false}}},false],
-  ['missing receipt',{status:200,body:{meta:{status:true,message_code:'200-1'},data:{}}},false],
+  ['documented acceptance',{status:201,body:{status:'success',data:0,messages:'fixture'}},true],
+  ['positive receipt',{status:201,body:{status:'success',data:123}},true],
+  ['application rejection',{status:200,body:{status:'error',data:null}},false],
+  ['HTTP rejection',{status:401,body:{status:'success',data:123}},false],
+  ['server rejection',{status:503,body:{status:'success',data:123}},false],
+  ['missing receipt',{status:201,body:{status:'success'}},false],
+  ['negative receipt',{status:201,body:{status:'success',data:-1}},false],
+  ['wrong receipt type',{status:201,body:{status:'success',data:'123'}},false],
+  ['old Edge response',{status:200,body:{meta:{status:true,message_code:'200-1'},data:{message_outbox_ids:[1]}}},false],
   ['malformed response',{status:200,body:null},false]
 ]) test('SMS contract handles '+name+' without live requests',async () => {
   const previous = process.env.NODE_ENV; process.env.NODE_ENV = 'production'; process.env.SECURITY_SMS_ENABLED = 'true';
-  process.env.FARAZSMS_API_KEY = secret(); process.env.FARAZSMS_PATTERN_CODE = 'fixture'; process.env.FARAZSMS_SENDER_NUMBER = '+98000000';
+  process.env.FARAZSMS_API_KEY = secret(); process.env.FARAZSMS_PATTERN_CODE = 'fixture'; process.env.FARAZSMS_SENDER_NUMBER = '90008361';
   const original = globalThis.fetch; let calls = 0;
   globalThis.fetch = async (url,options) => {
-    calls++; assert.equal(url,'https://edge.ippanel.com/v1/api/send'); assert.ok(options.signal instanceof AbortSignal); assert.equal(options.redirect,'error');
+    calls++; assert.equal(url,'https://api.iranpayamak.com/ws/v1/sms/pattern'); assert.ok(options.signal instanceof AbortSignal); assert.equal(options.redirect,'error');
+    assert.equal(options.method,'POST');assert.equal(options.cache,'no-store');
+    assert.deepEqual(options.headers,{Accept:'application/json','Content-Type':'application/json','Api-Key':process.env.FARAZSMS_API_KEY});
+    assert.deepEqual(JSON.parse(options.body),{code:'fixture',attributes:{code:'12345'},recipient:phone,line_number:'90008361',number_format:'english'});
     return new Response(JSON.stringify(response.body),{status:response.status});
   };
-  try { assert.equal((await load('src/lib/auth/sms.ts').sendOtpSms({to:phone,code:secret()})).success,expected); assert.equal(calls,1); }
+  try { assert.equal((await load('src/lib/auth/sms.ts').sendOtpSms({to:phone,code:'12345'})).success,expected); assert.equal(calls,1); }
   finally {globalThis.fetch = original; delete process.env.SECURITY_SMS_ENABLED; delete process.env.FARAZSMS_API_KEY; delete process.env.FARAZSMS_PATTERN_CODE; delete process.env.FARAZSMS_SENDER_NUMBER; if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous;}
+});
+
+function smsFixture(t) {
+  const variables={NODE_ENV:'production',SECURITY_SMS_ENABLED:'true',FARAZSMS_API_KEY:secret(),FARAZSMS_PATTERN_CODE:'fixture',FARAZSMS_SENDER_NUMBER:'90008361'};
+  const previous=Object.fromEntries(Object.keys(variables).map(name=>[name,process.env[name]]));Object.assign(process.env,variables);
+  t.after(()=>{for(const[name,value]of Object.entries(previous))if(value===undefined)delete process.env[name];else process.env[name]=value;});
+  return load('src/lib/auth/sms.ts');
+}
+
+for(const variant of ['development','test','switch-missing','switch-false','switch-wrong-case'])test('IranPayamak disabled mode makes no network request: '+variant,async t=>{
+  const sms=smsFixture(t);let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;throw Error('Network forbidden');});
+  if(['development','test'].includes(variant))process.env.NODE_ENV=variant;
+  if(variant==='switch-missing')delete process.env.SECURITY_SMS_ENABLED;
+  if(variant==='switch-false')process.env.SECURITY_SMS_ENABLED='false';
+  if(variant==='switch-wrong-case')process.env.SECURITY_SMS_ENABLED='TRUE';
+  assert.deepEqual(await sms.sendOtpSms({to:phone,code:'12345'}),{success:false});assert.equal(calls,0);
+});
+
+for(const variant of ['missing-key','blank-key','header-injection','missing-pattern','pattern-whitespace','missing-line','line-prefix','line-whitespace','line-text','invalid-recipient','short-code','long-code','nonnumeric-code'])test('IranPayamak invalid configuration or input makes no network request: '+variant,async t=>{
+  const sms=smsFixture(t);let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;throw Error('Network forbidden');});
+  if(variant==='missing-key')delete process.env.FARAZSMS_API_KEY;
+  if(variant==='blank-key')process.env.FARAZSMS_API_KEY='   ';
+  if(variant==='header-injection')process.env.FARAZSMS_API_KEY='invalid\r\nheader';
+  if(variant==='missing-pattern')delete process.env.FARAZSMS_PATTERN_CODE;
+  if(variant==='pattern-whitespace')process.env.FARAZSMS_PATTERN_CODE='invalid pattern';
+  if(variant==='missing-line')delete process.env.FARAZSMS_SENDER_NUMBER;
+  if(variant==='line-prefix')process.env.FARAZSMS_SENDER_NUMBER='+9890008361';
+  if(variant==='line-whitespace')process.env.FARAZSMS_SENDER_NUMBER='90008361 ';
+  if(variant==='line-text')process.env.FARAZSMS_SENDER_NUMBER='invalid';
+  const code=variant==='short-code'?'1234':variant==='long-code'?'123456':variant==='nonnumeric-code'?'abcde':'12345';
+  assert.deepEqual(await sms.sendOtpSms({to:variant==='invalid-recipient'?'invalid':phone,code}),{success:false});assert.equal(calls,0);
+});
+
+for(const recipient of ['09000000000','9000000000','+989000000000','00989000000000'])test('IranPayamak normalizes a supported recipient format to local mobile: '+recipient.slice(0,3),async t=>{
+  const sms=smsFixture(t);process.env.FARAZSMS_SENDER_NUMBER='50002178584000';let payload;
+  t.mock.method(globalThis,'fetch',async(_url,options)=>{payload=JSON.parse(options.body);return Response.json({status:'success',data:42},{status:201});});
+  assert.deepEqual(await sms.sendOtpSms({to:recipient,code:'12345'}),{success:true});
+  assert.equal(payload.recipient,phone);assert.equal(payload.line_number,'50002178584000');assert.deepEqual(payload.attributes,{code:'12345'});
+});
+
+for(const variant of ['malformed-json','network','redirect'])test('IranPayamak failures remain private and are not retried: '+variant,async t=>{
+  const sms=smsFixture(t);let calls=0;const logs=[];
+  for(const method of ['warn','info','error','log'])t.mock.method(console,method,(...args)=>logs.push(args));
+  t.mock.method(globalThis,'fetch',async()=>{calls++;if(variant==='malformed-json')return new Response('private-provider-details',{status:201});throw Error('private-provider-details');});
+  assert.deepEqual(await sms.sendOtpSms({to:phone,code:'12345'}),{success:false});assert.equal(calls,1);assert.deepEqual(logs,[]);
 });
 
 test('SMS timeout or network failure fails closed',async () => {
   const previous = process.env.NODE_ENV; process.env.NODE_ENV = 'production'; process.env.SECURITY_SMS_ENABLED = 'true';
-  process.env.FARAZSMS_API_KEY = secret(); process.env.FARAZSMS_PATTERN_CODE = 'fixture'; process.env.FARAZSMS_SENDER_NUMBER = '+98000000';
+  process.env.FARAZSMS_API_KEY = secret(); process.env.FARAZSMS_PATTERN_CODE = 'fixture'; process.env.FARAZSMS_SENDER_NUMBER = '90008361';
   const original = globalThis.fetch; globalThis.fetch = async () => {throw new DOMException('Synthetic timeout','TimeoutError');};
-  try {assert.equal((await load('src/lib/auth/sms.ts').sendOtpSms({to:phone,code:secret()})).success,false);}
+  try {assert.equal((await load('src/lib/auth/sms.ts').sendOtpSms({to:phone,code:'12345'})).success,false);}
   finally {globalThis.fetch = original; delete process.env.SECURITY_SMS_ENABLED; delete process.env.FARAZSMS_API_KEY; delete process.env.FARAZSMS_PATTERN_CODE; delete process.env.FARAZSMS_SENDER_NUMBER; if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous;}
 });
 

@@ -27,11 +27,17 @@ Open `http://localhost:3000/en` or `/fa`. Database configuration, backups, and m
 | `SECURITY_TRUSTED_IP_HEADER` | Optional single-IP header overwritten by a trusted proxy |
 | `OTP_DELIVERY_MODE` | Development-only `console`, or provider delivery; console is rejected outside development |
 | `SECURITY_SMS_ENABLED` | Explicit provider enable switch; disable during local verification |
-| `FARAZSMS_API_KEY`, `FARAZSMS_PATTERN_CODE`, `FARAZSMS_SENDER_NUMBER` | Production OTP provider configuration |
+| `FARAZSMS_API_KEY`, `FARAZSMS_PATTERN_CODE`, `FARAZSMS_SENDER_NUMBER` | IranPayamak OTP access key, approved pattern identifier, and authorized digits-only sender line string |
 | `ORDER_NOTIFICATIONS_SMS_ENABLED`, `FARAZSMS_ORDER_STATUS_PATTERN_CODE` | Separate opt-in order-status provider configuration |
 | `PUBLIC_TEAM_PROFILE_IDS` | Comma-separated published profile IDs; absent/empty means no public team. Roles do not publish people |
 
 No actual values belong in documentation. Without a trusted proxy header, source-based rate limits intentionally share an `unknown` bucket; validate proxy behavior before release. System fonts are used; no remote font download is required.
+
+OTP delivery uses `POST https://api.iranpayamak.com/ws/v1/sms/pattern`, with `Accept: application/json`, `Content-Type: application/json`, and the private `Api-Key` header. Keep the existing `FARAZSMS_*` environment names; the access key and pattern must belong to this provider/account. Configure the authorized sender line exactly as its digits-only string, without adding a country prefix. The shared phone normalizer sends the recipient in local `09…` format. The approved pattern variable is `code`: the payload uses `attributes: {code: <five-digit OTP>}` and `number_format: "english"`. No secret belongs in a `NEXT_PUBLIC_*` variable or a committed file. See the [provider's pattern contract](https://docs.iranpayamak.com/send-pattern-based-sms-13925177e0).
+
+Provider acceptance requires a successful HTTP response and a JSON body with `status: "success"` and a nonnegative integer `data` (including the documented zero example). Acceptance does not prove handset delivery. Rejection, malformed responses, redirects and a 10-second timeout fail closed without automatic retries or logging provider bodies. The existing OTP flow rejects failed challenges with `SMS_FAILED`; no OTP, session or registration bypass is introduced.
+
+For Production, retain the existing `DATABASE_URL`, stable `SECURITY_OTP_KEY` (at least 32 bytes), exact HTTPS `SECURITY_ORIGIN` and verified trusted-IP configuration. Leave `OTP_DELIVERY_MODE` unset; `console` is rejected in Production. Keep `SECURITY_SMS_ENABLED=false` until deployment and one controlled delivery test are separately approved. Keep `ORDER_NOTIFICATIONS_SMS_ENABLED=false`: order-status delivery still uses its existing IPPanel Edge adapter and has not been migrated. The standalone Edge sender diagnostic remains an Edge-only tool and is not a validation of this new transport. No migration or seed is needed for the OTP provider change.
 
 Temporary password access for an allowlisted Vercel Preview is disabled by default and requires its own expiring server-only configuration. See [preview login setup and emergency disable](docs/preview-password-login.md) before considering it; it does not register users or enable SMS.
 
