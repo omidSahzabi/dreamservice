@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthModalStore } from "@/store/authModalStore";
-import { sendOtp, verifyOtp, registerUser } from "@/lib/auth/authClient";
+import { sendOtp, verifyOtp, registerUser, getOtpStatus, type OtpDelivery } from "@/lib/auth/authClient";
+import { otpDeadline, otpSeconds } from "@/lib/auth/otp-clock";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -22,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-import { localizeApiError, readApiError } from "@/lib/api/errors";
+import { ApiError, localizeApiError, readApiError } from "@/lib/api/errors";
 import { normalizeDigits } from "@/lib/i18n/digits";
 import { clearSensitiveState } from "@/lib/auth/client-state";
 import { useRouter } from "@/lib/i18n/navigation";
@@ -90,14 +91,58 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
   const queryClient = useQueryClient();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [delivery, setDelivery] = useState<OtpDelivery | "PREPARING">("PREPARING");
+  const [deadline, setDeadline] = useState<number | null>(null);
+  const [remaining, setRemaining] = useState(0);
+  const retryAt = useRef(0);
+  const generation = useRef(0);
+  const requestLock = useRef(false);
+  const windowOpen = deadline !== null && remaining > 0;
 
   useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const interval = setInterval(() => {
-      setResendCooldown(resendCooldown - 1);
-    }, 1000);
+    const tick = () => {
+      setRemaining(otpSeconds(deadline, performance.now()));
+      setResendCooldown(otpSeconds(retryAt.current, performance.now()));
+    };
+    tick();
+    const interval = setInterval(tick, 500);
     return () => clearInterval(interval);
-  }, [resendCooldown, setResendCooldown]);
+  }, [deadline, setResendCooldown]);
+
+  useEffect(() => () => { generation.current++; }, []);
+
+  const closeModal = () => {
+    generation.current++;
+    setDeadline(null);
+    setIsRequesting(false);
+    requestLock.current = false;
+    retryAt.current = 0;
+    closeAuthModal();
+  };
+
+  useEffect(() => {
+    if (!isOpen || step !== "OTP" || isRequesting || !windowOpen ||
+        ["FAILED", "USED", "LOCKED", "EXPIRED"].includes(delivery)) return;
+    let cancelled = false;
+    const current = generation.current;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      const started = performance.now();
+      try {
+        const status = await getOtpStatus(phone);
+        if (cancelled || current !== generation.current) return;
+        setDelivery(status.delivery);
+        setDeadline(previous => Math.min(previous ?? Infinity, otpDeadline(status.expiresAt, status.serverNow, started)));
+      } catch {
+        // A status transport failure is not proof of delivery failure.
+        if (!cancelled && current === generation.current) setDelivery("UNKNOWN");
+      }
+      if (!cancelled && current === generation.current) timer = setTimeout(poll, 4000);
+    };
+    timer = setTimeout(poll, 4000);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [isOpen, step, phone, isRequesting, windowOpen, delivery]);
 
   const phoneForm = useForm<PhoneFormValues>({
     resolver: zodResolver(phoneSchema),
@@ -126,18 +171,45 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
   }, [isOpen, resetPhone, resetOtp, resetRegistration]);
 
   const handleSendOtp = async (data: PhoneFormValues) => {
+    if (requestLock.current) return;
+    requestLock.current = true;
+    const current = ++generation.current;
+    const started = performance.now();
+    setIsRequesting(true);
+    setDeadline(null);
+    setDelivery("PREPARING");
+    resetOtp({code: ""});
+    setPhone(data.phone);
+    setStep("OTP");
     try {
-      setIsSubmitting(true);
       const res = await sendOtp(data.phone);
-      resetOtp({code: ""});
-      setPhone(data.phone);
-      setResendCooldown(res.retryAfter || 60);
-      setStep("OTP");
-      toast.success(t("toast.otpSent"));
+      if (current !== generation.current) return;
+      setDeadline(otpDeadline(res.expiresAt, res.serverNow, started));
+      retryAt.current = started + res.retryAfter * 1000;
+      setResendCooldown(otpSeconds(retryAt.current, performance.now()));
+      setDelivery(res.delivery);
     } catch (error: unknown) {
+      if (current !== generation.current) return;
+      // Recover only from an authorized cookie-bound challenge. A 502 or lost
+      // response alone cannot establish one, nor claim that SMS was sent.
+      if (error instanceof ApiError && ["NETWORK_ERROR", "SMS_FAILED"].includes(error.code)) {
+        try {
+          const recovered = await getOtpStatus(data.phone);
+          if (current !== generation.current) return;
+          setDeadline(otpDeadline(recovered.expiresAt, recovered.serverNow, started));
+          setDelivery(recovered.delivery);
+          retryAt.current = started + 60000;
+          return;
+        } catch { /* No authorized challenge was recovered. */ }
+      }
+      if (current !== generation.current) return;
+      setStep("PHONE");
       toast.error(localizeApiError(error, errors));
     } finally {
-      setIsSubmitting(false);
+      if (current === generation.current) {
+        setIsRequesting(false);
+        requestLock.current = false;
+      }
     }
   };
 
@@ -153,7 +225,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
         await queryClient.invalidateQueries({ queryKey: ["authUser"] });
         router.refresh();
         if (onSuccessCallback) onSuccessCallback();
-        closeAuthModal();
+        closeModal();
         toast.success(t("toast.authSuccess"));
       }
     } catch (error: unknown) {
@@ -177,7 +249,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
       await queryClient.invalidateQueries({ queryKey: ["authUser"] });
       router.refresh();
       if (onSuccessCallback) onSuccessCallback();
-      closeAuthModal();
+      closeModal();
       toast.success(t("toast.registerSuccess"));
     } catch (error: unknown) {
       toast.error(localizeApiError(error, errors));
@@ -187,7 +259,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && closeAuthModal()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
       <DialogContent onCloseAutoFocus={event => {
         event.preventDefault();
         if (returnFocusTo?.isConnected) returnFocusTo.focus();
@@ -214,7 +286,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <form noValidate onSubmit={phoneForm.handleSubmit(handleSendOtp)} className="space-y-4 pt-2">
+              <form noValidate onSubmit={event => { void phoneForm.handleSubmit(handleSendOtp)(event); }} className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="phone">{t("label.phone")}</Label>
                   <Input
@@ -233,7 +305,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
                     </p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" pending={isSubmitting} pendingLabel={t("button.sending")}>
+                <Button type="submit" className="w-full" pending={isSubmitting || isRequesting} pendingLabel={t("button.sending")}>
                   {t("button.sendOtp")}
                 </Button>
               </form>
@@ -242,7 +314,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
                 await queryClient.invalidateQueries({queryKey: ["authUser"]});
                 router.refresh();
                 if (onSuccessCallback) onSuccessCallback();
-                closeAuthModal();
+                closeModal();
                 toast.success(t("toast.authSuccess"));
               }} />}
             </motion.div>
@@ -256,7 +328,11 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <form noValidate onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4 pt-2">
+              <form noValidate onSubmit={event => { void otpForm.handleSubmit(handleVerifyOtp)(event); }} className="space-y-4 pt-2">
+                <p role="status" className="text-sm text-muted-foreground">
+                  {t(`delivery.${deadline !== null && remaining <= 0 ? "EXPIRED" : delivery}`)}
+                </p>
+                {deadline !== null && <p className="text-sm tabular-nums">{t("verificationCountdown", {seconds: remaining})}</p>}
                 <div className="space-y-2">
                   <Label htmlFor="code">{t("label.otp")}</Label>
                   <Input
@@ -280,7 +356,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
                   <button
                     type="button"
                     onClick={() => setStep("PHONE")}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isRequesting}
                       className="text-primary underline cursor-pointer"
                   >
                     {t("action.changePhone")}
@@ -291,8 +367,8 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
                     <button
                       type="button"
                       onClick={() => handleSendOtp({ phone })}
-                      disabled={isSubmitting}
-                      aria-busy={isSubmitting || undefined}
+                      disabled={isSubmitting || isRequesting}
+                      aria-busy={isSubmitting || isRequesting || undefined}
                       className="text-primary underline cursor-pointer"
                     >
                       {t("action.resendOtp")}
@@ -300,7 +376,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" pending={isSubmitting} pendingLabel={t("button.verifying")}>
+                <Button type="submit" className="w-full" disabled={isRequesting || deadline === null || remaining <= 0 || ["FAILED", "USED", "LOCKED"].includes(delivery)} pending={isSubmitting} pendingLabel={t("button.verifying")}>
                   {t("button.verify")}
                 </Button>
               </form>
@@ -315,7 +391,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <form noValidate onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4 pt-2">
+              <form noValidate onSubmit={event => { void registerForm.handleSubmit(handleRegister)(event); }} className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="fname">{t("label.firstName")}</Label>
                   <Input

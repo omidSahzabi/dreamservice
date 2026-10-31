@@ -19,9 +19,19 @@ const post = (body: unknown) => ({
   method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
 });
 
+const deliverySchema = z.enum(['PENDING', 'ACCEPTED', 'UNKNOWN', 'FAILED', 'EXPIRED', 'USED', 'LOCKED']);
+const challengeSchema = z.object({success: z.literal(true), delivery: deliverySchema, expiresAt: z.iso.datetime(), serverNow: z.iso.datetime()});
+export type OtpDelivery = z.infer<typeof deliverySchema>;
+
 export async function sendOtp(target: string) {
-  const data = z.object({success: z.literal(true), retryAfter: z.number(), expiresIn: z.number()})
+  const data = challengeSchema.extend({retryAfter: z.number(), expiresIn: z.number()})
     .safeParse(await fetchJson('/api/auth/send-otp', 'UNKNOWN', post({target})));
+  if (!data.success) throw new ApiError('UNKNOWN');
+  return data.data;
+}
+
+export async function getOtpStatus(target: string) {
+  const data = challengeSchema.safeParse(await fetchJson('/api/auth/otp-status', 'UNKNOWN', {...post({target}), cache: 'no-store'}));
   if (!data.success) throw new ApiError('UNKNOWN');
   return data.data;
 }

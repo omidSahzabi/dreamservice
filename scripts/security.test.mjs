@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomBytes, randomUUID, createHash, createHmac} from 'node:crypto';
-import {NextRequest} from 'next/server.js';
+import {NextRequest, NextResponse} from 'next/server.js';
 import {load} from './test-loader.mjs';
 
 process.env.SECURITY_OTP_KEY = randomBytes(32).toString('hex');
@@ -98,11 +98,12 @@ function database() {
 }
 
 function environment(db = database()) {
+  const deliveries = [];
   const values = new Map();
   const options = new Map();
   const jar = {get: name => values.has(name) ? {value:values.get(name)} : undefined, set(name,value,config) {values.set(name,value); options.set(name,config);}};
-  const overrides = {'@/lib/prisma':{prisma:db.prisma},'next/headers':{cookies:async () => jar},'@/lib/security/rate-limit':{otpLimits:async () => {},enforceLimits:async () => {},requestSource:() => 'fixture'}};
-  return {db,values,options,overrides,load:file => load(file,overrides)};
+  const overrides = {'next/server':{NextResponse,after:task=>deliveries.push(task)},'@/lib/prisma':{prisma:db.prisma},'next/headers':{cookies:async () => jar},'@/lib/security/rate-limit':{otpLimits:async () => {},enforceLimits:async () => {},requestSource:() => 'fixture'}};
+  return {db,values,options,overrides,deliveries,deliver:async()=>{while(deliveries.length)await deliveries.shift()();},load:file => load(file,overrides)};
 }
 
 function request(body, headers = {}, endpoint = '/api/test') {
@@ -417,13 +418,237 @@ test('untrusted forwarding headers are not used as rate-limit identities',() => 
 
 test('successful issuance stores keyed challenge material and consumes older challenges',async () => {
   const env = environment(); const {otp} = challenge(env); otp.createdAt = new Date(Date.now()-61000);
-  env.overrides['@/lib/auth/sms'] = {sendOtpSms:async () => ({success:true})};
-  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));
+  env.overrides['@/lib/auth/sms'] = {sendOtpSms:async ({onDispatchStarted}) => {await onDispatchStarted();return {success:true};}};
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));await env.deliver();
   assert.ok(otp.consumedAt); assert.equal(env.db.state.otpVerification[1].deliveryState,'SENT'); assert.equal(env.db.state.otpVerification[1].browserBindingHash,hash(env.values.get('dream_auth_binding')));
 });
 test('failed delivery cannot leave a verifiable challenge',async () => {
   const env = environment(); env.overrides['@/lib/auth/sms'] = {sendOtpSms:async () => ({success:false})};
-  await assert.rejects(env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone})),error => error.status === 502); assert.equal(env.db.state.otpVerification[0].deliveryState,'FAILED'); assert.equal(env.values.has('dream_otp_challenge'),false);
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));await env.deliver();assert.equal(env.db.state.otpVerification[0].deliveryState,'FAILED');assert.equal(env.values.has('dream_otp_challenge'),true);
+});
+
+test('issuance returns a bound server deadline before any SMS I/O; queued and legacy pending codes cannot verify',async () => {
+  const env=environment();let calls=0;
+  env.overrides['@/lib/auth/sms']={sendOtpSms:async({onDispatchStarted})=>{calls++;await onDispatchStarted();return {success:true};}};
+  const result=await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));
+  const row=env.db.state.otpVerification[0];
+  assert.equal(calls,0);assert.equal(row.deliveryState,'QUEUED');assert.equal(result.delivery,'PENDING');
+  assert.equal(result.expiresAt,row.expiresAt.toISOString());assert.ok(Date.parse(result.expiresAt)-Date.parse(result.serverNow)<=120000);
+  assert.equal(env.values.get('dream_otp_challenge'),row.id);assert.equal(env.options.get('dream_otp_challenge').httpOnly,true);
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code:'12345'})),error=>error.code==='OTP_INVALID');
+  assert.equal(row.attempts,0);
+  await env.deliver();assert.equal(calls,1);assert.equal(row.deliveryState,'SENT');
+});
+
+for(const outcome of ['accepted','timeout','http-502'])test('correct browser-bound code verifies during delayed dispatch without claiming delivery: '+outcome,async t=>{
+  smsFixture(t);const env=environment();let finish,started,code,calls=0;
+  const beginning=new Promise(resolve=>{started=resolve;});
+  let markEligible;
+  const eligibility=new Promise(resolve=>{markEligible=resolve;});
+  const update=env.db.prisma.otpVerification.updateMany;
+  env.db.prisma.otpVerification.updateMany=async args=>{const result=await update(args);if(args.data.deliveryState==='DISPATCHING')markEligible();return result;};
+  t.mock.method(globalThis,'fetch',async(_url,options)=>{
+    calls++;code=JSON.parse(options.body).attributes.code;started();
+    return new Promise((resolve,reject)=>{finish=()=>outcome==='timeout'?reject(new DOMException('private','TimeoutError')):resolve(Response.json(outcome==='accepted'?{status:'success',data:42}:{status:'error'},{status:outcome==='http-502'?502:201}));});
+  });
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));
+  const job=env.deliver();await beginning;await eligibility;
+  const row=env.db.state.otpVerification[0];assert.equal(row.deliveryState,'DISPATCHING');
+  const status=await env.load('src/lib/auth/otp.ts').otpStatus(request({target:phone}));assert.equal(status.delivery,'PENDING');
+  assert.equal((await env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code}))).isNewUser,true);
+  finish();await job;
+  assert.equal(calls,1);assert.equal(row.deliveryState,'DISPATCHING');assert.ok(row.consumedAt);
+  assert.equal(env.db.state.registrationGrant.length,1);
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code})),error=>error.code.startsWith('OTP_'));
+});
+
+for(const deliveryState of ['DISPATCHING','UNKNOWN'])test('pending/unknown delivery preserves five attempts and all verification boundaries: '+deliveryState,async()=>{
+  const env=environment();const {otp,code}=challenge(env);otp.deliveryState=deliveryState;
+  for(let n=0;n<5;n++)await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code:'00000'})),error=>error.code==='OTP_INVALID');
+  assert.equal(otp.attempts,5);
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code})),error=>error.code==='OTP_ATTEMPTS_EXCEEDED');
+  assert.equal(env.db.state.session.length,0);assert.equal(env.db.state.registrationGrant.length,0);
+});
+
+for(const fault of ['binding','purpose','phone','expired','consumed'])test('UNKNOWN never bypasses '+fault+' protection',async()=>{
+  const env=environment();const {otp,code}=challenge(env);otp.deliveryState='UNKNOWN';
+  if(fault==='binding')otp.browserBindingHash=hash(secret());
+  if(fault==='expired')otp.expiresAt=new Date(0);
+  if(fault==='consumed')otp.consumedAt=new Date();
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:fault==='phone'?otherPhone:phone,code,purpose:fault==='purpose'?'REGISTER':'LOGIN'})),error=>error.code.startsWith('OTP_'));
+  assert.equal(env.db.state.session.length,0);assert.equal(env.db.state.registrationGrant.length,0);
+});
+
+test('duplicate dispatch callbacks and duplicate submissions cannot send another SMS',async()=>{
+  const env=environment();let calls=0;env.overrides['@/lib/auth/sms']={sendOtpSms:async({onDispatchStarted})=>{calls++;await onDispatchStarted();return {success:true};}};
+  const results=await Promise.allSettled([1,2].map(()=>env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}))));
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(results.find(r=>r.status==='rejected').reason.code,'OTP_RATE_LIMIT');
+  const callback=env.deliveries[0];await Promise.all([callback(),callback()]);
+  assert.equal(calls,1);assert.equal(env.db.state.otpVerification.length,1);
+});
+
+test('expired or superseded queued work never sends and late provider completion cannot revive an older challenge',async()=>{
+  const env=environment();let calls=0;env.overrides['@/lib/auth/sms']={sendOtpSms:async({onDispatchStarted})=>{calls++;await onDispatchStarted();return {success:true};}};
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));
+  env.db.state.otpVerification[0].expiresAt=new Date(0);await env.deliver();assert.equal(calls,0);
+  env.db.state.otpVerification[0].createdAt=new Date(Date.now()-61000);
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));
+  const second=env.db.state.otpVerification[1];second.createdAt=new Date(Date.now()-61000);
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));
+  await env.deliver();assert.equal(calls,1);assert.ok(second.consumedAt);assert.equal(second.deliveryState,'QUEUED');
+});
+
+test('status is cookie-bound, CSRF protected, rate limited and returns only lifecycle/timing fields',async()=>{
+  const env=environment();const {otp}=challenge(env);let limitCalls=0;
+  env.overrides['@/lib/security/rate-limit'].enforceLimits=async limits=>{limitCalls++;assert.equal(limits[0].scope,'otp-status-binding');assert.equal(limits[0].maximum,30);};
+  const route=env.load('src/app/api/auth/otp-status/route.ts');
+  for(const [state,expected]of [['QUEUED','PENDING'],['CLAIMED','PENDING'],['DISPATCHING','PENDING'],['UNKNOWN','UNKNOWN'],['FAILED','FAILED'],['SENT','ACCEPTED']]){
+    otp.deliveryState=state;const response=await route.POST(request({target:phone}));assert.equal(response.status,200);assert.equal(response.headers.get('Cache-Control'),'private, no-store');
+    const data=await response.json();assert.deepEqual(Object.keys(data).sort(),['delivery','expiresAt','serverNow','success']);assert.equal(data.delivery,expected);
+  }
+  assert.equal(limitCalls,6);
+  assert.equal((await route.POST(request({target:phone},{Origin:'https://wrong.invalid'}))).status,403);
+  env.values.set('dream_auth_binding',secret());assert.equal((await route.POST(request({target:phone}))).status,400);
+  env.values.delete('dream_otp_challenge');assert.equal((await route.POST(request({target:phone}))).status,400);
+});
+
+test('provider HTTP 502 retains UNKNOWN and the correct code remains valid until server expiry',async t=>{
+  smsFixture(t);const env=environment();let code,calls=0;
+  t.mock.method(globalThis,'fetch',async(_url,options)=>{calls++;code=JSON.parse(options.body).attributes.code;return Response.json({status:'error'},{status:502});});
+  const response=await env.load('src/app/api/auth/send-otp/route.ts').POST(request({target:phone}));assert.equal(response.status,200);
+  await env.deliver();assert.equal(calls,1);assert.equal(env.db.state.otpVerification[0].deliveryState,'UNKNOWN');
+  assert.equal((await env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code}))).isNewUser,true);
+});
+
+test('dispatch authorization persistence failure cannot send or authorize verification and logs no exception details',async t=>{
+  const env=environment();let calls=0;const logs=[];t.mock.method(console,'warn',line=>logs.push(JSON.parse(line)));
+  env.overrides['@/lib/auth/sms']={sendOtpSms:async()=>{calls++;return {success:true};}};
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));
+  env.db.prisma.otpVerification.updateMany=async()=>{throw Error('private-database-details');};
+  await env.deliver();assert.equal(calls,0);assert.equal(env.db.state.otpVerification[0].deliveryState,'QUEUED');
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code:'12345'})),error=>error.code==='OTP_INVALID');
+  assert.deepEqual(logs,[{event:'otp_delivery_background_failed',category:'operation_failed'}]);
+});
+
+function knownIssuedCode(env) {
+  const code=String(10000+randomBytes(2).readUInt16BE());
+  env.overrides['@/lib/auth/helper']={...load('src/lib/auth/helper.ts'),generateOtpCode:()=>code};
+  return code;
+}
+
+test('original ordering race: a committed claim cannot verify before adapter invocation, even concurrently',async t=>{
+  smsFixture(t);const env=environment(),code=knownIssuedCode(env);let networkCalls=0,release,visible;
+  const gate=new Promise(resolve=>{release=resolve;});const claimed=new Promise(resolve=>{visible=resolve;});
+  t.mock.method(globalThis,'fetch',async()=>{networkCalls++;return Response.json({status:'success',data:42},{status:201});});
+  const update=env.db.prisma.otpVerification.updateMany;
+  env.db.prisma.otpVerification.updateMany=async args=>{
+    const result=await update(args);
+    if(args.data.deliveryState==='CLAIMED'&&result.count===1){visible();await gate;}
+    if(args.data.deliveryState==='DISPATCHING')assert.equal(networkCalls,1,'Eligibility must follow actual fetch invocation');
+    return result;
+  };
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));
+  const duplicate=env.deliveries[0],job=env.deliver();await claimed;
+  try {
+    assert.equal(env.db.state.otpVerification[0].deliveryState,'CLAIMED');assert.equal(networkCalls,0);
+    const results=await Promise.allSettled(Array.from({length:8},()=>env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code}))));
+    assert.ok(results.every(result=>result.status==='rejected'&&result.reason.code==='OTP_INVALID'));
+    assert.equal(env.db.state.otpVerification[0].attempts,0);assert.equal(env.db.state.registrationGrant.length,0);assert.equal(env.db.state.session.length,0);
+    await duplicate();assert.equal(networkCalls,0);
+  } finally {release();await job;}
+  assert.equal(networkCalls,1);assert.equal(env.db.state.otpVerification[0].deliveryState,'SENT');
+  assert.equal((await env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code}))).isNewUser,true);
+});
+
+test('a begun request is still non-verifiable while eligibility persistence is pending',async t=>{
+  smsFixture(t);const env=environment(),code=knownIssuedCode(env);let networkCalls=0,release,visible;
+  const gate=new Promise(resolve=>{release=resolve;});const waiting=new Promise(resolve=>{visible=resolve;});
+  t.mock.method(globalThis,'fetch',async()=>{networkCalls++;return Response.json({status:'success',data:42},{status:201});});
+  const update=env.db.prisma.otpVerification.updateMany;
+  env.db.prisma.otpVerification.updateMany=async args=>{
+    if(args.data.deliveryState==='DISPATCHING'){assert.equal(networkCalls,1);visible();await gate;}
+    return update(args);
+  };
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));const job=env.deliver();await waiting;
+  try {
+    assert.equal(env.db.state.otpVerification[0].deliveryState,'CLAIMED');
+    await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code})),error=>error.code==='OTP_INVALID');
+    assert.equal(env.db.state.registrationGrant.length,0);
+  } finally {release();await job;}
+  assert.equal(env.db.state.otpVerification[0].deliveryState,'SENT');
+});
+
+for(const fault of ['claim-write','claim-acknowledgment','eligibility-write','eligibility-acknowledgment','eligibility-cas','terminal-write'])test('dispatch persistence fails closed without retry: '+fault,async t=>{
+  smsFixture(t);const env=environment(),code=knownIssuedCode(env),logs=[];let networkCalls=0;
+  t.mock.method(console,'warn',line=>logs.push(JSON.parse(line)));
+  t.mock.method(globalThis,'fetch',async()=>{networkCalls++;return Response.json({status:'success',data:42},{status:201});});
+  const update=env.db.prisma.otpVerification.updateMany;
+  env.db.prisma.otpVerification.updateMany=async args=>{
+    const state=args.data.deliveryState;
+    if((fault==='claim-write'&&state==='CLAIMED')||(fault==='eligibility-write'&&state==='DISPATCHING')||(fault==='terminal-write'&&state==='SENT'))throw Error('private-persistence-details');
+    if(fault==='eligibility-cas'&&state==='DISPATCHING')return {count:0};
+    const result=await update(args);
+    if((fault==='claim-acknowledgment'&&state==='CLAIMED')||(fault==='eligibility-acknowledgment'&&state==='DISPATCHING'))throw Error('private-persistence-details');
+    return result;
+  };
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));await env.deliver();
+  assert.equal(networkCalls,fault.startsWith('claim-')?0:1);
+  assert.equal(env.db.state.otpVerification[0].deliveryState,fault==='claim-write'?'QUEUED':'FAILED');
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code})),error=>error.code==='OTP_INVALID');
+  assert.equal(env.db.state.session.length,0);assert.equal(env.db.state.registrationGrant.length,0);
+  assert.ok(logs.some(log=>log.event==='otp_delivery_background_failed'));assert.ok(!JSON.stringify(logs).includes('private-persistence-details'));
+});
+
+for(const failure of ['disabled','missing-key','synchronous-transport'])test('no verification eligibility without a validated initiated request: '+failure,async t=>{
+  smsFixture(t);const env=environment(),code=knownIssuedCode(env);let networkCalls=0,eligibilityWrites=0;
+  if(failure==='disabled')process.env.SECURITY_SMS_ENABLED='false';
+  if(failure==='missing-key')delete process.env.FARAZSMS_API_KEY;
+  t.mock.method(globalThis,'fetch',()=>{networkCalls++;throw Error('private-setup-details');});
+  const update=env.db.prisma.otpVerification.updateMany;
+  env.db.prisma.otpVerification.updateMany=async args=>{if(args.data.deliveryState==='DISPATCHING')eligibilityWrites++;return update(args);};
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));await env.deliver();
+  assert.equal(networkCalls,failure==='synchronous-transport'?1:0);assert.equal(eligibilityWrites,0);assert.equal(env.db.state.otpVerification[0].deliveryState,'FAILED');
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code})),error=>error.code==='OTP_INVALID');
+});
+
+test('adapter drains its single request on eligibility failure, including an asynchronous provider rejection',async t=>{
+  const sms=smsFixture(t);let rejectRequest,called=0,hookCalled=false,settled=false;
+  const failure=new Error('private-authorization-details');
+  t.mock.method(console,'warn',()=>{});
+  t.mock.method(globalThis,'fetch',()=>{called++;return new Promise((_resolve,reject)=>{rejectRequest=reject;});});
+  const pending=sms.sendOtpSms({to:phone,code:'12345',onDispatchStarted:async()=>{assert.equal(called,1);hookCalled=true;throw failure;}});
+  const checked=assert.rejects(pending,error=>error===failure).then(()=>{settled=true;});
+  await Promise.resolve();await Promise.resolve();assert.equal(hookCalled,true);assert.equal(settled,false);
+  rejectRequest(new Error('private-provider-details'));await checked;assert.equal(called,1);
+});
+
+for(const result of [{success:true},{success:false,uncertain:true}])test('adapter result alone cannot authorize verification without its dispatch-start hook: '+String(result.success),async()=>{
+  const env=environment(),code=knownIssuedCode(env);
+  env.overrides['@/lib/auth/sms']={sendOtpSms:async()=>result};
+  await env.load('src/lib/auth/otp.ts').requestOtp(request({target:phone}));await env.deliver();
+  assert.equal(env.db.state.otpVerification[0].deliveryState,'FAILED');
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code})),error=>error.code==='OTP_INVALID');
+});
+
+test('status rate-limit denial is safe and cannot send SMS or consume verification attempts',async()=>{
+  const env=environment();const {otp}=challenge(env);const http=env.load('src/lib/security/http.ts');
+  env.overrides['@/lib/security/http']=http;const {SecurityError}=http;
+  env.overrides['@/lib/security/rate-limit'].enforceLimits=async()=>{throw new SecurityError(429,'OTP_RATE_LIMIT',10);};
+  const response=await env.load('src/app/api/auth/otp-status/route.ts').POST(request({target:phone}));
+  assert.equal(response.status,429);assert.equal(response.headers.get('Retry-After'),'10');assert.equal(otp.attempts,0);assert.equal(env.deliveries.length,0);
+});
+
+test('parallel correct UNKNOWN verification issues at most one grant',async()=>{
+  const env=environment();const {otp,code}=challenge(env);otp.deliveryState='UNKNOWN';
+  const results=await Promise.allSettled([1,2].map(()=>env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code}))));
+  assert.equal(results.filter(result=>result.status==='fulfilled').length,1);assert.equal(env.db.state.registrationGrant.length,1);
+});
+
+test('server expiry clock includes latency and cannot extend itself on timer ticks',()=>{
+  const {otpDeadline,otpSeconds}=load('src/lib/auth/otp-clock.ts');
+  const start=1000,deadline=otpDeadline('2026-10-31T10:02:00.000Z','2026-10-31T10:00:00.000Z',start);
+  assert.equal(otpSeconds(deadline,start),120);assert.equal(otpSeconds(deadline,start+15000),105);
+  assert.equal(otpSeconds(deadline,start+120001),0);assert.equal(otpSeconds(null,start),0);
 });
 test('exact resend cooldown is enforced across purposes',async () => {
   const env = environment(); challenge(env,'LOGIN'); env.overrides['@/lib/auth/sms'] = {sendOtpSms:async () => {throw new Error('Must not deliver');}};
@@ -509,12 +734,12 @@ for(const variant of ['malformed-json','network','redirect'])test('IranPayamak f
   const sms=smsFixture(t);let calls=0;const logs=[];
   for(const method of ['warn','info','error','log'])t.mock.method(console,method,(...args)=>logs.push(args));
   t.mock.method(globalThis,'fetch',async()=>{calls++;if(variant==='malformed-json')return new Response('private-provider-details',{status:201});throw Error('private-provider-details');});
-  assert.deepEqual(await sms.sendOtpSms({to:phone,code:'12345'}),{success:false});assert.equal(calls,1);assert.equal(logs.length,1);
+  assert.deepEqual(await sms.sendOtpSms({to:phone,code:'12345'}),{success:false,uncertain:true});assert.equal(calls,1);assert.equal(logs.length,1);
   assert.deepEqual(JSON.parse(logs[0][0]),{event:'otp_sms_provider_failed',category:variant==='malformed-json'?'invalid_json':'request_failure',phase:variant==='malformed-json'?'response':'request',...(variant==='malformed-json'?{httpStatus:201}:{})});
   const logged=JSON.stringify(logs);for(const value of ['private-provider-details',process.env.FARAZSMS_API_KEY,phone,'12345'])assert.ok(!logged.includes(value));
 });
 
-for(const variant of ['receipt-string','receipt-null','receipt-array','empty-201','empty-204','malformed-json','request-timeout','body-abort','body-read-failure'])test('simulated delivered OTP with unexpected provider response fails closed without retry: '+variant,async t=>{
+for(const variant of ['receipt-string','receipt-null','receipt-array','empty-201','empty-204','malformed-json','request-timeout','body-abort','body-read-failure'])test('simulated delivered OTP with unexpected provider response stays UNKNOWN without retry: '+variant,async t=>{
   smsFixture(t);const env=environment(),logs=[];t.mock.method(console,'warn',line=>logs.push(JSON.parse(line)));
   const {otp:previous}=challenge(env);previous.createdAt=new Date(Date.now()-61000);
   let calls=0,simulatedAccepted=false,deliveredCode;
@@ -527,14 +752,15 @@ for(const variant of ['receipt-string','receipt-null','receipt-array','empty-201
     return Response.json({status:'success',data:variant==='receipt-string'?'42':variant==='receipt-null'?null:[42],messages:'private-provider-details'},{status:201});
   });
   const response=await env.load('src/app/api/auth/send-otp/route.ts').POST(request({target:phone}));
-  assert.equal(simulatedAccepted,true);assert.equal(calls,1);assert.equal(response.status,502);assert.deepEqual(await response.json(),{success:false,code:'SMS_FAILED'});
+  assert.equal(response.status,200);assert.equal((await response.json()).delivery,'PENDING');assert.equal(calls,0);await env.deliver();assert.equal(simulatedAccepted,true);assert.equal(calls,1);
   const latest=env.db.state.otpVerification.find(row=>row.id!==previous.id);
-  assert.equal(latest.deliveryState,'FAILED');assert.ok(previous.consumedAt instanceof Date);
-  // The previous challenge transaction is already committed; failed delivery
-  // cannot undo the SMS or revive the old code. Even a correct cookie/code pair fails.
-  assert.equal(env.values.get('dream_otp_challenge'),previous.id);env.values.set('dream_otp_challenge',latest.id);
-  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code:deliveredCode})),error=>error.code==='OTP_INVALID');
-  assert.equal(env.db.state.session.length,0);assert.equal(env.db.state.registrationGrant.length,0);
+  assert.equal(latest.deliveryState,'UNKNOWN');assert.ok(previous.consumedAt instanceof Date);
+  // Ambiguous transport is not proof of delivery, but possession of the issued
+  // browser-bound code is still valid within the original security limits.
+  assert.equal(env.values.get('dream_otp_challenge'),latest.id);
+  const verified=await env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code:deliveredCode}));
+  assert.equal(verified.isNewUser,true);assert.equal(latest.deliveryState,'UNKNOWN');
+  assert.equal(env.db.state.session.length,0);assert.equal(env.db.state.registrationGrant.length,1);
   const diagnostic=logs.find(log=>log.event==='otp_sms_provider_failed');assert.ok(diagnostic);
   assert.deepEqual(Object.keys(diagnostic).sort(),(['receipt-string','receipt-null','receipt-array'].includes(variant)?['event','category','phase','httpStatus','statusIsSuccess','dataType','dataValid']:variant==='request-timeout'?['event','category','phase']:['event','category','phase','httpStatus']).sort());
   if(['receipt-string','receipt-null','receipt-array'].includes(variant)){assert.equal(diagnostic.category,'response_contract_mismatch');assert.equal(diagnostic.statusIsSuccess,true);assert.equal(diagnostic.dataValid,false);assert.equal(diagnostic.dataType,variant.slice(8));}
@@ -547,7 +773,7 @@ for(const variant of ['expired','superseded','write-error','success'])test('prov
   let calls=0,code;
   if(variant==='write-error'){
     const update=env.db.prisma.otpVerification.updateMany;
-    env.db.prisma.otpVerification.updateMany=async args=>{if(args.where.id)throw Error('private-database-details');return update(args);};
+    env.db.prisma.otpVerification.updateMany=async args=>{if(args.data.deliveryState==='SENT')throw Error('private-database-details');return update(args);};
   }
   t.mock.method(globalThis,'fetch',async(_url,options)=>{
     calls++;code=JSON.parse(options.body).attributes.code;const row=env.db.state.otpVerification[0];
@@ -556,15 +782,15 @@ for(const variant of ['expired','superseded','write-error','success'])test('prov
     return Response.json({status:'success',data:42},{status:201});
   });
   const response=await env.load('src/app/api/auth/send-otp/route.ts').POST(request({target:phone}));
-  assert.equal(calls,1);assert.equal(response.status,variant==='success'?200:variant==='write-error'?500:502);
+  assert.equal(response.status,200);assert.equal(calls,0);await env.deliver();assert.equal(calls,1);
   assert.ok(!logs.some(log=>log.event==='otp_sms_provider_failed'));
   if(variant==='success'){
     assert.equal(env.db.state.otpVerification[0].deliveryState,'SENT');assert.ok(env.values.has('dream_otp_challenge'));
     const verified=await env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code}));assert.equal(verified.isNewUser,true);
   }else{
-    assert.ok(!env.values.has('dream_otp_challenge'));assert.equal(env.db.state.otpVerification[0].deliveryState,'PENDING');
-    if(variant==='write-error')assert.ok(logs.some(log=>log.event==='operation_failed'));
-    else assert.ok(logs.some(log=>log.event==='otp_delivery_state_not_updated'&&log.providerAccepted===true&&log.category==='delivery_compare_and_set_miss'));
+    assert.ok(env.values.has('dream_otp_challenge'));assert.equal(env.db.state.otpVerification[0].deliveryState,variant==='superseded'?'CLAIMED':'FAILED');
+    assert.ok(logs.some(log=>log.event==='otp_delivery_background_failed'));
+    await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code})),error=>error.code.startsWith('OTP_'));
   }
   const output=JSON.stringify(logs);for(const value of [process.env.FARAZSMS_API_KEY,phone,code,'private-database-details'])assert.ok(!output.includes(value));
 });
@@ -667,7 +893,7 @@ test('development console prints only after SENT persistence and preserves OTP l
   });
   const response = await env.load('src/app/api/auth/send-otp/route.ts').POST(request({target:phone}));
   assert.equal(response.status,200);
-  assert.deepEqual(await response.json(),{success:true,expiresIn:120,retryAfter:60});
+  const issued=await response.json();assert.equal(issued.success,true);assert.equal(issued.expiresIn,120);assert.equal(issued.retryAfter,60);assert.equal(issued.delivery,'ACCEPTED');assert.ok(Date.parse(issued.expiresAt)>Date.parse(issued.serverNow));
   assert.equal(fixture.smsCalls,0);
   assert.ok(sentBeforeOutput && lines.length === 1);
   const [prefix,destination,code] = lines[0];
@@ -725,8 +951,8 @@ for (const failure of ['create','delivery-write','delivery-cas']) test('console 
 for (const mode of [null,'sms','Console']) test('disabled or nonexact console flag preserves SMS failures without fallback: '+String(mode),async t => {
   const fixture = consoleDeliveryEnvironment(t,'development',mode);
   const response = await fixture.env.load('src/app/api/auth/send-otp/route.ts').POST(request({target:phone}));
-  assert.equal(response.status,502);
-  assert.deepEqual(await response.json(),{success:false,code:'SMS_FAILED'});
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).delivery,'PENDING');await fixture.env.deliver();
   assert.equal(fixture.smsCalls,1);
   assert.equal(fixture.lines.length,0);
   assert.equal(fixture.env.db.state.otpVerification[0].deliveryState,'FAILED');

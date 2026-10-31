@@ -16,14 +16,18 @@ function otpProviderFailure(category: "http_rejection" | "response_contract_mism
   statusIsSuccess?: boolean;
   dataValid?: boolean;
   dataType?: "missing" | "null" | "array" | "number" | "string" | "boolean" | "object" | "other";
-}): {success: false} {
+}): {success: false; uncertain: true} {
   // Only fixed categories, HTTP status, booleans and type names. Never log
   // response bodies, exception objects, receipt values or request/config data.
   console.warn(JSON.stringify({event: "otp_sms_provider_failed", category, ...diagnostics}));
-  return {success: false};
+  return {success: false, uncertain: true};
 }
 
-export async function sendOtpSms({ to, code }: { to: string; code: string }): Promise<{ success: boolean }> {
+export async function sendOtpSms({ to, code, onDispatchStarted }: {
+  to: string;
+  code: string;
+  onDispatchStarted?: () => Promise<void>;
+}): Promise<{ success: boolean; uncertain?: boolean }> {
   // No real delivery in development/tests and no fixed-code bypass.
   if (process.env.NODE_ENV !== "production" || process.env.SECURITY_SMS_ENABLED !== "true") return { success: false };
   const apiKey = process.env.FARAZSMS_API_KEY;
@@ -33,34 +37,48 @@ export async function sendOtpSms({ to, code }: { to: string; code: string }): Pr
       !sender || !/^[0-9]+$/.test(sender) || !/^[0-9]{5}$/.test(code)) return { success: false };
   let recipient: string;
   try { recipient = normalizePhone(to); } catch { return {success: false}; }
-  let phase: "request" | "response" = "request";
-  let httpStatus: number | undefined;
+  let pendingResponse: Promise<Response>;
   try {
     // Contract: https://docs.iranpayamak.com/send-pattern-based-sms-13925177e0
     // The approved OTP pattern's attribute is "code", not the sample var1/var2.
-    const response = await fetch("https://api.iranpayamak.com/ws/v1/sms/pattern", {
+    pendingResponse = fetch("https://api.iranpayamak.com/ws/v1/sms/pattern", {
       method: "POST", signal: AbortSignal.timeout(10000), redirect: "error", cache: "no-store",
       headers: { Accept: "application/json", "Content-Type": "application/json", "Api-Key": apiKey },
       body: JSON.stringify({ code: pattern, attributes: { code }, recipient, line_number: sender, number_format: "english" }),
     });
-    phase = "response";
-    httpStatus = response.status;
-    if (!response.ok) return otpProviderFailure("http_rejection", {phase, httpStatus});
-    const body: unknown = await response.json();
-    if (!otpAccepted.safeParse(body).success) {
-      const object = typeof body === "object" && body !== null && !Array.isArray(body) ? body : null;
-      const statusIsSuccess = object !== null && "status" in object && object.status === "success";
-      const data = object !== null && "data" in object ? object.data : undefined;
-      const dataType = data === undefined ? "missing" : data === null ? "null" : Array.isArray(data) ? "array" :
-        typeof data === "number" ? "number" : typeof data === "string" ? "string" : typeof data === "boolean" ? "boolean" : typeof data === "object" ? "object" : "other";
-      return otpProviderFailure("response_contract_mismatch", {phase, httpStatus, statusIsSuccess, dataType, dataValid: otpReceipt.safeParse(data).success});
-    }
-    return {success: true};
-  } catch (error) {
-    const category = error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout_or_abort" :
-      phase === "response" ? error instanceof SyntaxError ? "invalid_json" : "response_read_failure" : "request_failure";
-    return otpProviderFailure(category, {phase, ...(httpStatus === undefined ? {} : {httpStatus})});
+  } catch {
+    // A synchronous setup/transport failure did not initiate a request.
+    return {success: false};
   }
+  // Attach rejection handling immediately, before awaiting persistence. Keep the
+  // single bounded request attached to after() even if its authorization fails.
+  const outcome = (async () => {
+    let phase: "request" | "response" = "request";
+    let httpStatus: number | undefined;
+    try {
+      const response = await pendingResponse;
+      phase = "response";
+      httpStatus = response.status;
+      if (!response.ok) return otpProviderFailure("http_rejection", {phase, httpStatus});
+      const body: unknown = await response.json();
+      if (!otpAccepted.safeParse(body).success) {
+        const object = typeof body === "object" && body !== null && !Array.isArray(body) ? body : null;
+        const statusIsSuccess = object !== null && "status" in object && object.status === "success";
+        const data = object !== null && "data" in object ? object.data : undefined;
+        const dataType = data === undefined ? "missing" : data === null ? "null" : Array.isArray(data) ? "array" :
+          typeof data === "number" ? "number" : typeof data === "string" ? "string" : typeof data === "boolean" ? "boolean" : typeof data === "object" ? "object" : "other";
+        return otpProviderFailure("response_contract_mismatch", {phase, httpStatus, statusIsSuccess, dataType, dataValid: otpReceipt.safeParse(data).success});
+      }
+      return {success: true};
+    } catch (error) {
+      const category = error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout_or_abort" :
+        phase === "response" ? error instanceof SyntaxError ? "invalid_json" : "response_read_failure" : "request_failure";
+      return otpProviderFailure(category, {phase, ...(httpStatus === undefined ? {} : {httpStatus})});
+    }
+  })();
+  try { await onDispatchStarted?.(); }
+  catch (error) { await outcome; throw error; }
+  return outcome;
 }
 
 export async function sendOrderStatusSms(to: string): Promise<"SENT" | "FAILED" | "UNKNOWN"> {

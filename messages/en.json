@@ -246,6 +246,17 @@
     "orderSubmitted": "Your order was submitted successfully"
   },
   "AuthModal": {
+    "delivery": {
+      "PREPARING": "Preparing your secure request…",
+      "PENDING": "Your SMS request is processing. Enter the code when it arrives.",
+      "ACCEPTED": "The SMS provider accepted the request. Handset delivery is not confirmed.",
+      "UNKNOWN": "Delivery status is uncertain. If your code arrives, you can enter it.",
+      "FAILED": "The SMS could not be sent. You can request another code after the resend wait.",
+      "EXPIRED": "This code has expired. Request a new code to continue.",
+      "USED": "This code has already been used.",
+      "LOCKED": "The attempt limit has been reached. Request a new code."
+    },
+    "verificationCountdown": "Verification window: {seconds, number}s",
     "usernameHint": "Optional: 3?30 letters a?z, digits or underscores. Usernames are stored in lowercase.",
     "title": {
       "phone": "Sign In or Sign Up",
@@ -254,7 +265,7 @@
     },
     "description": {
       "phone": "Enter your phone number to continue.",
-      "otp": "Enter the 5-digit verification code sent to <number>{phone}</number>.",
+      "otp": "Enter the 5-digit verification code for <number>{phone}</number>.",
       "register": "Please enter your name and details to complete registration."
     },
     "label": {
