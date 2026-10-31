@@ -12,7 +12,7 @@ const phone = '09000000000', origin = 'https://production.example.invalid';
 const {normalizePhone} = load('src/lib/auth/helper.ts');
 const {verifyPreviewPassword} = load('src/lib/auth/preview-password.ts');
 
-function fixture(t, {existing = true, banned = false, role = 'app-admin', onLock, verify = verifyPreviewPassword} = {}) {
+function fixture(t, {existing = true, banned = false, role = 'app-admin', onLock, verify = verifyPreviewPassword, failAt, failure = new Error('private-exception-marker')} = {}) {
   const start = Math.floor(Date.now() / 1000) * 1000;
   const variables = {TEMP_ADMIN_LOGIN_ENABLED: 'true', VERCEL_ENV: 'production', NODE_ENV: 'production',
     TEMP_ADMIN_LOGIN_HASH: hash, TEMP_ADMIN_LOGIN_PHONE: phone,
@@ -27,18 +27,18 @@ function fixture(t, {existing = true, banned = false, role = 'app-admin', onLock
   const logs = [];
   t.mock.method(console, 'warn', message => logs.push(String(message)));
   const db = {
-    user: {findUnique: async args => {lookups.push(args.where); return account && (args.where.id === account.id || args.where.contact === account.contact) ? {...account} : null;}},
+    user: {findUnique: async args => {if(failAt==='account_lookup')throw failure;lookups.push(args.where); return account && (args.where.id === account.id || args.where.contact === account.contact) ? {...account} : null;}},
     personProfile: {findMany: async () => account ? [{user_id: account.id, role: currentRole}] : []},
     session: {
-      create: async ({data}) => {sessions.push({...data});return data;},
+      create: async ({data}) => {if(failAt==='session_creation')throw failure;sessions.push({...data});return data;},
       deleteMany: async ({where}) => {let count=0;for(let i=sessions.length-1;i>=0;i--)if(where.token.in.includes(sessions[i].token)){sessions.splice(i,1);count++;}return {count};},
       findFirst: async ({where}) => {const row=sessions.find(row=>where.token.in.includes(row.token)&&row.expiresAt>where.expiresAt.gt);return row?{...row,user:{...account}}:null;},
     },
-    securityRateLimit: {upsert: async ({where,create}) => {const row=buckets.get(where.key)??{...create,count:0};row.count++;buckets.set(where.key,row);return row;}},
+    securityRateLimit: {upsert: async ({where,create}) => {if(failAt==='source_rate_limit')throw failure;const row=buckets.get(where.key)??{...create,count:0};row.count++;buckets.set(where.key,row);return row;}},
     $queryRaw: async () => {locks++; onLock?.(account, value => {currentRole=value;}); return [];},
     $transaction: async run => {const before=sessions.slice();try{return await run(db);}catch(error){sessions.splice(0,sessions.length,...before);throw error;}},
   };
-  const jar={get:name=>values.has(name)?{value:values.get(name)}:undefined,set:(name,value,config)=>{values.set(name,value);options.set(name,config);}};
+  const jar={get:name=>{if(failAt==='cookie_read')throw failure;return values.has(name)?{value:values.get(name)}:undefined;},set:(name,value,config)=>{if(failAt==='cookie_write')throw failure;values.set(name,value);options.set(name,config);}};
   const overrides = {'@/lib/prisma':{prisma:db}, 'next/headers':{cookies:async()=>jar}, '@/lib/account/profile':{usernameSupported:async()=>false},
     // Only fixtures replace the owner identity pin; production has no test fallback.
     '@/lib/auth/temporary-admin-phone':{isTemporaryAdminPhone:value=>{try{return normalizePhone(value)===phone;}catch{return false;}}},
@@ -54,6 +54,27 @@ function fixture(t, {existing = true, banned = false, role = 'app-admin', onLock
   }));
   return {send,session,authorization,config,sessions,values,options,account,lookups,buckets,logs,route,setRole:value=>{currentRole=value;},get locks(){return locks;},get verifications(){return verifications;}};
 }
+
+for(const variant of ['missing-key','short-key','source_rate_limit','password_verification','account_lookup','session_creation','cookie_read','cookie_write','prisma-query'])test('sanitized unexpected-failure diagnostic: '+variant,async t=>{
+  const {Prisma}=await import('@prisma/client');
+  const failure=variant==='prisma-query'?new Prisma.PrismaClientKnownRequestError('private-exception-marker',{code:'P2021',clientVersion:'test',meta:{private:'private-exception-marker'}}):new Error('private-exception-marker');
+  const f=fixture(t,{failAt:variant==='prisma-query'?'source_rate_limit':variant, failure,
+    ...(variant==='password_verification'?{verify:async()=>{throw failure;}}:{})});
+  if(variant==='missing-key')delete process.env.SECURITY_OTP_KEY;
+  if(variant==='short-key')process.env.SECURITY_OTP_KEY='short';
+  const response=await f.send();
+  assert.equal(response.status,500);assert.deepEqual(await response.json(),{success:false,code:'TEMP_ADMIN_LOGIN_FAILED'});
+  const diagnostics=f.logs.map(line=>JSON.parse(line)).filter(event=>event.event==='temporary_admin_login_operation_failed');
+  assert.equal(diagnostics.length,1);
+  assert.deepEqual(diagnostics[0],{event:'temporary_admin_login_operation_failed',
+    stage:['missing-key','short-key','prisma-query'].includes(variant)?'source_rate_limit':variant,
+    category:['missing-key','short-key'].includes(variant)?'security_key_configuration':variant==='prisma-query'?'database_query':'unexpected',
+    ...(variant==='prisma-query'?{code:'P2021'}:{})});
+  assert.ok(f.logs.some(line=>JSON.parse(line).event==='operation_failed'));
+  for(const secret of ['private-exception-marker',phone,password,hash])assert.ok(f.logs.every(line=>!line.includes(secret)));
+  assert.equal(f.values.size,0);
+  if(variant!=='cookie_write')assert.equal(f.sessions.length,0);
+});
 
 test('temporary Production login uses existing active exact-role account, secure scoped session and sanitized audit', async t=>{
   const f=fixture(t);
@@ -103,17 +124,20 @@ for(const variant of ['absent','false','preview','development','missing-hash','b
 });
 
 test('IP limits are enforced before password verification',async t=>{
+  const now=Date.now();t.mock.method(Date,'now',()=>now);
   const f=fixture(t);
   for(let i=0;i<5;i++)assert.equal((await f.send({phone,password:'wrong'})).status,401);
   const response=await f.send();assert.equal(response.status,429);assert.ok(Number(response.headers.get('retry-after'))>0);assert.equal((await response.json()).code,'TEMP_ADMIN_LOGIN_FAILED');assert.equal(f.verifications,5);
 });
 test('endpoint-wide limit bounds distributed requests across phones and source IPs',async t=>{
+  const now=Date.now();t.mock.method(Date,'now',()=>now);
   const f=fixture(t,{verify:async()=>false});
   for(let i=0;i<30;i++)assert.equal((await f.send({phone:'090'+String(i).padStart(8,'0'),password:'wrong'},{'x-test-ip':'192.0.2.'+(50+i)})).status,401);
   assert.equal((await f.send({phone:'09000000100',password:'wrong'},{'x-test-ip':'192.0.2.200'})).status,429);
   assert.equal(f.verifications,30);assert.equal(f.sessions.length,0);
 });
 test('canonical phone limit spans source addresses and equivalent number formats',async t=>{
+  const now=Date.now();t.mock.method(Date,'now',()=>now);
   const f=fixture(t);
   for(let i=0;i<10;i++)assert.equal((await f.send({phone:i%2?'+989000000000':'9000000000',password:'wrong'},{'x-test-ip':'192.0.2.'+(30+i)})).status,401);
   assert.equal((await f.send(undefined,{'x-test-ip':'192.0.2.99'})).status,429);assert.equal(f.sessions.length,0);assert.equal(f.verifications,10);
