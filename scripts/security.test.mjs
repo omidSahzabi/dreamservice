@@ -468,7 +468,7 @@ for (const [name,response,expected] of [
 });
 
 function smsFixture(t) {
-  const variables={NODE_ENV:'production',SECURITY_SMS_ENABLED:'true',FARAZSMS_API_KEY:secret(),FARAZSMS_PATTERN_CODE:'fixture',FARAZSMS_SENDER_NUMBER:'90008361'};
+  const variables={NODE_ENV:'production',OTP_DELIVERY_MODE:'provider',SECURITY_SMS_ENABLED:'true',FARAZSMS_API_KEY:secret(),FARAZSMS_PATTERN_CODE:'fixture',FARAZSMS_SENDER_NUMBER:'90008361'};
   const previous=Object.fromEntries(Object.keys(variables).map(name=>[name,process.env[name]]));Object.assign(process.env,variables);
   t.after(()=>{for(const[name,value]of Object.entries(previous))if(value===undefined)delete process.env[name];else process.env[name]=value;});
   return load('src/lib/auth/sms.ts');
@@ -509,7 +509,64 @@ for(const variant of ['malformed-json','network','redirect'])test('IranPayamak f
   const sms=smsFixture(t);let calls=0;const logs=[];
   for(const method of ['warn','info','error','log'])t.mock.method(console,method,(...args)=>logs.push(args));
   t.mock.method(globalThis,'fetch',async()=>{calls++;if(variant==='malformed-json')return new Response('private-provider-details',{status:201});throw Error('private-provider-details');});
-  assert.deepEqual(await sms.sendOtpSms({to:phone,code:'12345'}),{success:false});assert.equal(calls,1);assert.deepEqual(logs,[]);
+  assert.deepEqual(await sms.sendOtpSms({to:phone,code:'12345'}),{success:false});assert.equal(calls,1);assert.equal(logs.length,1);
+  assert.deepEqual(JSON.parse(logs[0][0]),{event:'otp_sms_provider_failed',category:variant==='malformed-json'?'invalid_json':'request_failure',phase:variant==='malformed-json'?'response':'request',...(variant==='malformed-json'?{httpStatus:201}:{})});
+  const logged=JSON.stringify(logs);for(const value of ['private-provider-details',process.env.FARAZSMS_API_KEY,phone,'12345'])assert.ok(!logged.includes(value));
+});
+
+for(const variant of ['receipt-string','receipt-null','receipt-array','empty-201','empty-204','malformed-json','request-timeout','body-abort','body-read-failure'])test('simulated delivered OTP with unexpected provider response fails closed without retry: '+variant,async t=>{
+  smsFixture(t);const env=environment(),logs=[];t.mock.method(console,'warn',line=>logs.push(JSON.parse(line)));
+  const {otp:previous}=challenge(env);previous.createdAt=new Date(Date.now()-61000);
+  let calls=0,simulatedAccepted=false,deliveredCode;
+  t.mock.method(globalThis,'fetch',async(_url,options)=>{
+    calls++;simulatedAccepted=true;deliveredCode=JSON.parse(options.body).attributes.code;
+    if(variant==='request-timeout')throw new DOMException('private-provider-details','TimeoutError');
+    if(['body-abort','body-read-failure'].includes(variant))return {ok:true,status:201,json:async()=>{throw variant==='body-abort'?new DOMException('private-provider-details','AbortError'):new Error('private-provider-details');}};
+    if(variant==='empty-204')return new Response(null,{status:204});
+    if(['empty-201','malformed-json'].includes(variant))return new Response(variant==='empty-201'?'':'private-provider-details',{status:201});
+    return Response.json({status:'success',data:variant==='receipt-string'?'42':variant==='receipt-null'?null:[42],messages:'private-provider-details'},{status:201});
+  });
+  const response=await env.load('src/app/api/auth/send-otp/route.ts').POST(request({target:phone}));
+  assert.equal(simulatedAccepted,true);assert.equal(calls,1);assert.equal(response.status,502);assert.deepEqual(await response.json(),{success:false,code:'SMS_FAILED'});
+  const latest=env.db.state.otpVerification.find(row=>row.id!==previous.id);
+  assert.equal(latest.deliveryState,'FAILED');assert.ok(previous.consumedAt instanceof Date);
+  // The previous challenge transaction is already committed; failed delivery
+  // cannot undo the SMS or revive the old code. Even a correct cookie/code pair fails.
+  assert.equal(env.values.get('dream_otp_challenge'),previous.id);env.values.set('dream_otp_challenge',latest.id);
+  await assert.rejects(env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code:deliveredCode})),error=>error.code==='OTP_INVALID');
+  assert.equal(env.db.state.session.length,0);assert.equal(env.db.state.registrationGrant.length,0);
+  const diagnostic=logs.find(log=>log.event==='otp_sms_provider_failed');assert.ok(diagnostic);
+  assert.deepEqual(Object.keys(diagnostic).sort(),(['receipt-string','receipt-null','receipt-array'].includes(variant)?['event','category','phase','httpStatus','statusIsSuccess','dataType','dataValid']:variant==='request-timeout'?['event','category','phase']:['event','category','phase','httpStatus']).sort());
+  if(['receipt-string','receipt-null','receipt-array'].includes(variant)){assert.equal(diagnostic.category,'response_contract_mismatch');assert.equal(diagnostic.statusIsSuccess,true);assert.equal(diagnostic.dataValid,false);assert.equal(diagnostic.dataType,variant.slice(8));}
+  else assert.equal(diagnostic.category,['request-timeout','body-abort'].includes(variant)?'timeout_or_abort':variant==='body-read-failure'?'response_read_failure':'invalid_json');
+  const output=JSON.stringify(logs);for(const value of [process.env.FARAZSMS_API_KEY,phone,deliveredCode,'private-provider-details'])assert.ok(!output.includes(value));
+});
+
+for(const variant of ['expired','superseded','write-error','success'])test('provider acceptance is distinct from OTP delivery persistence: '+variant,async t=>{
+  smsFixture(t);const env=environment(),logs=[];t.mock.method(console,'warn',line=>logs.push(JSON.parse(line)));
+  let calls=0,code;
+  if(variant==='write-error'){
+    const update=env.db.prisma.otpVerification.updateMany;
+    env.db.prisma.otpVerification.updateMany=async args=>{if(args.where.id)throw Error('private-database-details');return update(args);};
+  }
+  t.mock.method(globalThis,'fetch',async(_url,options)=>{
+    calls++;code=JSON.parse(options.body).attributes.code;const row=env.db.state.otpVerification[0];
+    if(variant==='expired')row.expiresAt=new Date(0);
+    if(variant==='superseded')row.consumedAt=new Date();
+    return Response.json({status:'success',data:42},{status:201});
+  });
+  const response=await env.load('src/app/api/auth/send-otp/route.ts').POST(request({target:phone}));
+  assert.equal(calls,1);assert.equal(response.status,variant==='success'?200:variant==='write-error'?500:502);
+  assert.ok(!logs.some(log=>log.event==='otp_sms_provider_failed'));
+  if(variant==='success'){
+    assert.equal(env.db.state.otpVerification[0].deliveryState,'SENT');assert.ok(env.values.has('dream_otp_challenge'));
+    const verified=await env.load('src/lib/auth/otp.ts').verifyOtpRequest(request({target:phone,code}));assert.equal(verified.isNewUser,true);
+  }else{
+    assert.ok(!env.values.has('dream_otp_challenge'));assert.equal(env.db.state.otpVerification[0].deliveryState,'PENDING');
+    if(variant==='write-error')assert.ok(logs.some(log=>log.event==='operation_failed'));
+    else assert.ok(logs.some(log=>log.event==='otp_delivery_state_not_updated'&&log.providerAccepted===true&&log.category==='delivery_compare_and_set_miss'));
+  }
+  const output=JSON.stringify(logs);for(const value of [process.env.FARAZSMS_API_KEY,phone,code,'private-database-details'])assert.ok(!output.includes(value));
 });
 
 test('SMS timeout or network failure fails closed',async () => {

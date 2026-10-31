@@ -58,6 +58,7 @@ export async function requestOtp(request: Request) {
     data: { deliveryState: result.success ? "SENT" : "FAILED" },
   }));
   if (!result.success || delivered.count !== 1) {
+    if (delivered.count !== 1) console.warn(JSON.stringify({event: "otp_delivery_state_not_updated", category: "delivery_compare_and_set_miss", providerAccepted: result.success}));
     securityEvent("sms_failed");
     throw new SecurityError(502, "SMS_FAILED");
   }

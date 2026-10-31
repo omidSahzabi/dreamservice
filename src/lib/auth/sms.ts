@@ -7,7 +7,21 @@ const accepted = z.object({
   meta: z.object({ status: z.literal(true), message_code: z.literal("200-1") }),
   data: z.object({ message_outbox_ids: z.array(z.number().int().positive()).min(1) }),
 });
-const otpAccepted = z.object({status: z.literal("success"), data: z.number().int().nonnegative()});
+const otpReceipt = z.number().int().nonnegative();
+const otpAccepted = z.object({status: z.literal("success"), data: otpReceipt});
+
+function otpProviderFailure(category: "http_rejection" | "response_contract_mismatch" | "invalid_json" | "timeout_or_abort" | "request_failure" | "response_read_failure", diagnostics: {
+  phase: "request" | "response";
+  httpStatus?: number;
+  statusIsSuccess?: boolean;
+  dataValid?: boolean;
+  dataType?: "missing" | "null" | "array" | "number" | "string" | "boolean" | "object" | "other";
+}): {success: false} {
+  // Only fixed categories, HTTP status, booleans and type names. Never log
+  // response bodies, exception objects, receipt values or request/config data.
+  console.warn(JSON.stringify({event: "otp_sms_provider_failed", category, ...diagnostics}));
+  return {success: false};
+}
 
 export async function sendOtpSms({ to, code }: { to: string; code: string }): Promise<{ success: boolean }> {
   // No real delivery in development/tests and no fixed-code bypass.
@@ -17,8 +31,11 @@ export async function sendOtpSms({ to, code }: { to: string; code: string }): Pr
   const sender = process.env.FARAZSMS_SENDER_NUMBER;
   if (!apiKey || !apiKey.trim() || /[\r\n]/.test(apiKey) || !pattern || /\s/.test(pattern) ||
       !sender || !/^[0-9]+$/.test(sender) || !/^[0-9]{5}$/.test(code)) return { success: false };
+  let recipient: string;
+  try { recipient = normalizePhone(to); } catch { return {success: false}; }
+  let phase: "request" | "response" = "request";
+  let httpStatus: number | undefined;
   try {
-    const recipient = normalizePhone(to);
     // Contract: https://docs.iranpayamak.com/send-pattern-based-sms-13925177e0
     // The approved OTP pattern's attribute is "code", not the sample var1/var2.
     const response = await fetch("https://api.iranpayamak.com/ws/v1/sms/pattern", {
@@ -26,8 +43,24 @@ export async function sendOtpSms({ to, code }: { to: string; code: string }): Pr
       headers: { Accept: "application/json", "Content-Type": "application/json", "Api-Key": apiKey },
       body: JSON.stringify({ code: pattern, attributes: { code }, recipient, line_number: sender, number_format: "english" }),
     });
-    return { success: response.ok && otpAccepted.safeParse(await response.json()).success };
-  } catch { return { success: false }; }
+    phase = "response";
+    httpStatus = response.status;
+    if (!response.ok) return otpProviderFailure("http_rejection", {phase, httpStatus});
+    const body: unknown = await response.json();
+    if (!otpAccepted.safeParse(body).success) {
+      const object = typeof body === "object" && body !== null && !Array.isArray(body) ? body : null;
+      const statusIsSuccess = object !== null && "status" in object && object.status === "success";
+      const data = object !== null && "data" in object ? object.data : undefined;
+      const dataType = data === undefined ? "missing" : data === null ? "null" : Array.isArray(data) ? "array" :
+        typeof data === "number" ? "number" : typeof data === "string" ? "string" : typeof data === "boolean" ? "boolean" : typeof data === "object" ? "object" : "other";
+      return otpProviderFailure("response_contract_mismatch", {phase, httpStatus, statusIsSuccess, dataType, dataValid: otpReceipt.safeParse(data).success});
+    }
+    return {success: true};
+  } catch (error) {
+    const category = error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout_or_abort" :
+      phase === "response" ? error instanceof SyntaxError ? "invalid_json" : "response_read_failure" : "request_failure";
+    return otpProviderFailure(category, {phase, ...(httpStatus === undefined ? {} : {httpStatus})});
+  }
 }
 
 export async function sendOrderStatusSms(to: string): Promise<"SENT" | "FAILED" | "UNKNOWN"> {
