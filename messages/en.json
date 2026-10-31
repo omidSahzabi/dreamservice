@@ -1,4 +1,14 @@
 {
+  "TemporaryAdminLogin": {
+    "title": "Temporary administrator login",
+    "description": "Temporary password access for the approved administrator account. Customer sign-in continues to use SMS verification.",
+    "disabled": "Temporary administrator password access is disabled or has expired.",
+    "phone": "Phone number",
+    "password": "Password",
+    "submit": "Sign in as administrator",
+    "pending": "Signing in…",
+    "failed": "Unable to sign in. Check your credentials or try again later."
+  },
   "Account": {
     "title": "Account profile",
     "username": "Username (optional)",
@@ -566,6 +576,7 @@
     "subscriptionLimitation": "Notifications are currently unavailable. This form does not save subscriptions or send messages; existing subscribers are not associated with this project."
   },
   "Errors": {
+    "TEMP_ADMIN_LOGIN_FAILED": "Unable to sign in. Check your credentials or try again later.",
     "PREVIEW_LOGIN_FAILED": "Unable to sign in. Check your details or try again later.",
     "ORDER_OPEN_EXISTS": "You already have an open order. Please use its details page to track progress.",
     "ORDER_RATE_LIMIT": "Too many order requests. Please try again in {seconds, number} seconds.",

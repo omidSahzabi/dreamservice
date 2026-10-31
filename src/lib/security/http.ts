@@ -27,7 +27,7 @@ export async function otpOperation<T>(operation: string, run: () => T | Promise<
   }
 }
 
-export function securityEvent(event: "auth_denied" | "auth_succeeded" | "role_denied" | "rate_limited" | "operation_failed" | "sms_failed", code?: ApiErrorCode) {
+export function securityEvent(event: "auth_denied" | "auth_succeeded" | "temporary_admin_login_succeeded" | "role_denied" | "rate_limited" | "operation_failed" | "sms_failed", code?: ApiErrorCode) {
   // Intentionally excludes identifiers, inputs, exception objects and credentials.
   console.warn(JSON.stringify({ event, ...(code ? { code } : {}), at: new Date().toISOString() }));
 }
