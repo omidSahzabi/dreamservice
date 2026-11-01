@@ -40,16 +40,38 @@ for(const theme of [':root','.dark'])test(theme+' text, controls and focus indic
 test('favicon and app icons use the same editable geometry and valid image dimensions',async()=>{
   for(const file of ['public/images/dreamservice-mark.svg','src/app/icon.svg']) {
     const svg = read(file);
-    for(const shape of Object.values(geometry).slice(1))assert.ok(svg.includes(shape));
+    for(const key of ['arch','clearance','needle','string','star'])assert.ok(svg.includes(geometry[key]));
     assert.ok(!svg.includes('<image')&&!svg.includes('<script'));
   }
-  for(const [file,size]of [['src/app/apple-icon.png',180],['public/icons/icon-192.png',192],['public/icons/icon-512.png',512]]) {
+  for(const [file,size]of [['src/app/apple-icon.png',180],['public/icons/icon-192.png',192],['public/icons/icon-512.png',512],['public/icons/icon-maskable-512.png',512]]) {
     const metadata=await sharp(fileURLToPath(new URL(file,root))).metadata();
     assert.equal(metadata.width,size);assert.equal(metadata.height,size);
   }
   const ico=fs.readFileSync(new URL('src/app/favicon.ico',root));
   assert.equal(ico.readUInt16LE(2),1);assert.equal(ico.readUInt16LE(4),3);
   assert.deepEqual([0,1,2].map(index=>ico[6+16*index]),[16,32,48]);
+});
+
+for(const theme of ['dark','light'])test('custom wordmark and compact assets retain the complete lettering and palette in '+theme,async()=>{
+  for(const kind of ['logo','compact']) {
+    const svg=read(`public/images/dreamservice-${kind}-${theme}.svg`);
+    for(const shape of [...geometry.wordmark.dream,...geometry.wordmark.service])assert.ok(svg.includes(shape));
+    assert.ok(svg.includes('<title>Dream Service</title>'));
+    assert.ok(!/<(?:text|image|script)\b|font-family|filter=/i.test(svg));
+    assert.ok(svg.includes(theme==='dark'?'#F8FAFC':'#06111E'));
+    assert.ok(svg.includes(theme==='dark'?'#22D3EE':'#06B6D4'));
+    const rendered=await sharp(Buffer.from(svg)).resize(172).png().toBuffer();
+    assert.ok(rendered.length>500);
+  }
+});
+
+test('maskable icon keeps its foreground inside the circular safe zone',async()=>{
+  const {data,info}=await sharp(fileURLToPath(new URL('public/icons/icon-maskable-512.png',root))).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+  for(let y=0;y<info.height;y++)for(let x=0;x<info.width;x++) {
+    const pixel=(y*info.width+x)*info.channels;
+    if(data[pixel]===6&&data[pixel+1]===17&&data[pixel+2]===30)continue;
+    assert.ok(Math.hypot(x-256,y-256)<=204.8,`outside safe zone at ${x},${y}`);
+  }
 });
 
 for(const locale of ['en','fa'])test('brand links have one localized name and independent masks in '+locale,()=>{
@@ -64,7 +86,7 @@ for(const locale of ['en','fa'])test('brand links have one localized name and in
   assert.ok(html.includes('href="/'+locale+'/"'));
   assert.ok(html.includes('aria-label="'+messages.Navbar.logoAlt+'"'));
   const ids=[...html.matchAll(/<mask id="([^"]+)"/g)].map(match=>match[1]);
-  assert.equal(ids.length,2);assert.equal(new Set(ids).size,2);
+  assert.equal(ids.length,4);assert.equal(new Set(ids).size,4);
   assert.ok(!html.includes('rotate-180'));
 });
 

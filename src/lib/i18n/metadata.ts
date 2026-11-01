@@ -22,10 +22,10 @@ export async function pageMetadata(
     title, description,
     robots: {index: true, follow: true},
     openGraph: {
-      type: 'website', title, description, url, siteName: 'DreamService',
+      type: 'website', title, description, url, siteName: 'Dream Service',
       locale: locale === 'fa' ? 'fa_IR' : 'en_US',
       alternateLocale: locale === 'fa' ? 'en_US' : 'fa_IR',
-      images: [{url: image, width: 1200, height: 630, alt: 'DreamService'}]
+      images: [{url: image, width: 1200, height: 630, alt: 'Dream Service'}]
     },
     twitter: {card: 'summary_large_image', title, description, images: [image]},
     alternates: {

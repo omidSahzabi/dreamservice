@@ -94,9 +94,8 @@ test('boundary logging records only a fixed event and category, without exceptio
 
 test('wordmark contains the complete brand name within a padded SVG canvas',()=>{
   const svg=fs.readFileSync('public/images/dreamservice-wordmark.svg','utf8');
-  assert.ok(svg.includes('>DreamService</text>'));
-  const width=Number(svg.match(/viewBox="0 0 ([\d.]+)/)[1]);
-  const start=Number(svg.match(/<text x="([\d.]+)/)[1]);
-  const length=Number(svg.match(/textLength="([\d.]+)/)[1]);
-  assert.ok(start>0&&start+length<width);
+  assert.ok(svg.includes('<title>Dream Service</title>'));
+  assert.ok(!svg.includes('<text'));
+  for(const d of [...geometry.wordmark.dream,...geometry.wordmark.service])assert.ok(svg.includes(d));
+  assert.ok(svg.includes(`viewBox="${geometry.wordmark.viewBox}"`));
 });

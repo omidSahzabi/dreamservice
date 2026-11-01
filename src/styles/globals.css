@@ -139,6 +139,10 @@
 }
 
 /* Brand paths remain fixed and right-pointing in either document direction. */
+.ds-brand { color: #06111e; }
+.ds-brand-accent { color: #06b6d4; }
+.dark .ds-brand { color: #f8fafc; }
+.dark .ds-brand-accent { color: #22d3ee; }
 /* Keep the original 8px portfolio dots inside keyboard/touch-sized targets. */
 #projects .swiper-pagination-bullet {
   display: inline-flex;

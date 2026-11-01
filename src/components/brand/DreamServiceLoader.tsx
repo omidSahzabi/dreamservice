@@ -37,7 +37,7 @@ export function DreamServiceLoader({ loading, success = false, size = "md", vari
       className={cn("overflow-visible", size === "sm" ? "size-4" : size === "lg" ? "size-16" : "size-9")}>
       <defs><mask id={maskId}><rect width="32" height="32" fill="white" /><path d={geometry.clearance} fill="black" /></mask></defs>
       <g className="ds-loader-bow"><path d={geometry.arch} fillRule="evenodd" mask={`url(#${maskId})`} /></g>
-      <path className="ds-loader-string" d="M8 8 11 16 8 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      <path className="ds-loader-string" d={geometry.string} fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
       <g key={state.cycle} className="ds-loader-arrow" onAnimationEnd={event => {
         if (event.target === event.currentTarget && ["ds-arrow-release", "ds-loader-dismiss"].includes(event.animationName)) {
           setState(current => finishLoaderState(current, state.cycle));

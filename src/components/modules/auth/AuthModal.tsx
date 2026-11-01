@@ -30,6 +30,7 @@ import { useRouter } from "@/lib/i18n/navigation";
 import { prohibitedIdentity, usernameSchema } from "@/lib/account/identity";
 import { UsernameAvailability } from "./UsernameAvailability";
 import {PreviewPasswordLogin} from "./PreviewPasswordLogin";
+import Logo from "@/components/modules/navbar/Logo";
 
 export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: boolean}) {
   const locale = useLocale();
@@ -264,6 +265,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
         event.preventDefault();
         if (returnFocusTo?.isConnected) returnFocusTo.focus();
       }} dir={locale === "fa" ? "rtl" : "ltr"} className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[420px] rounded-2xl bg-background border shadow-xl">
+        <div className="flex pe-8"><Logo /></div>
         <DialogHeader className="text-start">
           <DialogTitle className="text-xl font-bold">
             {step === "PHONE" && t("title.phone")}
