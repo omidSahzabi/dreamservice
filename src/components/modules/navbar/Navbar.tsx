@@ -9,6 +9,8 @@ import MobileMenu from "./MobileMenu";
 import { AuthButton } from "./AuthButton";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggleButton from "./LanguageToggleButton";
+import {cn} from "@/lib/utils";
+import cinematicStyles from "@/components/modules/cinematic/Cinematic.module.css";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -25,7 +27,7 @@ export default function Navbar() {
   }, [pathname]);
 
   return (
-    <div className="w-full flex justify-center pt-6 px-4">
+    <div className={cn("w-full flex justify-center", pathname === "/" ? cinematicStyles["navigation-shell"] : "pt-6 px-4")}>
       <nav
         dir={locale === "fa" ? "rtl" : "ltr"}
         className="w-full max-w-6xl border border-border bg-card rounded-2xl px-4 py-3 sm:px-5 flex items-center justify-between gap-4 shadow-soft"

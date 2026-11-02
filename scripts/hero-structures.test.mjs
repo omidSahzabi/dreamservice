@@ -29,21 +29,23 @@ test('both structures are original decorative vector compositions with independe
   assert.notDeepEqual(paths('spire'),paths('terrace'));
 });
 
-for(const locale of ['en','fa'])test('hero retains its localized heading and customer actions with two decorative structures in '+locale,()=>{
+for(const locale of ['en','fa'])test('cinematic hero retains approved localized copy and the existing official brand in '+locale,async()=>{
   const messages=JSON.parse(fs.readFileSync('messages/'+locale+'.json','utf8'));
   const Hero=load('src/components/templates/Hero.tsx',{
     ...overrides,
-    'next-intl':{useTranslations:namespace=>createTranslator({locale,messages,namespace})},
-    '@/lib/i18n/navigation':{useRouter:()=>({push(){}})},
+    '@/components/modules/cinematic/Cinematic.module.css':new Proxy({}, {get:(_,key)=>key}),
+    'next-intl/server':{getTranslations:async namespace=>createTranslator({locale,messages,namespace})},
+    '@/components/modules/cinematic/IndustryCounters':{IndustryCounters:()=>React.createElement('div',{'data-counters':''})},
+    '@/components/modules/cinematic/CinematicStory':{CinematicStory:()=>React.createElement('div',{'data-story':''})},
+    '@/components/modules/cinematic/ProjectCTA':{ProjectCTA:()=>React.createElement('button',null,messages.Cinematic.startProject)},
   }).default;
-  const html=renderToStaticMarkup(React.createElement(Hero));
+  const html=renderToStaticMarkup(await Hero());
   assert.equal((html.match(/<h1\b/g)??[]).length,1);
-  assert.equal((html.match(/data-digital-structure=/g)??[]).length,2);
-  assert.ok(html.includes(messages.Hero.subtitle));
-  assert.ok(html.includes(messages.Hero.about)&&html.includes(messages.Hero.order));
-  assert.ok(html.includes('href="https://t.me/DreamServiceSupport"'));
-  assert.ok(html.includes(messages.Hero.telegramSupport));
-  assert.ok(html.includes('target="_blank" rel="noopener noreferrer"'));
-  assert.ok(!html.includes('tel:'));
-  assert.ok(!html.includes('M12 19V5M5 12l7-7 7 7'));
+  assert.ok(html.includes(messages.Cinematic.hero1)&&html.includes(messages.Cinematic.hero2));
+  assert.ok(html.includes(messages.Cinematic.heroDesc));
+  assert.ok(html.includes('href="#cinematic-story"')&&html.includes('href="#cinematic-end"'));
+  assert.ok(html.includes('data-counters')&&html.includes('data-story'));
+  assert.ok(html.includes(messages.Cinematic.startProject));
+  assert.ok(html.includes('viewBox="0 0 32 32"'));
+  assert.ok(!html.includes('<iframe'));
 });

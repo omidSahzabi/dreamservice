@@ -81,7 +81,6 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
     step,
     phone,
     resendCooldown,
-    onSuccessCallback,
     returnFocusTo,
     closeAuthModal,
     setStep,
@@ -98,6 +97,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
   const [remaining, setRemaining] = useState(0);
   const retryAt = useRef(0);
   const generation = useRef(0);
+  const active = useRef(true);
   const requestLock = useRef(false);
   const windowOpen = deadline !== null && remaining > 0;
 
@@ -111,15 +111,35 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
     return () => clearInterval(interval);
   }, [deadline, setResendCooldown]);
 
-  useEffect(() => () => { generation.current++; }, []);
+  useEffect(() => {
+    active.current = true;
+    const attempt = generation;
+    return () => { active.current = false; attempt.current++; };
+  }, []);
 
   const closeModal = () => {
+    active.current = false;
     generation.current++;
     setDeadline(null);
     setIsRequesting(false);
     requestLock.current = false;
     retryAt.current = 0;
     closeAuthModal();
+  };
+
+  const completeAuthentication = async (current: number) => {
+    if (!active.current || current !== generation.current) return false;
+    await clearSensitiveState(queryClient);
+    await queryClient.invalidateQueries({ queryKey: ["authUser"] }, { throwOnError: true });
+    if (!active.current || current !== generation.current) return false;
+    if (!queryClient.getQueryData(["authUser"])) throw new ApiError("UNAUTHENTICATED");
+
+    const continuation = useAuthModalStore.getState().onSuccessCallback;
+    closeModal();
+    // Refreshing the current route alongside a push can cancel the continuation.
+    if (continuation) continuation();
+    else router.refresh();
+    return true;
   };
 
   useEffect(() => {
@@ -215,19 +235,16 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
   };
 
   const handleVerifyOtp = async (data: OtpFormValues) => {
+    const current = generation.current;
     try {
       setIsSubmitting(true);
       const res = await verifyOtp(phone, data.code);
+      if (current !== generation.current) return;
       resetOtp({code: ""});
       if (res.isNewUser) {
         setStep("REGISTER");
       } else {
-        await clearSensitiveState(queryClient);
-        await queryClient.invalidateQueries({ queryKey: ["authUser"] });
-        router.refresh();
-        if (onSuccessCallback) onSuccessCallback();
-        closeModal();
-        toast.success(t("toast.authSuccess"));
+        if (await completeAuthentication(current)) toast.success(t("toast.authSuccess"));
       }
     } catch (error: unknown) {
       toast.error(localizeApiError(error, errors));
@@ -237,6 +254,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
   };
 
   const handleRegister = async (data: RegisterFormValues) => {
+    const current = generation.current;
     try {
       setIsSubmitting(true);
       await registerUser({
@@ -246,12 +264,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
         email: data.email || undefined,
         username: data.username || undefined,
       });
-      await clearSensitiveState(queryClient);
-      await queryClient.invalidateQueries({ queryKey: ["authUser"] });
-      router.refresh();
-      if (onSuccessCallback) onSuccessCallback();
-      closeModal();
-      toast.success(t("toast.registerSuccess"));
+      if (await completeAuthentication(current)) toast.success(t("toast.registerSuccess"));
     } catch (error: unknown) {
       toast.error(localizeApiError(error, errors));
     } finally {
@@ -312,12 +325,7 @@ export function AuthModal({previewLoginEnabled = false}: {previewLoginEnabled?: 
                 </Button>
               </form>
               {previewLoginEnabled && <PreviewPasswordLogin onSuccess={async () => {
-                await clearSensitiveState(queryClient);
-                await queryClient.invalidateQueries({queryKey: ["authUser"]});
-                router.refresh();
-                if (onSuccessCallback) onSuccessCallback();
-                closeModal();
-                toast.success(t("toast.authSuccess"));
+                if (await completeAuthentication(generation.current)) toast.success(t("toast.authSuccess"));
               }} />}
             </motion.div>
           )}

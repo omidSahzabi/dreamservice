@@ -1,57 +1,37 @@
-"use client";
+﻿import {getTranslations} from "next-intl/server";
+import {cn} from "@/lib/utils";
+import {BrandMark} from "@/components/brand/BrandMark";
+import {IndustryCounters} from "@/components/modules/cinematic/IndustryCounters";
+import {CinematicStory} from "@/components/modules/cinematic/CinematicStory";
+import {ProjectCTA} from "@/components/modules/cinematic/ProjectCTA";
+import styles from "@/components/modules/cinematic/Cinematic.module.css";
 
-import {useTranslations} from "next-intl";
-import {useRouter} from "@/lib/i18n/navigation";
-import {useRef} from "react";
-import {useScroll, useSpring} from "framer-motion";
-import ContactCard from "@/components/modules/dream-form/ContactCard";
-import {IsometricDigitalStructure} from "@/components/modules/hero/IsometricDigitalStructure";
-import {publicSite} from "@/lib/site";
-import {Send, MessageCircle, Users, FileText} from "lucide-react";
-
-export default function Hero() {
-  const t = useTranslations("Hero");
-  const router = useRouter();
-  const heroRef = useRef<HTMLDivElement>(null);
-  const {scrollYProgress} = useScroll({target: heroRef, offset: ["start start", "center start"]});
-  const progress = useSpring(scrollYProgress, {stiffness: 130, damping: 30, mass: .35});
+export default async function Hero() {
+  const t = await getTranslations("Cinematic");
   return (
-    <div ref={heroRef} className="flex w-full flex-col items-center justify-center px-4 pt-6 sm:pt-8 gap-6">
-      <div className="grid w-full max-w-6xl min-w-0 items-center gap-x-4 gap-y-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,3.2fr)_minmax(0,1fr)] lg:gap-x-6">
-        <IsometricDigitalStructure progress={progress} variation="spire" className="col-start-1 row-start-1 h-28 w-24 justify-self-start sm:h-36 sm:w-32 lg:h-[19rem] lg:w-full" />
-
-        <h1 className="col-start-1 row-start-2 min-w-0 break-words text-4xl sm:text-5xl md:text-6xl lg:col-start-2 lg:row-start-1 lg:text-7xl font-bold text-center leading-tight">
-          {t.rich("headline", {highlight: chunks => <span className="text-primary">{chunks}</span>})}
-        </h1>
-
-        <IsometricDigitalStructure progress={progress} variation="terrace" className="col-start-1 row-start-1 h-28 w-24 justify-self-end sm:h-36 sm:w-32 lg:col-start-3 lg:h-[19rem] lg:w-full" />
-      </div>
-
-      <p className="text-muted-foreground text-center max-w-2xl">
-        {t("subtitle")}
-      </p>
-
-      <ContactCard
-        contactHref={publicSite.social.telegram}
-        contactText={t("telegramSupport")}
-        mainIcon={Send}
-        badgeIcon={MessageCircle}
-        buttons={[
-          { 
-            text: t('about'),
-            icon: Users, 
-            onClick: () => router.push('/about'),
-            variant: 'outline' 
-          },
-          { 
-            text: t('order'),
-            icon: FileText, 
-            onClick: () => router.push('/order/order-form'),
-            variant: 'filled' 
-          }
-        ]}
-        width={800}
-      />
+    <div className={styles.root}>
+      <div className={styles.noise} aria-hidden="true" />
+      <section className={cn(styles.hero, styles.wrap)} aria-labelledby="cinematic-heading">
+        <div className={styles["hero-ambient"]} aria-hidden="true" />
+        <div className={styles.eyebrow}>{t("eyebrow")}</div>
+        <h1 className={styles["hero-title"]} id="cinematic-heading"><span>{t("hero1")}</span><span className={styles.accent}>{t("hero2")}</span></h1>
+        <p className={styles["hero-desc"]}>{t("heroDesc")}</p>
+        <div className={styles["hero-cta-row"]}>
+          <a href="#cinematic-story" className={styles["primary-btn"]}><span>{t("experience")}</span><span className={styles["btn-arrow"]} aria-hidden="true">↗</span></a>
+          <a href="#cinematic-end" className={styles["outline-btn"]}>{t("skip")}</a>
+        </div>
+        <IndustryCounters />
+        <div className={styles["scroll-cue"]}><span className={styles["scroll-mouse"]} aria-hidden="true"><i /></span><span>{t("scroll")}</span></div>
+      </section>
+      <div className={styles["transition-line"]}>{t("transition")}</div>
+      <CinematicStory />
+      <section className={styles.outro} id="cinematic-end" aria-labelledby="cinematic-outro" tabIndex={-1}>
+        <BrandMark className={styles["outro-brand"]} />
+        <div className={styles.eyebrow}>{t("outroEyebrow")}</div>
+        <h2 id="cinematic-outro"><span>{t("outroA")}</span><br /><span className={styles.accent}>{t("outroB")}</span></h2>
+        <p>{t("outroP")}</p>
+        <ProjectCTA />
+      </section>
     </div>
   );
 }
